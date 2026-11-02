@@ -159,6 +159,7 @@ def _obtain_authenticated_session(
         sys.stderr.write("  (Recuerda usar tu correo '@correo.ugr.es' y la contraseña de Acceso Identificado / PRADO).\n\n")
         new_user = input(f"Institutional Email [{normalized_user}]: ").strip() or normalized_user
         new_user = normalize_ugr_username(new_user, cfg.moodle_url) or new_user
+        sys.stderr.write("  💡 (Note: Password characters are hidden for security. Type and press Enter.)\n")
         new_pass = getpass.getpass("Institutional Password: ")
         cred_store.set_sso_credentials(new_user, new_pass)
         if cfg.username != new_user:
@@ -317,6 +318,7 @@ def _handle_auth(args: argparse.Namespace, json_mode: bool) -> int:
             )
         elif not json_mode and not args.no_interactive and sys.stdin.isatty():
             import getpass
+            sys.stderr.write("  💡 (Note: Password characters are hidden for security. Type and press Enter.)\n")
             password = getpass.getpass("Institutional Password: ")
         if not password:
             raise InvalidCredentialsError("Password is required for 'prado auth login'.")

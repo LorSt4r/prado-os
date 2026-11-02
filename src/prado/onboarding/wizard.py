@@ -152,7 +152,8 @@ class OnboardingWizard:
             username = entered_user
 
             if password is None:
-                entered_pass = self.password_fn("3. Institutional Password (hidden, stored in OS Keychain): ")
+                self.print_fn("   💡 (Note: For security reasons, password characters are NOT displayed while typing. Just type it and press Enter.)")
+                entered_pass = self.password_fn("3. Institutional Password (hidden): ")
                 password = entered_pass
 
             default_root = str(courses_root or existing.courses_root)
