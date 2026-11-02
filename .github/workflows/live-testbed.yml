@@ -1,0 +1,29 @@
+name: Interactive Cloud Testbed (Live Terminal)
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: 'Select OS runner for live interactive test'
+        required: true
+        default: 'windows-latest'
+        type: choice
+        options:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+
+jobs:
+  live-terminal:
+    name: Live Terminal (${{ inputs.os }})
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start Interactive Terminal Session (tmate)
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: false
