@@ -1,5 +1,5 @@
 # =============================================================================
-# PradoOS (`prado-os`) — Self-Bootstrapping Installer for Windows 10/11
+# PradoOS (`prado-os`) -- Self-Bootstrapping Installer for Windows 10/11
 # Works on fresh Windows machines without Python or Git pre-installed!
 # Usage:
 #   irm https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.ps1 | iex
@@ -309,8 +309,18 @@ function Install-PradoOS {
         } catch {}
     }
 
+    $LocalBinDir = Join-Path $HOME ".local\bin"
+    if (-not (Test-Path $LocalBinDir)) {
+        New-Item -ItemType Directory -Force -Path $LocalBinDir | Out-Null
+    }
+    $LocalCmdWrapper = Join-Path $LocalBinDir "prado.cmd"
+    $LocalCmdContent = "@echo off`r`n`"$PradoExe`" %*"
+    try {
+        Set-Content -Path $LocalCmdWrapper -Value $LocalCmdContent -Force -ErrorAction SilentlyContinue
+    } catch {}
+
     Write-Host ""
-    Write-Host "✓ PradoOS installed successfully!" -ForegroundColor Green
+    Write-Host "[OK] PradoOS installed successfully!" -ForegroundColor Green
     Write-Host "  Command    : prado"
     Write-Host "  Executable : $PradoExe"
     Write-Host ""
