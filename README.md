@@ -3,11 +3,12 @@
 **El motor de sincronización y flujo académico inteligente para PRADO UGR (`pradogrado`, `pradoposgrado`, `prado.ugr.es`) y Moodle.**  
 *Disponible para macOS, Linux Desktop y Windows.*
 
+[![Release: v0.2.0-beta](https://img.shields.io/badge/release-v0.2.0--beta-orange.svg)](https://github.com/LorSt4r/ugr-prado-sync/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 707 Passing](https://img.shields.io/badge/tests-707%20passed-brightgreen)](#)
-[![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](#)
+[![Tests: 708 Passing](https://img.shields.io/badge/tests-708%20passed-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
+[![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
 
 > 🌐 **Idiomas / Languages:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation)
 
@@ -40,8 +41,10 @@ Si estudias en la Universidad de Granada, PradoOS resuelve en segundo plano todo
    Olvídate de revisar PRADO para ver cuándo vence una tarea. PradoOS envía tus fechas límite directamente a tu Google Calendar universitario (`ETSIIT Granada` o calendario principal) con alarmas popup inteligentes: **3 días, 1 día y 2 horas antes para exámenes**; **2 días, 1 día y 3 horas antes para prácticas**.
 4. 🔑 **Sin pedirte la contraseña todos los días:**  
    Gracias a su soporte del token de dispositivo de confianza (`MFA_TOKEN`), solo introduces tu segundo factor una vez cada 30 días. Tu contraseña se guarda en el Llavero nativo de tu sistema operativo (macOS Keychain, Windows Credential Manager o Linux SecretService), jamás en texto plano.
-5. 📂 **Organización impecable según tu facultad:**  
-   Elige entre una réplica exacta de las secciones de PRADO (`mirror`) o un árbol inteligente que separa `Teoria/`, `Practicas/P1..Pn/` y `General/` archivando subgrupos de prácticas que no te corresponden (`smart`).
+5. 📂 **Organización natural y selector gráfico nativo (Finder / Explorador de Archivos):**  
+   - **Por defecto (`mirror`):** mantiene los **nombres oficiales de tus asignaturas en PRADO** y replica exactamente las secciones creadas por cada profesor.  
+   - **Modo IA (`smart`):** separa automáticamente `Teoria/`, `Practicas/P1..Pn/` y `General/` (ideal si utilizas un agente de IA).  
+   - **Sin escribir rutas a mano:** detecta automáticamente tu Escritorio/Inicio localizado (en español, italiano o inglés) y te permite pulsar **`G`** durante la configuración para elegir dónde guardar tu carpeta mediante la **ventana gráfica nativa de tu sistema (Finder en macOS, Explorador de Archivos en Windows, Zenity/KDialog en Linux)**.
 
 ---
 
@@ -54,20 +57,18 @@ Instala y configura https://github.com/LorSt4r/ugr-prado-sync siguiendo BOOTSTRA
 ```
 *El agente leerá [`BOOTSTRAP.md`](BOOTSTRAP.md), te hablará en tu idioma preferido (español o inglés) y completará la configuración inicial en menos de 60 segundos.*
 
-#### Opción B: Instalación Tradicional por Terminal (100% Determinista, sin IA)
+#### Opción B: Instalación en 1 Clic por Terminal (100% Determinista, sin IA)
 
-> 💡 **Cero configuración previa:** No necesitas tener Python ni Git instalados previamente. El instalador detecta tu entorno y configura automáticamente un runtime aislado si no tienes Python >= 3.10.
+> 💡 **Cero configuración previa:** No necesitas tener Python ni Git instalados previamente. El instalador detecta tu entorno, descarga un runtime aislado en espacio de usuario (sin permisos de administrador) y lanza automáticamente el asistente en **Español** (o **Inglés**) junto con la primera descarga de tus asignaturas.
 
 **macOS y Linux Desktop:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.sh | bash
-prado onboard
 ```
 
 **Windows (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.ps1 | iex
-prado onboard
 ```
 
 *(Si ejecutas `prado` sin argumentos en tu terminal, se abrirá un menú interactivo con opciones numeradas del 1 al 7).*
@@ -153,7 +154,10 @@ PradoOS turns your university Moodle / PRADO UGR portal into an automated, self-
 2. 🛡️ **Zero Overwrites Guarantee:** Your work is sacred. If you edit a Jupyter Notebook (`.ipynb`), write code (`.cpp`, `.py`), or modify a report (`.docx`), PradoOS tracks original SHA-256 hashes and **never overwrites your local edits**. Professor updates are stored side-by-side as `{name}_server_{timestamp}.{ext}`.
 3. 📅 **Direct Google Calendar Integration:** Pushes deadlines and exam milestones directly to your Google Calendar with tiered popup reminders (3d/1d/2h for exams, 2d/1d/3h for assignments).
 4. 🔑 **30-Day Device Trust:** Enter your 2FA verification code once a month. Passwords live strictly in your operating system's Keychain—never in plaintext.
-5. 📂 **Faculty-Tailored Routing:** Choose between exact Moodle section replicas (`mirror`) or an intelligent STEM layout separating `Teoria/`, `Practicas/P1..Pn/`, and `General/` while archiving other lab subgroups (`smart`).
+5. 📂 **Native GUI Folder Picker & Official PRADO Course Names:**  
+   - **Default (`mirror`):** preserves **official PRADO course names** and exact professor section structure.  
+   - **AI Mode (`smart`):** separates `Teoria/`, `Practicas/P1..Pn/`, and `General/` for AI-assisted workflows.  
+   - **No manual path typing:** auto-detects your OS-localized Desktop/Home folder and lets you press **`G`** during setup to pick your destination folder via a **native graphical window (macOS Finder, Windows File Explorer, Linux File Manager)**.
 
 ---
 
@@ -165,18 +169,16 @@ Send this prompt to your AI assistant:
 Install and configure https://github.com/LorSt4r/ugr-prado-sync for me following BOOTSTRAP.md
 ```
 
-#### Option B: Standalone Terminal Installation
+#### Option B: 1-Click Standalone Terminal Installation
 
-> 💡 **Zero prerequisites needed:** You do not need Python or Git pre-installed. The installer automatically detects your environment and sets up an isolated runtime if Python >= 3.10 is missing.
+> 💡 **Zero prerequisites needed:** You do not need Python or Git pre-installed. The installer automatically sets up an isolated user-space runtime and launches the interactive setup wizard (Spanish default or English) and initial course sync.
 
 ```bash
 # macOS & Linux Desktop:
 curl -fsSL https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.sh | bash
-prado onboard
 
 # Windows (PowerShell):
 irm https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.ps1 | iex
-prado onboard
 ```
 
 ---
