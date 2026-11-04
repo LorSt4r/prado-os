@@ -195,15 +195,21 @@ def _handle_onboard(args: argparse.Namespace, json_mode: bool) -> int:
         install_daemon=args.install_daemon,
         interactive=interactive,
         json_mode=json_mode,
-        prompt_star=not args.no_star,
+        prompt_star=False,
     )
 
     if json_mode:
         _emit_json(result)
     else:
-        print(f"\n✓ Onboarding complete! Configuration saved to {result['config_file']}")
-        print(f"  Courses root : {result['courses_root']}")
-        print(f"  Preset       : {result['preset']}")
+        lang = result.get("language", "es")
+        if lang == "en":
+            print(f"\n✓ Onboarding complete! Configuration saved to {result['config_file']}")
+            print(f"  Courses root : {result['courses_root']}")
+            print(f"  Preset       : {result['preset']} (Overwrite Protection ACTIVE)")
+        else:
+            print(f"\n✓ ¡Configuración completada! Guardada en {result['config_file']}")
+            print(f"  Carpeta de asignaturas : {result['courses_root']}")
+            print(f"  Modo de estructura     : {result['preset']} (Protección Anti-Sobrescritura ACTIVA)")
         is_real_tty = (
             interactive
             and hasattr(sys.stdin, "isatty")
@@ -211,7 +217,10 @@ def _handle_onboard(args: argparse.Namespace, json_mode: bool) -> int:
             and not os.environ.get("PYTEST_CURRENT_TEST")
         )
         if is_real_tty:
-            print("\n==> Connecting to UGR SSO to verify credentials and run initial course sync...")
+            if lang == "en":
+                print("\n==> Connecting to UGR SSO to verify credentials and run initial course sync...")
+            else:
+                print("\n==> Conectando con el SSO de la UGR para verificar tus credenciales y descargar tus asignaturas...")
             sync_ns = argparse.Namespace(
                 course=None,
                 preset=None,
@@ -568,7 +577,8 @@ def _sync_single_course(
             if decision.action == "skip":
                 continue
 
-            rel_path_obj = Path(course.slug) / decision.target_rel_path
+            course_dir_name = course.folder_name if cfg.sync.preset == "mirror" else course.slug
+            rel_path_obj = Path(course_dir_name) / decision.target_rel_path
             rel_path_str = rel_path_obj.as_posix()
             dest_abs = cfg.courses_root / rel_path_obj
             download_url = (
@@ -580,7 +590,7 @@ def _sync_single_course(
             if dry_run:
                 if planned_actions is not None:
                     planned_actions.append({
-                        "course": course.slug,
+                        "course": course_dir_name,
                         "activity": activity.title,
                         "mod_type": activity.mod_type,
                         "relative_path": rel_path_str,
@@ -680,7 +690,10 @@ def _handle_sync(args: argparse.Namespace, json_mode: bool) -> int:
         courses = [
             c
             for c in courses
-            if str(c.id) == target_str or c.slug.lower() == target_str
+            if str(c.id) == target_str
+            or c.slug.lower() == target_str
+            or c.folder_name.lower() == target_str
+            or target_str in c.fullname.lower()
         ]
 
     router = CourseRouter(cfg.sync)
@@ -738,6 +751,8 @@ def _handle_sync(args: argparse.Namespace, json_mode: bool) -> int:
         star_info = maybe_prompt_star_after_sync(
             interactive=not args.no_interactive,
             json_mode=json_mode,
+            min_syncs=2,
+            language=cfg.language,
         )
 
     payload = {

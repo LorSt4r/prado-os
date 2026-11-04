@@ -87,6 +87,142 @@ def get_credentials_vault_file() -> Path:
     return get_config_dir() / "credentials.vault"
 
 
+def get_localized_desktop_dir() -> Path:
+    """
+    Resolves the true OS-localized Desktop directory across Windows, macOS, and Linux
+    (e.g. Desktop, Escritorio, Scrivania, OneDrive Desktop), falling back to Path.home().
+    """
+    home = Path.home()
+    if os.name == "nt":
+        try:
+            import ctypes
+            buf = ctypes.create_unicode_buffer(260)
+            # CSIDL_DESKTOPDIRECTORY = 0x0010
+            res = ctypes.windll.shell32.SHGetFolderPathW(None, 0x0010, None, 0, buf)
+            if res == 0 and buf.value:
+                win_desk = Path(buf.value)
+                if win_desk.exists():
+                    return win_desk
+        except Exception:
+            pass
+    else:
+        # Check XDG user-dirs.dirs on Linux
+        xdg_dirs = home / ".config" / "user-dirs.dirs"
+        if xdg_dirs.exists():
+            try:
+                import re
+                text = xdg_dirs.read_text(encoding="utf-8", errors="ignore")
+                m = re.search(r'^XDG_DESKTOP_DIR="([^"]+)"', text, re.MULTILINE)
+                if m:
+                    raw_dir = m.group(1).replace("$HOME", str(home))
+                    xdg_desk = Path(raw_dir)
+                    if xdg_desk.exists():
+                        return xdg_desk
+            except Exception:
+                pass
+
+    for candidate_name in ("Desktop", "Escritorio", "Scrivania"):
+        candidate = home / candidate_name
+        if candidate.exists() and candidate.is_dir():
+            return candidate
+
+    return home
+
+
+def prompt_folder_picker_gui(prompt: str = "Selecciona dónde guardar la carpeta de PRADO") -> Optional[Path]:
+    """
+    Opens a native OS graphical directory picker dialog (Finder on macOS,
+    FolderBrowserDialog on Windows Explorer, Zenity/KDialog/Tkinter on Linux).
+    Returns the selected Path, or None if cancelled or unavailable.
+    """
+    import subprocess
+    import sys
+
+    if sys.platform == "darwin":
+        safe_prompt = prompt.replace('"', '\\"')
+        script = f'POSIX path of (choose folder with prompt "{safe_prompt}")'
+        try:
+            proc = subprocess.run(
+                ["osascript", "-e", script],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                return Path(proc.stdout.strip())
+        except Exception:
+            pass
+        return None
+
+    if os.name == "nt":
+        safe_prompt = prompt.replace("'", "''")
+        ps_cmd = (
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "$f = New-Object System.Windows.Forms.FolderBrowserDialog; "
+            f"$f.Description = '{safe_prompt}'; "
+            "$f.ShowNewFolderButton = $true; "
+            "if ($f.ShowDialog() -eq 'OK') { [Console]::Out.WriteLine($f.SelectedPath) }"
+        )
+        try:
+            proc = subprocess.run(
+                ["powershell", "-NoProfile", "-STA", "-Command", ps_cmd],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                return Path(proc.stdout.strip().splitlines()[-1].strip())
+        except Exception:
+            pass
+        return None
+
+    # Linux Desktop: try zenity, kdialog, then tkinter
+    import shutil
+    if shutil.which("zenity"):
+        try:
+            proc = subprocess.run(
+                ["zenity", "--file-selection", "--directory", f"--title={prompt}"],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                return Path(proc.stdout.strip())
+        except Exception:
+            pass
+
+    if shutil.which("kdialog"):
+        try:
+            proc = subprocess.run(
+                ["kdialog", "--getexistingdirectory", str(get_localized_desktop_dir()), "--title", prompt],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                return Path(proc.stdout.strip())
+        except Exception:
+            pass
+
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        selected = filedialog.askdirectory(title=prompt, initialdir=str(get_localized_desktop_dir()))
+        root.destroy()
+        if selected:
+            return Path(selected)
+    except Exception:
+        pass
+
+    return None
+
+
 def ensure_secure_dir(directory: Path) -> Path:
     """
     Ensures directory exists with restricted permissions:
@@ -170,6 +306,7 @@ class SyncConfig:
 @dataclass
 class PradoConfig:
     version: str = "1.0"
+    language: str = "es"  # 'es' (default Spanish) or 'en' (English)
     moodle_url: str = field(default_factory=get_default_moodle_url)
     sso_type: str = "ugr_saml"
     username: Optional[str] = None
@@ -206,8 +343,13 @@ class PradoConfig:
         else:
             courses_root = Path.home() / "Documents" / "UGR_Courses"
 
+        lang = str(data.get("language", "es")).strip().lower()
+        if lang not in ("es", "en"):
+            lang = "es"
+
         return cls(
             version=str(data.get("version", "1.0")),
+            language=lang,
             moodle_url=str(data.get("moodle_url") or get_default_moodle_url()),
             sso_type=str(data.get("sso_type", "ugr_saml")),
             username=data.get("username"),

@@ -51,14 +51,15 @@ class TestOnboardingAndStarUnit:
 
     def test_interactive_wizard_phase1_and_phase2(self, mock_config_dir, mock_courses_dir, in_memory_keyring):
         inputs = iter([
+            "1",                          # Language: Español (default)
             "1",                          # Platform: Grado
             "erasmus@correo.ugr.es",      # Username
             str(mock_courses_dir),        # Courses root
             "mirror",                     # Preset
             "1",                          # Semester 1
-            "y",                          # Configure Phase 2 now?
+            "s",                          # Configure Phase 2 now?
             "ED_C=C2,SO_E=E3",            # Subgroups
-            "y",                          # Enable IMAP?
+            "s",                          # Enable IMAP?
             "imap.ugr.es",                # IMAP host
             "erasmus@correo.ugr.es",      # IMAP username
             "n",                          # Install daemon?
@@ -71,11 +72,37 @@ class TestOnboardingAndStarUnit:
         )
         res = wizard.run_full_onboarding(interactive=True, json_mode=False, prompt_star=False)
         assert res["status"] == "success"
+        assert res["language"] == "es"
         assert res["username"] == "erasmus@correo.ugr.es"
         assert res["preset"] == "mirror"
         assert res["semester"] == 1
         assert res["subgroups"] == {"ED_C": "C2", "SO_E": "E3"}
         assert res["imap_enabled"] is True
+        assert any("Anti-Sobrescritura" in line for line in outputs)
+
+    def test_star_prompted_only_on_second_sync(self, mock_config_dir):
+        assert not has_been_prompted(mock_config_dir)
+        # 1st sync: should NOT prompt yet
+        r1 = maybe_prompt_star_after_sync(
+            interactive=False, json_mode=True, config_dir=mock_config_dir, min_syncs=2
+        )
+        assert r1["prompted"] is False
+        assert r1["reason"] == "waiting_for_second_sync"
+        assert not has_been_prompted(mock_config_dir)
+
+        # 2nd sync: user is actively using PradoOS -> prompts once!
+        r2 = maybe_prompt_star_after_sync(
+            interactive=False, json_mode=True, config_dir=mock_config_dir, min_syncs=2
+        )
+        assert r2["prompted"] is True
+        assert has_been_prompted(mock_config_dir)
+
+        # 3rd sync: already prompted -> never nags again
+        r3 = maybe_prompt_star_after_sync(
+            interactive=False, json_mode=True, config_dir=mock_config_dir, min_syncs=2
+        )
+        assert r3["prompted"] is False
+        assert r3["reason"] == "already_prompted"
 
     def test_cli_courses_commands(self, mock_config_dir, mock_courses_dir, capsys):
         save_config(PradoConfig(username="user@ugr.es", courses_root=mock_courses_dir))

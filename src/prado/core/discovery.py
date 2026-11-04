@@ -186,6 +186,13 @@ class Course:
         """Returns True if the course is visible to the student, not hidden, and active."""
         return self.visible and not self.hidden and self.is_active
 
+    @property
+    def folder_name(self) -> str:
+        """Returns the sanitized official PRADO course name for standard directory naming."""
+        from prado.core.router import sanitize_path_segment
+        raw = (self.fullname or self.shortname or self.slug or "COURSE").strip()
+        return sanitize_path_segment(raw, max_length=96)
+
 
 @dataclass
 class CourseFilter:

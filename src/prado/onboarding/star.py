@@ -20,6 +20,29 @@ from prado.config import ensure_secure_dir, get_config_dir, write_secure_file
 DEFAULT_GITHUB_REPO = "LorSt4r/ugr-prado-sync"
 DEFAULT_GITHUB_URL = f"https://github.com/{DEFAULT_GITHUB_REPO}"
 STAR_MARKER_FILENAME = ".star_prompted"
+SYNC_COUNT_FILENAME = ".sync_count"
+
+
+def get_sync_count(config_dir: Optional[Path] = None) -> int:
+    """Returns the number of completed syncs recorded in the config directory."""
+    base_dir = Path(config_dir) if config_dir is not None else get_config_dir()
+    ensure_secure_dir(base_dir)
+    count_file = base_dir / SYNC_COUNT_FILENAME
+    if not count_file.exists():
+        return 0
+    try:
+        return int(count_file.read_text(encoding="utf-8").strip())
+    except Exception:
+        return 0
+
+
+def increment_sync_count(config_dir: Optional[Path] = None) -> int:
+    """Increments and persists the completed sync counter, returning the new count."""
+    base_dir = Path(config_dir) if config_dir is not None else get_config_dir()
+    ensure_secure_dir(base_dir)
+    new_count = get_sync_count(base_dir) + 1
+    write_secure_file(base_dir / SYNC_COUNT_FILENAME, f"{new_count}\n", mode=0o600)
+    return new_count
 
 
 def get_star_marker_path(config_dir: Optional[Path] = None) -> Path:
@@ -122,23 +145,37 @@ def maybe_prompt_star_after_sync(
     repo: str = DEFAULT_GITHUB_REPO,
     input_fn: Callable[[str], str] = input,
     print_fn: Callable[[str], None] = print,
+    min_syncs: int = 1,
+    language: str = "es",
 ) -> Dict[str, Any]:
     """
     One-time post-sync GitHub star prompt.
+    If `min_syncs > 1`, increments the sync counter and waits until at least `min_syncs`
+    syncs have been completed (so the user is asked on their 2nd active sync).
     If `.star_prompted` already exists, does nothing and returns `{"prompted": False}`.
-    Otherwise records `.star_prompted` immediately so the user is never asked twice.
     """
+    url = f"https://github.com/{repo}"
     if has_been_prompted(config_dir):
         return {
             "prompted": False,
             "reason": "already_prompted",
             "repo": repo,
-            "url": f"https://github.com/{repo}",
+            "url": url,
         }
+
+    if min_syncs > 1:
+        count = increment_sync_count(config_dir)
+        if count < min_syncs:
+            return {
+                "prompted": False,
+                "reason": "waiting_for_second_sync",
+                "sync_count": count,
+                "repo": repo,
+                "url": url,
+            }
 
     # Record marker immediately so we never nag on future syncs
     mark_prompted(config_dir=config_dir, status="prompted")
-    url = f"https://github.com/{repo}"
 
     is_tty = hasattr(sys.stdin, "isatty") and sys.stdin.isatty()
     if json_mode or not interactive or not is_tty:
@@ -148,16 +185,26 @@ def maybe_prompt_star_after_sync(
             "repo": repo,
             "url": url,
             "message": (
-                f"First sync complete! If PradoOS saved you time, give us a star on GitHub: "
+                f"Sync complete! If PradoOS saved you time, give us a star on GitHub: "
                 f"`prado star` or {url}"
             ),
         }
 
-    print_fn(
-        f"\n⭐ Enjoying PradoOS? Help other students discover it by starring {repo} on GitHub!"
-    )
+    if language == "en":
+        print_fn(
+            f"\n⭐ Enjoying PradoOS? Help other students discover it by starring {repo} on GitHub!"
+        )
+        prompt_msg = "   Would you like to star the repo now? [Y/n]: "
+        decline_msg = f"   No problem! You can run `prado star` anytime or visit {url}"
+    else:
+        print_fn(
+            f"\n⭐ ¿Te está resultando útil PradoOS? ¡Ayuda a otros compañeros a descubrirlo dejando una estrella en GitHub ({repo})!"
+        )
+        prompt_msg = "   ¿Quieres dejar una estrella en el repositorio ahora? [S/n]: "
+        decline_msg = f"   ¡Sin problema! Puedes ejecutar `prado star` en cualquier momento o visitar {url}"
+
     try:
-        answer = input_fn("   Would you like to star the repo now? [Y/n]: ").strip().lower()
+        answer = input_fn(prompt_msg).strip().lower()
     except (EOFError, KeyboardInterrupt):
         answer = "n"
 
@@ -172,7 +219,7 @@ def maybe_prompt_star_after_sync(
             "url": url,
         }
 
-    print_fn(f"   No problem! You can run `prado star` anytime or visit {url}")
+    print_fn(decline_msg)
     return {
         "prompted": True,
         "starred": False,

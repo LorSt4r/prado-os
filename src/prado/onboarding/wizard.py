@@ -30,7 +30,9 @@ from prado.config import (
     get_config_file,
     get_default_academic_year_code,
     get_default_moodle_url,
+    get_localized_desktop_dir,
     load_config,
+    prompt_folder_picker_gui,
     save_config,
 )
 from prado.onboarding.star import maybe_prompt_star_after_sync
@@ -111,33 +113,61 @@ class OnboardingWizard:
         courses_root: Optional[Path | str] = None,
         preset: Optional[str] = None,
         semester: Optional[int] = None,
+        language: Optional[str] = None,
         interactive: bool = True,
         reveal_folder: bool = False,
     ) -> PradoConfig:
         """
         Executes Phase 1 core onboarding:
-        - Collects or applies username, password, Moodle URL, destination directory, and routing preset.
+        - Prompts for language ('es' default or 'en') first in interactive mode.
+        - Collects or applies username, password, Moodle URL, destination directory (with native GUI folder picker support), and routing preset.
         - Stores SSO credentials in the OS credential store / vault.
         - Creates the destination folder on disk.
         - Saves config.yaml with mode 0600 permissions.
         """
         existing = load_config(self.config_path)
+        resolved_lang = (language or existing.language or "es").strip().lower()
+        if resolved_lang not in ("es", "en"):
+            resolved_lang = "es"
 
         if interactive and not username:
-            self.print_fn("\n🎓 Welcome to PradoOS — Academic Workflow Engine (Phase 1 Setup)")
-            self.print_fn("=" * 64)
+            self.print_fn("\n🎓 PradoOS — Configuración Inicial / Initial Setup")
+            self.print_fn("=" * 68)
+
+            lang_ans = self.input_fn(
+                "🌐 0. Idioma / Language [1 = Español (por defecto), 2 = English] [1]: "
+            ).strip().lower()
+            if lang_ans in ("2", "en", "english", "eng"):
+                resolved_lang = "en"
+            else:
+                resolved_lang = "es"
+
+            is_en = resolved_lang == "en"
             default_url = moodle_url or existing.moodle_url or get_default_moodle_url()
-            plat_ans = self.input_fn(
-                f"1. Platform [1=Grado ({default_url}), 2=Posgrado, 3=CEPRUD, or custom URL] (default 1): "
-            ).strip()
+
+            if is_en:
+                plat_ans = self.input_fn(
+                    f"1. Platform [1=Grado ({default_url}), 2=Posgrado, 3=CEPRUD, or custom URL] (default 1): "
+                ).strip()
+            else:
+                plat_ans = self.input_fn(
+                    f"1. Plataforma [1=Grado ({default_url}), 2=Posgrado, 3=CEPRUD, o URL personalizada] (por defecto 1): "
+                ).strip()
             resolved_url = resolve_platform_url(plat_ans) if plat_ans else default_url
 
             default_user = existing.username or ""
-            user_prompt = (
-                f"2. Institutional Email / Username [{default_user}]: "
-                if default_user
-                else "2. Institutional Email / Username (e.g. student@correo.ugr.es): "
-            )
+            if is_en:
+                user_prompt = (
+                    f"2. Institutional Email / Username [{default_user}]: "
+                    if default_user
+                    else "2. Institutional Email / Username (e.g. student@correo.ugr.es): "
+                )
+            else:
+                user_prompt = (
+                    f"2. Correo Institucional UGR / Usuario [{default_user}]: "
+                    if default_user
+                    else "2. Correo Institucional UGR / Usuario (ej. alumno@correo.ugr.es): "
+                )
             entered_user = self.input_fn(user_prompt).strip() or default_user
             if entered_user:
                 if entered_user.lower().endswith("@go.ugr.es"):
@@ -145,40 +175,112 @@ class OnboardingWizard:
                     if local_part.lower().startswith("e.") and len(local_part) > 2:
                         local_part = local_part[2:]
                     entered_user = f"{local_part}@correo.ugr.es"
-                    self.print_fn(f"   (Note: UGR SSO requires @correo.ugr.es -> using '{entered_user}')")
+                    if is_en:
+                        self.print_fn(f"   (Note: UGR SSO requires @correo.ugr.es -> using '{entered_user}')")
+                    else:
+                        self.print_fn(f"   (Nota: El SSO de la UGR requiere @correo.ugr.es -> usando '{entered_user}')")
                 elif "@" not in entered_user and ".ugr.es" in resolved_url.lower():
                     entered_user = f"{entered_user}@correo.ugr.es"
-                    self.print_fn(f"   (Normalized username to '{entered_user}')")
+                    if is_en:
+                        self.print_fn(f"   (Normalized username to '{entered_user}')")
+                    else:
+                        self.print_fn(f"   (Usuario normalizado automáticamente a '{entered_user}')")
             username = entered_user
 
             if password is None:
-                self.print_fn("   💡 (Note: For security reasons, password characters are NOT displayed while typing. Just type it and press Enter.)")
-                entered_pass = self.password_fn("3. Institutional Password (hidden): ")
+                if is_en:
+                    self.print_fn("   💡 (Note: For security reasons, password characters are NOT displayed while typing. Just type it and press Enter.)")
+                    entered_pass = self.password_fn("3. Institutional Password (hidden): ")
+                else:
+                    self.print_fn("   💡 (Nota: Por motivos de seguridad, la contraseña NO es visible mientras escribes. Escríbela normalmente y pulsa Enter.)")
+                    entered_pass = self.password_fn("3. Contraseña Institucional (oculta): ")
                 password = entered_pass
 
-            default_root = str(courses_root or existing.courses_root)
-            entered_root = self.input_fn(f"4. Courses Destination Folder [{default_root}]: ").strip()
-            resolved_root = Path(entered_root or default_root).expanduser()
+            # Resolve default localized Desktop/Home folder and base folder name
+            desktop_dir = get_localized_desktop_dir()
+            default_folder_name = "PRADO_UGR"
+            default_root_path = Path(courses_root) if courses_root else (desktop_dir / default_folder_name)
 
-            default_preset = preset or existing.sync.preset or "mirror"
-            entered_preset = (
-                self.input_fn(
-                    "5. Folder Organization Preset [mirror = Réplica Exacta de PRADO (Recomendado Terminal), smart = Teoria/Practicas (Modo Agente IA)] "
-                    f"[{default_preset}]: "
+            if is_en:
+                self.print_fn(f"\n4. Destination Folder for your Courses (default on Desktop/Home: {default_root_path}):")
+                self.print_fn("   • Press [Enter] to use the default location and choose a folder name")
+                self.print_fn("   • Type 'G' and press Enter to select a folder via Graphical Window (Finder / File Explorer)")
+                self.print_fn("   • Or type a custom folder name / full path directly")
+                entered_root = self.input_fn(f"   Location or 'G' for GUI [{desktop_dir}]: ").strip()
+            else:
+                self.print_fn(f"\n4. Ubicación donde guardar tus asignaturas (por defecto en Escritorio/Inicio: {default_root_path}):")
+                self.print_fn("   • Pulsa [Enter] para usar tu Escritorio/Inicio y elegir el nombre de la carpeta base")
+                self.print_fn("   • Escribe 'G' y pulsa Enter para abrir la ventana gráfica (Finder / Explorador de Archivos)")
+                self.print_fn("   • O escribe directamente una ruta completa")
+                entered_root = self.input_fn(f"   Ubicación o 'G' para ventana gráfica [{desktop_dir}]: ").strip()
+
+            if entered_root.lower() in ("g", "gui", "finder", "explorer"):
+                gui_prompt = (
+                    "Select where to place your PRADO courses folder"
+                    if is_en
+                    else "Selecciona dónde guardar la carpeta de tus asignaturas de PRADO"
                 )
-                .strip()
-                .lower()
-            )
+                picked = prompt_folder_picker_gui(prompt=gui_prompt)
+                base_parent = picked if picked is not None else desktop_dir
+                name_prompt = (
+                    f"   Base folder name inside '{base_parent}' [{default_folder_name}]: "
+                    if is_en
+                    else f"   Nombre de la carpeta base dentro de '{base_parent}' [{default_folder_name}]: "
+                )
+                chosen_name = self.input_fn(name_prompt).strip() or default_folder_name
+                resolved_root = base_parent if chosen_name in (".", "") else (base_parent / chosen_name)
+            elif not entered_root:
+                name_prompt = (
+                    f"   Base folder name on '{desktop_dir}' [{default_folder_name}]: "
+                    if is_en
+                    else f"   Nombre de la carpeta base en '{desktop_dir}' [{default_folder_name}]: "
+                )
+                chosen_name = self.input_fn(name_prompt).strip() or default_folder_name
+                resolved_root = (desktop_dir / chosen_name).expanduser()
+            else:
+                candidate_path = Path(entered_root).expanduser()
+                if candidate_path.is_absolute() or "/" in entered_root or "\\" in entered_root:
+                    resolved_root = candidate_path
+                else:
+                    resolved_root = desktop_dir / entered_root
+
+            default_preset = preset or "mirror"
+            if is_en:
+                self.print_fn(
+                    "\n5. Folder Structure Mode:\n"
+                    "   • 'mirror' (Default): Exact PRADO layout & official PRADO course names.\n"
+                    "   • 'smart' (AI Mode only): Groups files into Teoria/ & Practicas/ with course acronyms (only recommended if configured with an AI Agent)."
+                )
+                entered_preset = self.input_fn(f"   Mode [mirror/smart] [{default_preset}]: ").strip().lower()
+            else:
+                self.print_fn(
+                    "\n5. Organización de Carpetas:\n"
+                    "   • 'mirror' (Por defecto): Estructura original de PRADO y nombres oficiales de tus asignaturas.\n"
+                    "   • 'smart' (Solo con IA): Agrupa en Teoria/ y Practicas/ con siglas (solo tiene sentido si usas la configuración con IA que ordena los archivos nuevos)."
+                )
+                entered_preset = self.input_fn(f"   Modo [mirror/smart] [{default_preset}]: ").strip().lower()
             resolved_preset = entered_preset if entered_preset in ("smart", "mirror") else default_preset
 
             if semester is None:
-                sem_ans = self.input_fn(
+                sem_prompt = (
                     "6. Semester Filter [1 = 1st Semester, 2 = 2nd Semester, Enter = All Active]: "
-                ).strip()
+                    if is_en
+                    else "6. Filtro de Cuatrimestre [1 = 1º Cuatrimestre, 2 = 2º Cuatrimestre, Enter = Todos los activos]: "
+                )
+                sem_ans = self.input_fn(sem_prompt).strip()
                 if sem_ans in ("1", "2"):
                     semester = int(sem_ans)
                 else:
                     semester = existing.sync.semester
+
+            if is_en:
+                self.print_fn(
+                    "\n🛡️  Overwrite Protection ACTIVE: If you edit any downloaded file (notes, code, notebooks) and the professor uploads a new version on PRADO, your local changes are NEVER overwritten (the server version is saved alongside)."
+                )
+            else:
+                self.print_fn(
+                    "\n🛡️  Protección Anti-Sobrescritura ACTIVA: Si modificas cualquier archivo descargado (apuntes, código, notebooks) y el profesor sube una versión nueva en PRADO, tu trabajo NUNCA se borrará (la nueva versión se guardará al lado sin pisar la tuya)."
+                )
         else:
             resolved_url = resolve_platform_url(moodle_url) if moodle_url else (existing.moodle_url or get_default_moodle_url())
             username = username or existing.username
@@ -198,6 +300,7 @@ class OnboardingWizard:
 
         cfg = PradoConfig(
             version=existing.version,
+            language=resolved_lang,
             moodle_url=resolved_url,
             sso_type=existing.sso_type,
             username=username,
@@ -236,13 +339,21 @@ class OnboardingWizard:
         - Optionally installs background sync scheduler daemon.
         """
         cfg = load_config(self.config_path)
+        is_en = cfg.language == "en"
 
         if interactive and subgroups is None and imap_enabled is None:
-            self.print_fn("\n⚡ PradoOS Phase 2 — Optional Power-Ups")
-            self.print_fn("=" * 64)
-            sub_ans = self.input_fn(
-                "1. Lab Subgroups (e.g. 'ED_C=C2,SO_E=E3' or Enter to keep all): "
-            ).strip()
+            if is_en:
+                self.print_fn("\n⚡ PradoOS Phase 2 — Optional Power-Ups")
+                self.print_fn("=" * 68)
+                sub_ans = self.input_fn(
+                    "1. Lab Subgroups (e.g. 'ED_C=C2,SO_E=E3' or Enter to keep all): "
+                ).strip()
+            else:
+                self.print_fn("\n⚡ PradoOS Fase 2 — Opciones Avanzadas")
+                self.print_fn("=" * 68)
+                sub_ans = self.input_fn(
+                    "1. Subgrupos de prácticas (ej. 'ED_C=C2,SO_E=E3' o Enter para descargar todos): "
+                ).strip()
             if sub_ans:
                 parsed_subs: Dict[str, str] = {}
                 for pair in sub_ans.split(","):
@@ -252,9 +363,12 @@ class OnboardingWizard:
                             parsed_subs[k.strip()] = v.strip()
                 subgroups = parsed_subs
 
-            imap_ans = self.input_fn(
+            imap_prompt = (
                 "2. Enable automatic 2FA email code fetching via IMAP? [y/N]: "
-            ).strip().lower()
+                if is_en
+                else "2. ¿Activar lectura automática del código 2FA por correo vía IMAP? [s/N]: "
+            )
+            imap_ans = self.input_fn(imap_prompt).strip().lower()
             if imap_ans in ("y", "yes", "s", "si", "sí"):
                 imap_enabled = True
                 default_host = cfg.mfa.imap_host or "imap.ugr.es"
@@ -265,11 +379,19 @@ class OnboardingWizard:
                     or default_imap_user
                 )
                 if imap_password is None:
-                    imap_password = self.password_fn("   IMAP Password (Enter to reuse SSO password): ")
+                    pwd_msg = (
+                        "   IMAP Password (Enter to reuse SSO password): "
+                        if is_en
+                        else "   Contraseña IMAP (Enter para reutilizar la contraseña UGR): "
+                    )
+                    imap_password = self.password_fn(pwd_msg)
 
-            daemon_ans = self.input_fn(
+            daemon_prompt = (
                 "3. Install automatic background sync every 4 hours? [y/N]: "
-            ).strip().lower()
+                if is_en
+                else "3. ¿Activar sincronización automática en segundo plano cada 4 horas? [s/N]: "
+            )
+            daemon_ans = self.input_fn(daemon_prompt).strip().lower()
             if daemon_ans in ("y", "yes", "s", "si", "sí"):
                 install_daemon = True
 
@@ -301,6 +423,7 @@ class OnboardingWizard:
         courses_root: Optional[Path | str] = None,
         preset: Optional[str] = None,
         semester: Optional[int] = None,
+        language: Optional[str] = None,
         subgroups: Optional[Dict[str, str]] = None,
         imap_enabled: Optional[bool] = None,
         imap_host: Optional[str] = None,
@@ -309,10 +432,11 @@ class OnboardingWizard:
         install_daemon: bool = False,
         interactive: bool = True,
         json_mode: bool = False,
-        prompt_star: bool = True,
+        prompt_star: bool = False,
     ) -> Dict[str, Any]:
         """
         Runs Phase 1 and (optionally) Phase 2 onboarding, returning a structured summary dict.
+        Note: GitHub star prompt is deferred to the 2nd completed automatic download/sync by default.
         """
         cfg = self.run_phase1(
             username=username,
@@ -321,6 +445,7 @@ class OnboardingWizard:
             courses_root=courses_root,
             preset=preset,
             semester=semester,
+            language=language,
             interactive=interactive and not json_mode,
         )
 
@@ -339,11 +464,12 @@ class OnboardingWizard:
                 interactive=False,
             )
         elif interactive and not json_mode:
-            want_p2 = (
-                self.input_fn("\nWould you like to configure Phase 2 Power-Ups now? [y/N]: ")
-                .strip()
-                .lower()
+            p2_prompt = (
+                "\nWould you like to configure Phase 2 Power-Ups (subgroups / background daemon) now? [y/N]: "
+                if cfg.language == "en"
+                else "\n¿Quieres configurar opciones avanzadas (subgrupos de prácticas / sincronización automática cada 4h) ahora? [s/N]: "
             )
+            want_p2 = self.input_fn(p2_prompt).strip().lower()
             if want_p2 in ("y", "yes", "s", "si", "sí"):
                 cfg = self.run_phase2(interactive=True)
 
@@ -355,11 +481,13 @@ class OnboardingWizard:
                 config_dir=self.config_path.parent,
                 input_fn=self.input_fn,
                 print_fn=self.print_fn,
+                language=cfg.language,
             )
 
         return {
             "status": "success",
             "config_file": str(self.config_path),
+            "language": cfg.language,
             "username": cfg.username,
             "moodle_url": cfg.moodle_url,
             "courses_root": str(cfg.courses_root),

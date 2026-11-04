@@ -468,9 +468,10 @@ class TestSafeDownloaderAdversarial:
         errors: List[str] = []
 
         def worker(idx: int):
+            worker_session = requests.Session()
             content = f"Worker_{idx}_Content_{'x' * 1000}".encode()
-            with patch.object(session, "get", return_value=make_mock_resp(content)):
-                dl = SafeDownloader(session=session)
+            with patch.object(worker_session, "get", return_value=make_mock_resp(content)):
+                dl = SafeDownloader(session=worker_session)
                 try:
                     res = dl.download_file("https://prado.ugr.es/contended.pdf", dest_file)
                     results.append(res)

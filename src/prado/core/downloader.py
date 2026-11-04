@@ -350,8 +350,15 @@ class SafeDownloader:
                         f"Checksum mismatch for {target_dest.name}: expected {expected_hash}, got {computed_hash}"
                     )
 
-                # Atomic swap into target destination
-                os.replace(tmp_file, target_dest)
+                # Atomic swap into target destination (with Windows NTFS lock retry)
+                for attempt in range(30):
+                    try:
+                        os.replace(tmp_file, target_dest)
+                        break
+                    except PermissionError:
+                        if attempt == 29:
+                            raise
+                        time.sleep(0.01 * (attempt + 1))
 
                 return DownloadResult(
                     dest_path=target_dest,
