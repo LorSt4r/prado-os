@@ -50,4 +50,6 @@ Every `prado` subcommand supports `--json` for deterministic agent orchestration
 ## 4. Onboarding & User Context
 
 - If `USER.md` does not exist in the workspace, follow [`BOOTSTRAP.md`](BOOTSTRAP.md) to onboard the student.
-- Optionally copy [`USER.md.example`](USER.md.example) to `USER.md` (which is git-ignored) to remember the student's degree, faculty preset, and preferred language locally.
+- During Phase 2 onboarding, proactively offer to set up **institutional email scraping (`@correo.ugr.es` / `@go.ugr.es`)** using either a native cross-platform Python `IMAP4_SSL` connector against `mail.ugr.es:993` (reusing the credentials stored in `CredentialStore`), an MCP email integration, or the author's original macOS Apple Mail + `osascript` scraper.
+- Optionally suggest (without forcing) maintaining a chronological academic activity log (`ACTIVITY_LOG.md` / `DIARIO_ATTIVITA.md`) and per-course strategic study guides (`STUDY_GUIDE.md`).
+- Copy [`USER.md.example`](USER.md.example) to `USER.md` (which is git-ignored) to persist the student's degree, faculty preset, timetable, email integration preference, and preferred language locally.

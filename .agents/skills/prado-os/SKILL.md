@@ -40,8 +40,10 @@ Use this skill whenever the user asks to install, configure, troubleshoot, or ru
        - **OpenAI Codex / Terminal:** Install OS daemon via `prado daemon install --interval 14400 --json`.
        - **Google Calendar:** Run `prado gcalendar --json` to push deadlines with tiered popup alarms.
      - **Sartorial Personalization (`USER.md`):**
+       - Offer to configure an **Institutional Email Scraper (`@correo.ugr.es` / `@go.ugr.es`)**, proposing either: (a) a native cross-platform Python `imaplib.IMAP4_SSL` script against `mail.ugr.es:993` reusing `CredentialStore` credentials, (b) an MCP email/Gmail connector, or (c) the author's macOS Apple Mail + `osascript` integration.
        - Ask the student for their weekly class timetable to schedule intelligent deep work study blocks between lectures.
        - Ask if they want to merge theoretical and lab portals (e.g. `SO_COMUN` + `SO_E` -> `SO_E/`).
        - Ask for evaluation weights (theory exam, lab project) and academic goals to prioritize dashboard countdowns.
+       - Optionally suggest maintaining a chronological activity log (`ACTIVITY_LOG.md`) and/or per-course strategic study guides (`STUDY_GUIDE.md`).
        - Save all custom preferences into `.gitignore`-protected `USER.md` using `USER.md.example` as a model.
-   - **GitHub Star Prompt:** After the first successful sync, politely ask once in natural language if they would like you to star `LorSt4r/ugr-prado-sync` on GitHub (`prado star --json`).
+   - **GitHub Star Prompt:** On the second completed sync, politely ask once in natural language if they would like you to star `LorSt4r/ugr-prado-sync` on GitHub (`prado star --json`).

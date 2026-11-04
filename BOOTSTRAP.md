@@ -95,11 +95,11 @@ Based on the student's preferred frequency chosen in Step 2, set up recurring ba
 
 ---
 
-## ⭐ Post-Sync Milestone: The GitHub Star Loop
+## ⭐ Post-Sync Milestone: The GitHub Star Loop (On 2nd Sync)
 
-Right after the first successful sync:
+Once the student has completed their **second sync** (or is actively using the tool):
 - Politely ask the student in natural language (without mentioning CLI commands!):
-  > *"Your courses are all synced and organized! If this tool saved you time, would you like me to leave a star on the GitHub repository for you?"*
+  > *"Your courses are all synced and organized! Since you're actively using PradoOS, if it's saving you time, would you like me to leave a star on the GitHub repository for you?"*
 - If they say yes, run `.venv/bin/prado star --json` silently in the background.
 
 ---
@@ -110,16 +110,29 @@ Una vez completada la primera sincronización de base, **no te detengas aquí**.
 
 Presenta al estudiante de forma cercana y entusiasta estas personalizaciones avanzadas, ofreciéndote a configurarlas paso a paso:
 
-1. **📅 Horario Semanal y Bloques de Estudio Inteligentes (Google Calendar Deep Work):**
+1. **📬 Scraper e Integración Inteligente del Correo Institucional (`@correo.ugr.es` / `@go.ugr.es`):**
+   - Muchos profesores de la UGR comunican cambios de aula, reglas de exámenes de prácticas, tutorías o notas por correo electrónico además de (o en lugar de) los foros de PRADO.
+   - Ofrece al estudiante configurar un monitor automático de su correo universitario integrado en el ciclo de sincronización, proponiéndole la arquitectura que mejor se adapte a su sistema (incluyendo tanto la solución original del autor como alternativas nativas multiplataforma aún más directas):
+     - **Opción A — Conector Python `IMAP4_SSL` Directo Reutilizando el Keychain de PradoOS (Recomendada, 100% Multiplataforma Windows/Linux/macOS):**
+       Crea un script ligero (`scripts/sync_ugr_mail.py`) que use la librería estándar `imaplib.IMAP4_SSL("mail.ugr.es", 993)` autenticándose directamente con las credenciales que el estudiante **ya guardó de forma segura** en `CredentialStore` (`from prado.auth.credentials import CredentialStore`), sin pedir contraseñas adicionales ni depender de clientes de escritorio abiertos. Filtra correos de profesores (`@ugr.es`, `@decsai.ugr.es`, notificaciones de PRADO, actas de notas) y guarda un resumen estructurado en `.mail_cache.json`.
+     - **Opción B — Conectores Nativos MCP / Google Workspace (`@go.ugr.es` / Gmail / IMAP MCP):**
+       Si el estudiante utiliza su cuenta `@go.ugr.es` (Google Workspace), reenvía `@correo.ugr.es` a Gmail, o su IDE de IA dispone de un servidor MCP de correo electrónico, intégralo directamente para cruzar avisos de profesores con las entregas de `DASHBOARD.md` en tiempo real.
+     - **Opción C — Solución Original del Autor en macOS (Apple Mail + AppleScript `osascript`):**
+       Si el estudiante usa macOS y ya tiene su cuenta `@correo.ugr.es` configurada en la app nativa **Mail.app**, puedes generar un script que consulte localmente los últimos mensajes mediante `osascript` (cero tráfico de red adicional, lectura instantánea desde la caché local de Apple Mail) y actualice `.mail_cache.json`.
+2. **📅 Horario Semanal y Bloques de Estudio Inteligentes (Google Calendar Deep Work):**
    - Pregunta al estudiante su horario semanal de clases y laboratorios (ej. *"¿Qué días y a qué horas tienes clases presenciales?"*).
    - Con esos datos, tu agente calcula sus huecos libres reales entre clases (ej. mañanas libres de los lunes o tardes sin docencia) y programa bloques automáticos de estudio diario (*"📚 [ESTUDIO ...]"*) con aviso previo en Google Calendar (`prado gcalendar`).
-2. **🏛️ Fusión y Alias de Cursos Teórico-Prácticos (Course Aliasing):**
+3. **🏛️ Fusión y Alias de Cursos Teórico-Prácticos (Course Aliasing):**
    - En facultades como la ETSIIT, muchas asignaturas tienen dos portales en PRADO: uno general (*COMÚN*) para transparencias de teoría y otro específico de prácticas (*Grupo E, C, B*).
    - Pregunta si desea fusionarlos en una única carpeta local unificada (ej. unificar *Sistemas Operativos COMÚN* y *Sistemas Operativos Grupo E* en `SO_E/`), manteniendo apuntes y guiones juntos sin carpetas redundantes.
-3. **📊 Ponderación de Evaluaciones y Metas Académicas:**
+4. **📊 Ponderación de Evaluaciones y Metas Académicas:**
    - Pregunta los porcentajes de evaluación de sus asignaturas (ej. 60% examen de teoría, 35% proyecto final en equipo, 15% problemas) y sus metas académicas.
    - Esto te permitirá priorizar las cuentas regresivas y enfocar las sesiones de estudio donde el impacto matemático sobre la nota final sea máximo.
-4. **🧪 Filtro Quirúrgico de Subgrupos de Laboratorio:**
+5. **🧪 Filtro Quirúrgico de Subgrupos de Laboratorio:**
    - Pregunta a qué subgrupos pertenece (ej. `C2`, `E3`, `A1`) para archivar limpiamente los enunciados de otros subgrupos en `_subgroups_archive/` y mantener la carpeta principal impecable. *(Se aplica en segundo plano con `.venv/bin/prado onboard --subgroups "ED_C=C2,..." --no-interactive --no-star --json`)*.
-5. **👤 Creación del Perfil Permanente `USER.md`:**
+6. **📓 Sugerencias Opcionales del Agente (Registro Histórico y Guías de Estudio):**
+   - Sin imponerlo por defecto, sugiere al estudiante si le gustaría que mantengas automáticamente:
+     - Un **Diario Cronológico de Actividad (`DIARIO_ATTIVITA.md` / `ACTIVITY_LOG.md`)** donde registres cada sincronización relevante, entregas completadas, correos de profesores recibidos y calificaciones publicadas.
+     - **Guías Estratégicas por Asignatura (`STUDY_GUIDE.md`)** dentro de cada carpeta de curso con el desglose de evaluación, fechas clave y estrategia para alcanzar la máxima nota.
+7. **👤 Creación del Perfil Permanente `USER.md`:**
    - Guarda todas estas preferencias en un archivo local `USER.md` (tomando como referencia `USER.md.example`). Al estar registrado en `.gitignore`, sus datos y notas jamás se compartirán en Git, pero tú y cualquier sesión futura de IA recordaréis exactamente quién es el estudiante, su horario y sus metas académicas.
