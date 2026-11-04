@@ -15,19 +15,20 @@ BIN_DIR="${PRADO_BIN_DIR:-$HOME/.local/bin}"
 
 printf "\033[1;34m==> PradoOS Installer (macOS / Linux Desktop)\033[0m\n"
 
-# 1. Locate Python >= 3.10 (or uv)
+# 1. Locate Python >= 3.10 with working venv + ensurepip (or fallback to uv)
 PYTHON_BIN=""
 for candidate in python3.14 python3.13 python3.12 python3.11 python3.10 /opt/homebrew/bin/python3 /usr/local/bin/python3 python3; do
     if command -v "$candidate" >/dev/null 2>&1; then
-        if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+        if "$candidate" -c 'import sys, venv, ensurepip; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
             PYTHON_BIN="$candidate"
             break
         fi
     fi
 done
 
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 if [ -z "$PYTHON_BIN" ] && ! command -v uv >/dev/null 2>&1; then
-    printf "\033[1;33m==> Python >= 3.10 not found. Bootstrapping isolated Python runtime via Astral uv...\033[0m\n"
+    printf "\033[1;33m==> Python venv/ensurepip not found. Bootstrapping isolated Python runtime via Astral uv...\033[0m\n"
     curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 fi
