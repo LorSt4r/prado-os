@@ -35,18 +35,23 @@ jobs:
         run: |
           prado doctor --json
 
-      - name: Verify Self-Bootstrapping Installer (install.ps1 / install.sh)
-        shell: ${{ runner.os == 'Windows' && 'powershell' || 'bash' }}
+      - name: Verify Self-Bootstrapping Installer on Windows (install.ps1)
+        if: runner.os == 'Windows'
+        shell: powershell
         env:
           PRADO_NO_INTERACTIVE: "1"
         run: |
-          if ("${{ runner.os }}" -eq "Windows") {
-            .\install.ps1
-            & "$HOME\.local\bin\prado.cmd" --version
-          } else {
-            bash ./install.sh
-            "$HOME/.local/bin/prado" --version
-          }
+          .\install.ps1
+          & "$HOME\.local\bin\prado.cmd" --version
+
+      - name: Verify Self-Bootstrapping Installer on POSIX (install.sh)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PRADO_NO_INTERACTIVE: "1"
+        run: |
+          bash ./install.sh
+          "$HOME/.local/bin/prado" --version
 
       - name: Run Full Pytest Suite (Unit + Integration + E2E)
         run: |
