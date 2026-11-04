@@ -60,7 +60,12 @@ class CredentialStore:
             salt = os.urandom(16)
             write_secure_file(salt_file, salt, mode=0o600)
 
-        machine_seed = f"{platform.node()}-{uuid.getnode()}-{os.environ.get('USER', 'default')}"
+        import getpass
+        try:
+            user_id = getpass.getuser()
+        except Exception:
+            user_id = str(getattr(os, "getuid", lambda: "default")())
+        machine_seed = f"prado-vault-{user_id}"
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
