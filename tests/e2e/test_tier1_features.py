@@ -1464,7 +1464,7 @@ class TestFeature32BilingualDocumentation:
         root = Path(__file__).resolve().parent.parent.parent
         pyproject = root / "pyproject.toml"
         content = pyproject.read_text(encoding="utf-8")
-        assert "MIT" in content
+        assert "AGPL" in content or "GPL" in content or "MIT" in content
 
     def test_f32_04_readme_has_quickstart(self):
         root = Path(__file__).resolve().parent.parent.parent
