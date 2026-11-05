@@ -124,6 +124,73 @@ def test_schtasks_backend_commands(monkeypatch):
     assert status.platform == "windows"
 
 
+def test_schtasks_minute_and_daily_intervals(monkeypatch):
+    backend = SchtasksBackend()
+    captured = []
+
+    def mock_run(cmd, *args, **kwargs):
+        captured.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout="")
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+
+    # 1800s -> 30 minutes
+    assert backend.install(interval_seconds=1800) is True
+    cmd = captured[-1]
+    assert cmd[cmd.index("/sc") + 1] == "MINUTE"
+    assert cmd[cmd.index("/mo") + 1] == "30"
+
+    # 14400s -> 4 hours (HOURLY)
+    assert backend.install(interval_seconds=14400) is True
+    cmd = captured[-1]
+    assert cmd[cmd.index("/sc") + 1] == "HOURLY"
+    assert cmd[cmd.index("/mo") + 1] == "4"
+
+    # 172800s -> 2 days (DAILY)
+    assert backend.install(interval_seconds=172800) is True
+    cmd = captured[-1]
+    assert cmd[cmd.index("/sc") + 1] == "DAILY"
+    assert cmd[cmd.index("/mo") + 1] == "2"
+
+
+def test_schtasks_status_spanish_locale_and_disabled(monkeypatch):
+    backend = SchtasksBackend()
+
+    spanish_csv = (
+        "\n\n"
+        '"Nombre de host","Nombre de tarea","Hora próxima ejecución","Estado","Estado de la tarea programada","Tipo de programación"\n'
+        '"WIN-SRV","PradoSync","11/06/2026 14:00:00","Listo","Deshabilitado","Cada 4 hora(s)"\n'
+    )
+
+    def mock_run(cmd, *args, **kwargs):
+        return subprocess.CompletedProcess(cmd, 0, stdout=spanish_csv)
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+
+    st = backend.status()
+    assert st.installed is True
+    assert st.active is False  # Because "Deshabilitado"
+    assert st.next_run == "11/06/2026 14:00:00"
+    assert "cada 4 hora(s)" in st.schedule
+
+
+def test_schtasks_idempotent_uninstall_and_stop(monkeypatch):
+    backend = SchtasksBackend()
+
+    def mock_run(cmd, *args, **kwargs):
+        if "/delete" in cmd:
+            # Returns error indicating task not found
+            return subprocess.CompletedProcess(cmd, 1, stderr="ERROR: The system cannot find the file specified.\n")
+        if "/end" in cmd:
+            return subprocess.CompletedProcess(cmd, 1, stderr="ERROR: The task is not running.\n")
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+
+    assert backend.uninstall() is True
+    assert backend.stop() is True
+
+
 def test_daemon_manager_platform_dispatch():
     darwin_mgr = DaemonManager(platform_override="darwin")
     assert isinstance(darwin_mgr.backend, LaunchdBackend)

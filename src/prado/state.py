@@ -366,6 +366,35 @@ class StateDatabase:
         finally:
             conn.close()
 
+    def get_file_by_url(self, remote_url: str, course_id: Optional[int] = None) -> Optional[FileRecord]:
+        """Retrieves a file record by remote download URL, optionally filtered by course_id."""
+        conn = self._get_connection()
+        try:
+            if course_id is not None:
+                cur = conn.execute("SELECT * FROM files WHERE remote_url = ? AND course_id = ?", (remote_url, course_id))
+            else:
+                cur = conn.execute("SELECT * FROM files WHERE remote_url = ?", (remote_url,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return FileRecord(
+                path=row["path"],
+                course_id=row["course_id"],
+                resource_id=row["resource_id"],
+                remote_url=row["remote_url"],
+                original_hash=row["original_hash"],
+                current_hash=row["current_hash"],
+                file_size=row["file_size"],
+                local_mtime=row["local_mtime"],
+                server_mtime=row["server_mtime"],
+                last_synced_at=row["last_synced_at"],
+                is_adopted=row["is_adopted"],
+                is_modified=row["is_modified"],
+                student_modified=row["student_modified"],
+            )
+        finally:
+            conn.close()
+
     def mark_modified(self, rel_path: str, modified: bool = True) -> None:
         """Sets the student modification flag for a tracked file."""
         val = 1 if modified else 0

@@ -175,7 +175,19 @@ class CourseRouter:
         """
         resolved_policy = subgroup_policy if subgroup_policy in ("archive", "ignore", "include") else "archive"
 
-        filename = file.name if file else f"{activity.title}.pdf"
+        if file:
+            filename = file.name
+        else:
+            has_ext = False
+            for ce in COMPOUND_EXTENSIONS:
+                if activity.title.lower().endswith(ce):
+                    has_ext = True
+                    break
+            if not has_ext:
+                _, ext = os.path.splitext(activity.title)
+                if ext:
+                    has_ext = True
+            filename = activity.title if has_ext else f"{activity.title}.pdf"
         sanitized_filename = sanitize_path_segment(filename, max_length=128)
 
         # 1. Subgroup Analysis

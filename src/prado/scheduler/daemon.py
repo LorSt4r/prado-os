@@ -432,6 +432,10 @@ class SchtasksBackend(BaseDaemonBackend):
             days = max(1, min(365, int(interval_seconds) // 86400))
             schedule_type = "DAILY"
             modifier = days
+        elif interval_seconds < 3600:
+            minutes = max(1, min(1439, int(interval_seconds) // 60))
+            schedule_type = "MINUTE"
+            modifier = minutes
         else:
             schedule_type = "HOURLY"
             modifier = max(1, min(23, int(interval_seconds) // 3600))
@@ -448,55 +452,108 @@ class SchtasksBackend(BaseDaemonBackend):
             str(modifier),
             "/f",
         ]
-        res = subprocess.run(args, capture_output=True, text=True)
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
         return res.returncode == 0
 
     def uninstall(self) -> bool:
         args = ["schtasks.exe", "/delete", "/tn", self.TASK_NAME, "/f"]
-        res = subprocess.run(args, capture_output=True, text=True)
-        return res.returncode == 0
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
+        if res.returncode == 0:
+            return True
+        stderr_lower = (res.stderr or "").lower()
+        if "cannot find" in stderr_lower or "no se puede encontrar" in stderr_lower or "not found" in stderr_lower:
+            return True
+        return False
 
     def start(self) -> bool:
         args = ["schtasks.exe", "/run", "/tn", self.TASK_NAME]
-        res = subprocess.run(args, capture_output=True, text=True)
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
         return res.returncode == 0
 
     def stop(self) -> bool:
         args = ["schtasks.exe", "/end", "/tn", self.TASK_NAME]
-        res = subprocess.run(args, capture_output=True, text=True)
-        return res.returncode == 0
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
+        if res.returncode == 0:
+            return True
+        stderr_lower = (res.stderr or "").lower()
+        if "not running" in stderr_lower or "no se está ejecutando" in stderr_lower:
+            return True
+        return False
 
     def status(self) -> DaemonStatus:
         args = ["schtasks.exe", "/query", "/tn", self.TASK_NAME, "/fo", "CSV", "/v"]
-        res = subprocess.run(args, capture_output=True, text=True)
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
         installed = res.returncode == 0
         active = False
         last_run = None
         next_run = None
+        schedule = "hourly"
+        err_msg = None
 
         if installed:
             active = True
             try:
-                reader = csv.DictReader(io.StringIO(res.stdout))
+                lines = [line for line in res.stdout.splitlines() if line.strip()]
+                reader = csv.DictReader(lines)
                 for row in reader:
-                    next_run = row.get("Next Run Time") or None
-                    last_run = row.get("Last Run Time") or None
-                    status_str = row.get("Status", "").lower()
-                    if "disabled" in status_str:
+                    clean_row = {str(k).strip().lower(): v for k, v in row.items() if k}
+                    next_run = (
+                        row.get("Next Run Time")
+                        or clean_row.get("next run time")
+                        or clean_row.get("hora próxima ejecución")
+                        or None
+                    )
+                    last_run = (
+                        row.get("Last Run Time")
+                        or clean_row.get("last run time")
+                        or clean_row.get("hora última ejecución")
+                        or None
+                    )
+                    status_str = (
+                        row.get("Status")
+                        or clean_row.get("status")
+                        or clean_row.get("estado")
+                        or ""
+                    ).lower()
+                    state_str = (
+                        row.get("Scheduled Task State")
+                        or clean_row.get("scheduled task state")
+                        or clean_row.get("estado de la tarea programada")
+                        or ""
+                    ).lower()
+                    if (
+                        "disabled" in status_str
+                        or "disabled" in state_str
+                        or "deshabilitado" in status_str
+                        or "deshabilitado" in state_str
+                    ):
                         active = False
+                    sched_type = (
+                        row.get("Schedule Type")
+                        or clean_row.get("schedule type")
+                        or clean_row.get("tipo de programación")
+                        or row.get("Schedule")
+                        or clean_row.get("schedule")
+                    )
+                    if sched_type:
+                        schedule = sched_type.lower()
             except Exception:
                 pass
+        else:
+            if res.stderr and res.stderr.strip():
+                err_msg = res.stderr.strip()
 
         return DaemonStatus(
             installed=installed,
             active=active,
             platform="windows",
             backend=self.name,
-            schedule="hourly",
+            schedule=schedule,
             target_command=get_default_daemon_command(),
             config_path=f"Task Scheduler: {self.TASK_NAME}",
             next_run=next_run,
             last_run=last_run,
+            error=err_msg,
         )
 
 

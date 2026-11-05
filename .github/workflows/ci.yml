@@ -53,6 +53,14 @@ jobs:
           bash ./install.sh
           "$HOME/.local/bin/prado" --version
 
+      - name: Live Zero-Mock OS & UGR Server Integration Suite (test_live_real.py)
+        shell: bash
+        env:
+          PRADO_NO_INTERACTIVE: "1"
+          PRADO_LIVE_E2E: "1"
+        run: |
+          pytest tests/e2e/test_live_real.py -v
+
       - name: Run Full Pytest Suite (Unit + Integration + E2E)
         run: |
           pytest -q

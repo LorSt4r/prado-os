@@ -42,7 +42,8 @@ class CredentialStore:
         vault_path: Optional[Path] = None,
     ) -> None:
         self.use_env = use_env
-        self.preferred_backend = preferred_backend
+        env_pref = os.environ.get("PRADO_KEYRING_BACKEND")
+        self.preferred_backend = env_pref if env_pref else preferred_backend
         self.vault_path = vault_path or get_credentials_vault_file()
 
     def _get_encryption_key(self) -> bytes:

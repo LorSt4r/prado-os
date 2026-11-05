@@ -601,6 +601,11 @@ def _sync_single_course(
 
             # If local file already exists and is tracked with no force flag, check if we can skip or adopt
             existing_rec = state_db.get_file(rel_path_str)
+            if existing_rec is None and download_url:
+                existing_rec = state_db.get_file_by_url(download_url, course_id=course.id)
+                if existing_rec:
+                    rel_path_str = existing_rec.path
+                    dest_abs = cfg.courses_root / rel_path_str
             if dest_abs.exists() and dest_abs.is_file() and not force:
                 local_bytes = dest_abs.read_bytes()
                 local_hash = hashlib.sha256(local_bytes).hexdigest()

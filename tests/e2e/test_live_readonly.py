@@ -46,3 +46,28 @@ class TestLiveReadOnlyIntegration:
         # Verification that dry-run causes zero remote or local mutations
         dry_run = True
         assert dry_run is True
+
+    def test_live_ugr_mail_imap_starttls(self):
+        import imaplib, ssl
+        try:
+            conn = imaplib.IMAP4("correo.ugr.es", 143, timeout=5)
+            ctx = ssl.create_default_context()
+            conn.starttls(ssl_context=ctx)
+            assert "IMAP4REV1" in conn.capabilities
+            conn.logout()
+        except (OSError, imaplib.IMAP4.error):
+            pytest.skip("correo.ugr.es:143 unreachable or connection dropped.")
+
+    def test_live_ugr_mail_smtp_ssl(self):
+        import socket, ssl
+        try:
+            ctx = ssl.create_default_context()
+            s = ctx.wrap_socket(
+                socket.create_connection(("correo.ugr.es", 465), timeout=5),
+                server_hostname="correo.ugr.es",
+            )
+            banner = s.recv(1024)
+            assert b"220" in banner
+            s.close()
+        except OSError:
+            pytest.skip("correo.ugr.es:465 unreachable from test environment.")

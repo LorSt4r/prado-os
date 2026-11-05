@@ -478,25 +478,102 @@ class UgrMailClient:
                 candidates.append(item)
 
         last_err: Optional[Exception] = None
-        for host, port, mode in candidates:
-            try:
-                ctx = ssl.create_default_context()
-                if mode == "starttls":
-                    conn = imaplib.IMAP4(host, port, timeout=15)
-                    conn.starttls(ssl_context=ctx)
-                else:
-                    conn = imaplib.IMAP4_SSL(host, port, ssl_context=ctx, timeout=15)
-                conn.login(username, password)
-                return conn
-            except imaplib.IMAP4.error as auth_err:
-                raise InvalidCredentialsError(
-                    f"IMAP authentication failed for '{username}' on {host}:{port}: {auth_err}"
-                ) from auth_err
-            except Exception as exc:
-                last_err = exc
-                continue
+        for attempt in range(2):
+            for host, port, mode in candidates:
+                try:
+                    ctx = ssl.create_default_context()
+                    if mode == "starttls":
+                        conn = imaplib.IMAP4(host, port, timeout=15)
+                        conn.starttls(ssl_context=ctx)
+                    else:
+                        conn = imaplib.IMAP4_SSL(host, port, ssl_context=ctx, timeout=15)
+                    conn.login(username, password)
+                    return conn
+                except imaplib.IMAP4.abort as abort_err:
+                    # Socket EOF / Courier-IMAP MAXPERIP connection limit (not bad credentials!)
+                    last_err = abort_err
+                    continue
+                except imaplib.IMAP4.error as auth_err:
+                    err_str = str(auth_err).upper()
+                    if "AUTHENTICATIONFAILED" in err_str or "LOGIN" in err_str or "INVALID" in err_str:
+                        raise InvalidCredentialsError(
+                            f"IMAP authentication failed for '{username}' on {host}:{port}: {auth_err}"
+                        ) from auth_err
+                    last_err = auth_err
+                    continue
+                except Exception as exc:
+                    last_err = exc
+                    continue
 
         raise PradoError(f"Could not connect to UGR IMAP server ({primary_host}): {last_err}")
+
+    def _fetch_inbox_apple_mail_fallback(self, limit: int = 25) -> Optional[List[MailMessage]]:
+        """
+        On macOS, if Courier-IMAP drops TCP connections with EOF because Apple Mail.app is open
+        and holding all MAXPERIP connection slots for the current IP, transparently reads the
+        inbox directly from Apple Mail.app via `osascript`.
+        """
+        import sys
+        import subprocess
+
+        if sys.platform != "darwin":
+            return None
+
+        script = f'''
+        tell application "Mail"
+            set targetAcc to missing value
+            repeat with acc in every account
+                if (user name of acc contains "@correo.ugr.es") or (name of acc contains "ugr") then
+                    set targetAcc to acc
+                    exit repeat
+                end if
+            end repeat
+            if targetAcc is missing value then return ""
+            set inb to mailbox "INBOX" of targetAcc
+            set msgCount to count of messages of inb
+            if msgCount is 0 then return ""
+            set maxN to {int(limit)}
+            if msgCount < maxN then set maxN to msgCount
+            set outList to ""
+            repeat with i from 1 to maxN
+                set m to message i of inb
+                set mId to id of m as string
+                set mSubj to subject of m
+                set mSend to sender of m
+                set mRead to read status of m
+                set mDate to date received of m as string
+                set outList to outList & mId & "\\t" & mRead & "\\t" & mDate & "\\t" & mSend & "\\t" & mSubj & "\\n"
+            end repeat
+            return outList
+        end tell
+        '''
+        try:
+            proc = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=15, check=False)
+            if proc.returncode != 0 or not proc.stdout.strip():
+                return None
+            results: List[MailMessage] = []
+            for line in proc.stdout.strip().splitlines():
+                parts = line.split("\t", 4)
+                if len(parts) < 5:
+                    continue
+                uid_s, read_s, date_s, sender_s, subj_s = parts
+                is_unread = read_s.strip().lower() != "true"
+                results.append(
+                    MailMessage(
+                        uid=uid_s.strip(),
+                        subject=subj_s.strip(),
+                        sender=sender_s.strip(),
+                        sender_email=extract_email_address(sender_s),
+                        recipient=self.config.username or "",
+                        date_str=date_s.strip()[:22],
+                        timestamp="",
+                        is_unread=is_unread,
+                        is_academic=is_academic_message(sender_s, subj_s),
+                    )
+                )
+            return results if results else None
+        except Exception:
+            return None
 
     def fetch_inbox(self, limit: Optional[int] = None) -> List[MailMessage]:
         """
@@ -505,7 +582,14 @@ class UgrMailClient:
         Returns messages sorted newest first.
         """
         max_items = limit or self.config.mail.max_fetch or 25
-        conn = self._connect_imap()
+        try:
+            conn = self._connect_imap()
+        except PradoError:
+            if self.imap_factory is None:
+                fallback_msgs = self._fetch_inbox_apple_mail_fallback(limit=max_items)
+                if fallback_msgs is not None:
+                    return fallback_msgs
+            raise
         try:
             conn.select("INBOX", readonly=True)
             status, data = conn.uid("SEARCH", None, "ALL")
