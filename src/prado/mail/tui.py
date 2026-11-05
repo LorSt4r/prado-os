@@ -311,15 +311,15 @@ def _render_inbox_screen(
     print_fn("╠══════════════════════════════════════════════════════════════════════════════╣")
     if is_en:
         print_fn(f"║  🔍 View Filter : {mode_label:<58} ║")
-        print_fn(f"║  ↪️  Auto-Forward: {fwd_status:<58} ║")
+        print_fn(f"║  📨 Auto-Forward: {fwd_status:<58} ║")
         print_fn("╠══════════════════════════════════════════════════════════════════════════════╣")
-        print_fn("║  QUICK ACTIONS:  [F] 🔍 Set Filters / View   [R] ↪️ Auto-Forwarding Rules    ║")
+        print_fn("║  QUICK ACTIONS:  [F] 🔍 Set Filters / View   [R] 📨 Auto-Forwarding Rules    ║")
         print_fn("║                  [S] 🔄 Refresh Inbox        [1..N] 📖 Open & Read Email     ║")
     else:
         print_fn(f"║  🔍 Vista actual: {mode_label:<58} ║")
-        print_fn(f"║  ↪️  Auto-Reenvío: {fwd_status:<58} ║")
+        print_fn(f"║  📨 Auto-Reenvío: {fwd_status:<58} ║")
         print_fn("╠══════════════════════════════════════════════════════════════════════════════╣")
-        print_fn("║  OPCIONES RÁPIDAS: [F] 🔍 Filtros Manuales   [R] ↪️ Reglas de Reenvío        ║")
+        print_fn("║  OPCIONES RÁPIDAS: [F] 🔍 Filtros Manuales   [R] 📨 Reglas de Reenvío        ║")
         print_fn("║                    [S] 🔄 Actualizar Buzón   [1..N] 📖 Abrir y Leer Correo   ║")
     print_fn("╚══════════════════════════════════════════════════════════════════════════════╝")
 

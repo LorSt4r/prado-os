@@ -12,6 +12,31 @@
 
 > 🌐 **Idiomas / Languages:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation)
 
+<p align="center">
+  <img src="assets/prado-demo.gif" alt="PradoOS — UGR PRADO Sync Interactive TUI, Onboarding, UGR Mail & Dashboard Demo" width="100%">
+</p>
+
+<details>
+<summary>📸 <b>Ver galería completa de interfaces (Menú TUI, Asistente de Onboarding, Lector de Correo UGR, Sincronización Incremental y Doctor)</b></summary>
+<br>
+
+#### 1. Menú Interactivo Principal (`prado`)
+![Menú Principal de PradoOS](assets/screens/01_main_menu.png)
+
+#### 2. Asistente de Configuración Guiado en 2 Fases (`prado onboard`)
+![Asistente de Configuración Inicial](assets/screens/02_onboarding_wizard.png)
+
+#### 3. Lector TUI de Correo UGR y Auto-Reenvío Selectivo (`prado mail`)
+![Lector TUI de Correo UGR](assets/screens/03_ugr_mail_tui.png)
+
+#### 4. Sincronización Incremental con Protección Anti-Sobrescritura y `DASHBOARD.md` (`prado sync --adopt`)
+![Sincronización Incremental y Dashboard](assets/screens/04_sync_and_dashboard.png)
+
+#### 5. Diagnóstico Integral de Salud y Daemon Multiplataforma (`prado doctor` / `prado daemon`)
+![Diagnóstico y Daemon de PradoOS](assets/screens/05_doctor_health.png)
+
+</details>
+
 ---
 
 ## 👥 Autoría y AI Disclosure
@@ -22,8 +47,8 @@ Al compaginar múltiples asignaturas de distintos departamentos (Estructura de D
 
 ### 🤖 AI Disclosure & Proceso de Desarrollo
 Este proyecto fue diseñado e implementado mediante pair programming asistido por inteligencia artificial con **Google Antigravity**:
-- **Lorenzo Vasile**: concepción del proyecto, definición de requisitos funcionales y de seguridad (aislamiento de credenciales en el Llavero nativo, flujo SAML/MFA sin contraseñas en texto plano, protección anti-sobrescritura) y validación en entornos reales (**macOS** y **Arch Linux**).
-- **Stack de IA (Google Antigravity)**: se utilizó **Gemini 4 Argon** para el diseño de la arquitectura modular, análisis de seguridad y verificación, y **Gemini 3.8 Flash** para la generación ágil de código, la suite de tests automatizados (707 tests) y los pipelines de CI multiplataforma.
+- **Lorenzo Vasile**: concepción del proyecto, definición de requisitos funcionales y de seguridad (aislamiento de credenciales en el Llavero nativo, flujo SAML/MFA sin contraseñas en texto plano, protección anti-sobrescritura) y validación en entornos reales (**macOS**, **Linux** y **Windows**).
+- **Stack de IA (Google Antigravity)**: se utilizó **Gemini 4 Argon** para el diseño de la arquitectura modular, análisis de seguridad y verificación, y **Gemini 3.8 Flash** para la generación ágil de código, la suite de tests automatizados (714 tests + suite E2E real sin mocks) y los pipelines de CI multiplataforma.
 
 ---
 
