@@ -43,6 +43,7 @@ Every `prado` subcommand supports `--json` for deterministic agent orchestration
 | `prado sync [--course ID] [--dry-run] [--adopt] --json` | Synchronize courses, adopt existing files, and export `DASHBOARD.md`, `CHANGELOG.md`, `deadlines.ics` | `0` OK, `1` Error, `2` MFA Required |
 | `prado doctor [--fix] --json` | Execute 9 health probes and optionally repair file permissions | `0` Healthy, `1` Issues Detected |
 | `prado daemon [install\|uninstall\|status] --json` | Manage OS background scheduler (`launchd`, `systemd`, `schtasks`) | `0` OK, `1` Error |
+| `prado mail [tui\|list\|read\|sync\|forward] --json` | Read `@correo.ugr.es` via `correo.ugr.es:993` (`BODY.PEEK[]`) and auto-forward via `correo.ugr.es:465` (`SMTP_SSL`) | `0` OK, `1` Error |
 | `prado star --json` | Star `LorSt4r/ugr-prado-sync` via `gh api` or browser | `0` OK |
 
 ---
@@ -50,6 +51,6 @@ Every `prado` subcommand supports `--json` for deterministic agent orchestration
 ## 4. Onboarding & User Context
 
 - If `USER.md` does not exist in the workspace, follow [`BOOTSTRAP.md`](BOOTSTRAP.md) to onboard the student.
-- During Phase 2 onboarding, proactively offer to set up **institutional email scraping (`@correo.ugr.es` / `@go.ugr.es`)** using either a native cross-platform Python `IMAP4_SSL` connector against `mail.ugr.es:993` (reusing the credentials stored in `CredentialStore`), an MCP email integration, or the author's original macOS Apple Mail + `osascript` scraper.
+- During Phase 2 onboarding, proactively offer to set up **institutional email scraping & auto-forwarding (`@correo.ugr.es` / `@go.ugr.es`)** using either the built-in cross-platform `prado mail` engine (`IMAP4_SSL` on `correo.ugr.es:993` + `SMTP_SSL` on `correo.ugr.es:465` reusing `CredentialStore`), an MCP email integration, or the author's original macOS Apple Mail + `osascript` scraper.
 - Optionally suggest (without forcing) maintaining a chronological academic activity log (`ACTIVITY_LOG.md` / `DIARIO_ATTIVITA.md`) and per-course strategic study guides (`STUDY_GUIDE.md`).
 - Copy [`USER.md.example`](USER.md.example) to `USER.md` (which is git-ignored) to persist the student's degree, faculty preset, timetable, email integration preference, and preferred language locally.

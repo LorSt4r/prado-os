@@ -92,8 +92,8 @@
 
 ## 📬 7. Correo Institucional y Opciones del Concierge IA
 - **Scraper de Correo (`@correo.ugr.es` / `@go.ugr.es`):**
-  - *Modo seleccionado:* `imap_ssl` (Python `imaplib.IMAP4_SSL` contra `mail.ugr.es:993` reutilizando `CredentialStore`) | `mcp_email` (Conector MCP / Gmail) | `apple_mail_osascript` (macOS Mail.app local)
-  - *Caché local:* `.mail_cache.json`
+  - *Modo seleccionado:* `prado_mail_imap_ssl` (`correo.ugr.es:993` `IMAP4_SSL` + `correo.ugr.es:465` `SMTP_SSL` reutilizando `CredentialStore`) | `mcp_email` (Conector MCP / Gmail) | `apple_mail_osascript` (macOS Mail.app local)
+  - *Caché local:* `~/.config/prado/mail_cache.json`
 - **Extras Opcionales Activados:**
   - Registro Histórico de Actividad (`ACTIVITY_LOG.md` / `DIARIO_ATTIVITA.md`): Opcional (`true` / `false`)
   - Guías Estratégicas de Estudio por Asignatura (`STUDY_GUIDE.md`): Opcional (`true` / `false`)

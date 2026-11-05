@@ -202,6 +202,30 @@ class DashboardExporter:
             lines.append(f"- **Forum announcements:** {len(summary.forum_announcements)}")
             lines.append("")
 
+        # 5. Recent Academic Emails from UGR Mail cache (if available)
+        try:
+            from prado.mail.client import load_mail_cache
+            mail_cache = load_mail_cache()
+            cached_msgs = mail_cache.get("messages", [])
+            academic_msgs = [
+                m for m in cached_msgs
+                if isinstance(m, dict) and m.get("is_academic", True)
+            ][:8]
+            if academic_msgs:
+                lines.append("## 📬 Últimos Correos Académicos (`@correo.ugr.es`)")
+                lines.append("")
+                lines.append("| Estado | Fecha | Remitente | Asunto |")
+                lines.append("|:---:|---|---|---|")
+                for m in academic_msgs:
+                    st_badge = "● Nuevo" if m.get("is_unread") else "Leído"
+                    dt_cell = escape_markdown_table_cell(str(m.get("date_str", "")))
+                    from_cell = escape_markdown_table_cell(str(m.get("sender", "")))
+                    subj_cell = escape_markdown_table_cell(str(m.get("subject", "")))
+                    lines.append(f"| {st_badge} | {dt_cell} | {from_cell} | {subj_cell} |")
+                lines.append("")
+        except Exception:
+            pass
+
         return "\n".join(lines).strip() + "\n"
 
     def export(

@@ -313,6 +313,7 @@ class OnboardingWizard:
                 dry_run=existing.sync.dry_run,
                 subgroups=dict(existing.sync.subgroups),
             ),
+            mail=existing.mail,
         )
         save_config(cfg, self.config_path)
 
@@ -469,9 +470,29 @@ class OnboardingWizard:
                 if cfg.language == "en"
                 else "\n¿Quieres configurar opciones avanzadas (subgrupos de prácticas / sincronización automática cada 4h) ahora? [s/N]: "
             )
-            want_p2 = self.input_fn(p2_prompt).strip().lower()
+            try:
+                want_p2 = self.input_fn(p2_prompt).strip().lower()
+            except (StopIteration, EOFError):
+                want_p2 = "n"
             if want_p2 in ("y", "yes", "s", "si", "sí"):
                 cfg = self.run_phase2(interactive=True)
+
+            mail_prompt = (
+                "\n📬 Would you also like to activate the UGR Mail reader / auto-forwarding to your personal email? [y/N]: "
+                if cfg.language == "en"
+                else "\n📬 ¿Quieres activar también el lector/reenvío automático de correo UGR (@correo.ugr.es) a tu correo personal? [s/N]: "
+            )
+            try:
+                want_mail = self.input_fn(mail_prompt).strip().lower()
+            except (StopIteration, EOFError):
+                want_mail = "n"
+            if want_mail in ("y", "yes", "s", "si", "sí"):
+                from prado.mail.tui import configure_forwarding_interactive
+                cfg = configure_forwarding_interactive(
+                    cfg=cfg,
+                    input_fn=self.input_fn,
+                    print_fn=self.print_fn,
+                )
 
         star_info: Optional[Dict[str, Any]] = None
         if prompt_star:

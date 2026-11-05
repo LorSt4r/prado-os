@@ -7,7 +7,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 708 Passing](https://img.shields.io/badge/tests-708%20passed-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
+[![Tests: 714 Passing](https://img.shields.io/badge/tests-714%20passed-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
 [![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
 
 > 🌐 **Idiomas / Languages:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation)
@@ -45,6 +45,9 @@ Si estudias en la Universidad de Granada, PradoOS resuelve en segundo plano todo
    - **Por defecto (`mirror`):** mantiene los **nombres oficiales de tus asignaturas en PRADO** y replica exactamente las secciones creadas por cada profesor.  
    - **Modo IA (`smart`):** separa automáticamente `Teoria/`, `Practicas/P1..Pn/` y `General/` (ideal si utilizas un agente de IA).  
    - **Sin escribir rutas a mano:** detecta automáticamente tu Escritorio/Inicio localizado (en español, italiano o inglés) y te permite pulsar **`G`** durante la configuración para elegir dónde guardar tu carpeta mediante la **ventana gráfica nativa de tu sistema (Finder en macOS, Explorador de Archivos en Windows, Zenity/KDialog en Linux)**.
+6. 📬 **Lector TUI de Correo UGR (`@correo.ugr.es`) y Reenvío Automático a tu Correo Personal (`prado mail`):**  
+   - Lee tu buzón institucional directamente en terminal (`correo.ugr.es:993` vía `IMAP4_SSL`) reutilizando tus credenciales ya guardadas: muestra por defecto todo tu buzón igual que Webmail, te permite aplicar filtros rápidos por profesor o palabra clave (`[F]`), **no marca tus correos como leídos en segundo plano** (`BODY.PEEK[]`, solo los marca como leídos cuando tú abres un correo concreto), y al descargar archivos adjuntos (`📎`) **abre siempre la ventana gráfica nativa de carpetas** para que elijas dónde guardarlos.
+   - **Reenvío selectivo automático (`[R]`):** configura qué profesores o asignaturas te interesan y PradoOS reenviará automáticamente sus correos (con adjuntos incluidos) a tu cuenta personal (`@gmail.com`, `@icloud.com`, `@outlook.com`) a través de `correo.ugr.es:465` (`SMTP_SSL`).
 
 ---
 
@@ -82,7 +85,8 @@ Todos los comandos admiten `--help` y formato estructurado `--json`:
 | Comando | Qué hace |
 |---|---|
 | `prado onboard` | Asistente de configuración inicial interactivo en 2 fases. |
-| `prado sync --adopt` | Sincroniza materiales, detecta archivos existentes locales y actualiza `DASHBOARD.md`. |
+| `prado sync --adopt` | Sincroniza materiales, revisa tu correo UGR (y aplica reglas de reenvío), y actualiza `DASHBOARD.md`. |
+| `prado mail` | Abre el lector interactivo de correo UGR (`@correo.ugr.es`), filtros manuales (`[F]`) y reglas de auto-reenvío (`[R]`). |
 | `prado gcalendar` | Sincroniza directamente las entregas y exámenes con Google Calendar API. |
 | `prado sync --gcalendar` | Descarga materiales nuevos y empuja las fechas al calendario en un único paso. |
 | `prado auth login --gui` | Abre la ventana emergente nativa del sistema operativo para iniciar sesión. |
@@ -158,6 +162,8 @@ PradoOS turns your university Moodle / PRADO UGR portal into an automated, self-
    - **Default (`mirror`):** preserves **official PRADO course names** and exact professor section structure.  
    - **AI Mode (`smart`):** separates `Teoria/`, `Practicas/P1..Pn/`, and `General/` for AI-assisted workflows.  
    - **No manual path typing:** auto-detects your OS-localized Desktop/Home folder and lets you press **`G`** during setup to pick your destination folder via a **native graphical window (macOS Finder, Windows File Explorer, Linux File Manager)**.
+6. 📬 **Built-in UGR Mail TUI Reader & Selective Auto-Forwarding (`prado mail`):**  
+   - Connects directly to `correo.ugr.es:993` (`IMAP4_SSL`) and `correo.ugr.es:465` (`SMTP_SSL`) reusing your stored UGR credentials. Opens your full unfiltered inbox by default (like Webmail) with top-level manual filters (`[F]`) and auto-forwarding rules (`[R]`) to forward emails from specific professors or course keywords straight to your personal email (`@gmail.com`, `@icloud.com`, etc.). Preserves unread status (`BODY.PEEK[]`) during background syncs and opens a native GUI folder picker whenever you save an email attachment (`📎`).
 
 ---
 

@@ -729,6 +729,27 @@ def _handle_sync(args: argparse.Namespace, json_mode: bool) -> int:
             planned_actions=planned_actions,
         )
 
+    mail_info = None
+    should_sync_mail = (
+        cfg.mail.enabled
+        and not getattr(args, "no_mail", False)
+        and (getattr(args, "mail", False) or not os.environ.get("PYTEST_CURRENT_TEST"))
+    )
+    if should_sync_mail:
+        try:
+            from prado.mail.client import UgrMailClient
+            mail_client = UgrMailClient(config=cfg)
+            mail_res = mail_client.sync_and_forward(dry_run=dry_run)
+            mail_info = {
+                "status": "success",
+                "fetched": mail_res.get("fetched", 0),
+                "unread": mail_res.get("unread", 0),
+                "academic": mail_res.get("academic", 0),
+                "forwarded": mail_res.get("forwarded", 0),
+            }
+        except Exception as exc:
+            mail_info = {"status": "skipped", "reason": str(exc)}
+
     if not dry_run:
         export_dashboard(courses_root=cfg.courses_root, summary=summary, state_db=state_db)
         export_changelog(courses_root=cfg.courses_root, summary=summary)
@@ -768,6 +789,7 @@ def _handle_sync(args: argparse.Namespace, json_mode: bool) -> int:
         "planned_actions": planned_actions if dry_run else [],
         "star": star_info,
         "gcalendar": gcal_info,
+        "mail": mail_info,
     }
 
     if json_mode:
@@ -786,6 +808,11 @@ def _handle_sync(args: argparse.Namespace, json_mode: bool) -> int:
                 f"Conflicts Protected: {len(summary.conflict_files)} | "
                 f"Deadlines: {len(summary.deadlines)}"
             )
+            if mail_info and mail_info.get("status") == "success":
+                print(
+                    f"  UGR Mail: {mail_info.get('fetched', 0)} checked ({mail_info.get('unread', 0)} unread), "
+                    f"{mail_info.get('forwarded', 0)} auto-forwarded"
+                )
             if gcal_info:
                 if gcal_info.get("status") == "success":
                     print(f"  Google Calendar: {gcal_info.get('created', 0)} created, {gcal_info.get('skipped', 0)} existing ({gcal_info.get('calendar_id')})")
@@ -909,6 +936,92 @@ def _handle_star(args: argparse.Namespace, json_mode: bool) -> int:
     return 0
 
 
+def _handle_mail(args: argparse.Namespace, json_mode: bool) -> int:
+    from prado.mail.client import UgrMailClient, matches_mail_filter
+    from prado.mail.tui import configure_forwarding_interactive, run_mail_tui
+
+    cfg = load_config()
+    action = getattr(args, "mail_action", None)
+
+    if action == "forward":
+        if getattr(args, "disable", False):
+            cfg.mail.forward_enabled = False
+            save_config(cfg)
+        elif getattr(args, "to", None):
+            cfg.mail.forward_to = args.to.strip()
+            cfg.mail.forward_enabled = True
+            if getattr(args, "mode", None):
+                cfg.mail.forward_mode = args.mode
+            if getattr(args, "senders", None) is not None:
+                cfg.mail.filter_senders = [s.strip().lower() for s in args.senders.split(",") if s.strip()]
+            if getattr(args, "keywords", None) is not None:
+                cfg.mail.filter_keywords = [k.strip() for k in args.keywords.split(",") if k.strip()]
+            save_config(cfg)
+        elif not json_mode:
+            cfg = configure_forwarding_interactive(cfg=cfg)
+
+        res = {
+            "status": "success",
+            "forward_enabled": cfg.mail.forward_enabled,
+            "forward_to": cfg.mail.forward_to,
+            "forward_mode": cfg.mail.forward_mode,
+            "filter_senders": cfg.mail.filter_senders,
+            "filter_keywords": cfg.mail.filter_keywords,
+        }
+        if json_mode:
+            _emit_json(res)
+        return 0
+
+    client = UgrMailClient(config=cfg)
+
+    if action == "read":
+        uid = getattr(args, "uid", None)
+        if not uid:
+            raise PradoError("Please specify a message UID to read (e.g. 'prado mail read 123').")
+        mark_seen = not getattr(args, "no_mark_seen", False)
+        msg = client.read_message(str(uid), mark_seen=mark_seen)
+        if json_mode:
+            _emit_json({"status": "success", "message": msg.to_dict()})
+        else:
+            print(f"Subject: {msg.subject}\nFrom: {msg.sender}\nDate: {msg.date_str}\n\n{msg.body_text}")
+        return 0
+
+    if action in ("sync", "list") or json_mode:
+        res = client.sync_and_forward(
+            limit=getattr(args, "limit", None),
+            dry_run=getattr(args, "dry_run", False),
+        )
+        filter_mode = getattr(args, "filter", None) or "all"
+        if filter_mode != "all":
+            from prado.mail.client import MailMessage
+            filtered = [
+                m.to_dict()
+                for m in (MailMessage.from_dict(raw) for raw in res.get("messages", []))
+                if matches_mail_filter(
+                    m,
+                    mode=filter_mode,
+                    filter_senders=cfg.mail.filter_senders,
+                    filter_keywords=cfg.mail.filter_keywords,
+                )
+            ]
+            res["messages"] = filtered
+            res["filtered_count"] = len(filtered)
+
+        if json_mode:
+            _emit_json(res)
+        else:
+            print(
+                f"✓ UGR Mail synced: {res['fetched']} fetched ({res['unread']} unread), "
+                f"{res['forwarded']} auto-forwarded."
+            )
+            for idx, m in enumerate(res["messages"], start=1):
+                mark = "●" if m.get("is_unread") else " "
+                print(f"  [{idx:>2}] {mark} {m.get('date_str')} | {m.get('sender')[:25]:<25} | {m.get('subject')}")
+        return 0
+
+    return run_mail_tui(client=client)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Constructs the top-level CLI ArgumentParser and all subcommand parsers."""
     parser = argparse.ArgumentParser(
@@ -986,6 +1099,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_sync.add_argument("--gcalendar", action="store_true", help="Sync upcoming deadlines directly to Google Calendar via REST API.")
     p_sync.add_argument("--gcalendar-token", help="Path to Google Calendar OAuth token.json.")
     p_sync.add_argument("--calendar-id", default="auto", help="Google Calendar ID (default: 'auto' or 'primary').")
+    p_sync.add_argument("--mail", action="store_true", help="Force UGR Mail check and auto-forwarding during sync.")
+    p_sync.add_argument("--no-mail", action="store_true", help="Skip UGR Mail check during sync.")
     p_sync.add_argument("--no-interactive", action="store_true", help="Run non-interactively (daemon/agent mode).")
     p_sync.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
 
@@ -1018,37 +1133,91 @@ def build_parser() -> argparse.ArgumentParser:
     p_gcal.add_argument("--dry-run", action="store_true", help="Preview events without writing to Google Calendar.")
     p_gcal.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
 
+    # 10. mail
+    p_mail = subparsers.add_parser(
+        "mail",
+        help="Read UGR institutional email (@correo.ugr.es), manage filters, and configure auto-forwarding.",
+    )
+    p_mail.add_argument(
+        "mail_action",
+        nargs="?",
+        choices=["tui", "list", "read", "sync", "forward"],
+        default="tui",
+        help="Mail action (defaults to interactive TUI reader).",
+    )
+    p_mail.add_argument("--uid", help="Message UID for 'prado mail read --uid <UID>'.")
+    p_mail.add_argument(
+        "--filter",
+        choices=["all", "unread", "academic", "custom"],
+        default="all",
+        help="Filter mode when listing emails.",
+    )
+    p_mail.add_argument("--limit", type=int, help="Maximum number of messages to fetch.")
+    p_mail.add_argument("--no-mark-seen", action="store_true", help="Do not mark message as Read on UGR server when reading.")
+    p_mail.add_argument("--to", help="Personal destination email for auto-forwarding.")
+    p_mail.add_argument("--mode", choices=["custom", "academic", "all"], help="Forwarding filter rule mode.")
+    p_mail.add_argument("--senders", help="Comma-separated professor emails/domains to filter/forward.")
+    p_mail.add_argument("--keywords", help="Comma-separated subject keywords to filter/forward.")
+    p_mail.add_argument("--disable", action="store_true", help="Disable automatic email forwarding.")
+    p_mail.add_argument("--dry-run", action="store_true", help="Preview forwarding without sending SMTP messages.")
+    p_mail.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
+
     return parser
 
 
 def _run_interactive_menu() -> int:
     """Simple, friendly interactive TUI menu when `prado` is run with no arguments in a terminal."""
-    print("\n╔══════════════════════════════════════════════════════════════╗")
-    print("║        🎓 PradoOS — UGR PRADO Academic Sync Engine           ║")
-    print("╠══════════════════════════════════════════════════════════════╣")
-    print("║  [1] 🔄 Sync Courses Now                                     ║")
-    print("║  [2] ⚙️  First-Time Setup / Change Settings (Wizard)          ║")
-    print("║  [3] 📚 Discover & List Enrolled Courses                     ║")
-    print("║  [4] 🩺 Run System Health Check (Doctor)                     ║")
-    print("║  [5] ⏱️  Enable Automatic Background Sync (Every 4h)          ║")
-    print("║  [6] 🗓️  Sync Deadlines to Google Calendar                    ║")
-    print("║  [7] ⭐ Star ugr-prado-sync on GitHub                        ║")
-    print("║  [0] 🚪 Exit                                                 ║")
-    print("╚══════════════════════════════════════════════════════════════╝")
     try:
-        choice = input("\nSelect an option [1-7, 0 to exit]: ").strip()
+        lang = load_config().language
+    except Exception:
+        lang = "es"
+
+    if lang == "en":
+        print("\n╔══════════════════════════════════════════════════════════════╗")
+        print("║        🎓 PradoOS — UGR PRADO Academic Sync Engine           ║")
+        print("╠══════════════════════════════════════════════════════════════╣")
+        print("║  [1] 🔄 Sync Courses & Mail Now                              ║")
+        print("║  [2] 📬 Read UGR Mail & Auto-Forwarding Rules                ║")
+        print("║  [3] ⚙️  First-Time Setup / Change Settings (Wizard)          ║")
+        print("║  [4] 📚 Discover & List Enrolled Courses                     ║")
+        print("║  [5] 🩺 Run System Health Check (Doctor)                     ║")
+        print("║  [6] ⏱️  Enable Automatic Background Sync (Every 4h)          ║")
+        print("║  [7] 🗓️  Sync Deadlines to Google Calendar                    ║")
+        print("║  [8] ⭐ Star ugr-prado-sync on GitHub                        ║")
+        print("║  [0] 🚪 Exit                                                 ║")
+        print("╚══════════════════════════════════════════════════════════════╝")
+        prompt_str = "\nSelect an option [1-8, 0 to exit]: "
+    else:
+        print("\n╔══════════════════════════════════════════════════════════════╗")
+        print("║        🎓 PradoOS — Motor Académico PRADO UGR                ║")
+        print("╠══════════════════════════════════════════════════════════════╣")
+        print("║  [1] 🔄 Sincronizar Asignaturas y Correo Ahora               ║")
+        print("║  [2] 📬 Lector de Correo UGR y Reenvío Automático            ║")
+        print("║  [3] ⚙️  Configuración Inicial / Cambiar Ajustes (Wizard)     ║")
+        print("║  [4] 📚 Descubrir y Listar Asignaturas Matriculadas          ║")
+        print("║  [5] 🩺 Diagnóstico del Sistema (Doctor)                     ║")
+        print("║  [6] ⏱️  Activar Sincronización Automática (Cada 4h)          ║")
+        print("║  [7] 🗓️  Sincronizar Entregas con Google Calendar             ║")
+        print("║  [8] ⭐ Dar una Estrella a ugr-prado-sync en GitHub          ║")
+        print("║  [0] 🚪 Salir                                                ║")
+        print("╚══════════════════════════════════════════════════════════════╝")
+        prompt_str = "\nElige una opción [1-8, 0 para salir]: "
+
+    try:
+        choice = input(prompt_str).strip()
     except (EOFError, KeyboardInterrupt):
         print()
         return 0
 
     menu_map = {
         "1": ["sync", "--adopt"],
-        "2": ["onboard"],
-        "3": ["discover"],
-        "4": ["doctor", "--fix"],
-        "5": ["daemon", "install"],
-        "6": ["gcalendar"],
-        "7": ["star"],
+        "2": ["mail"],
+        "3": ["onboard"],
+        "4": ["discover"],
+        "5": ["doctor", "--fix"],
+        "6": ["daemon", "install"],
+        "7": ["gcalendar"],
+        "8": ["star"],
     }
     if choice in menu_map:
         return main(menu_map[choice])
@@ -1089,6 +1258,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "daemon": _handle_daemon,
         "star": _handle_star,
         "gcalendar": _handle_gcalendar,
+        "mail": _handle_mail,
     }
 
     handler = dispatch.get(args.command)

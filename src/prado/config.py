@@ -87,6 +87,11 @@ def get_credentials_vault_file() -> Path:
     return get_config_dir() / "credentials.vault"
 
 
+def get_mail_cache_file() -> Path:
+    """Returns the absolute path to mail_cache.json inside the secure config directory."""
+    return get_config_dir() / "mail_cache.json"
+
+
 def get_localized_desktop_dir() -> Path:
     """
     Resolves the true OS-localized Desktop directory across Windows, macOS, and Linux
@@ -304,6 +309,22 @@ class SyncConfig:
 
 
 @dataclass
+class MailConfig:
+    enabled: bool = True
+    imap_host: str = "correo.ugr.es"
+    imap_port: int = 143
+    smtp_host: str = "correo.ugr.es"
+    smtp_port: int = 465
+    forward_enabled: bool = False
+    forward_to: Optional[str] = None
+    # 'custom' (specific senders/keywords), 'academic' (all UGR professors/PRADO), or 'all'
+    forward_mode: str = "custom"
+    filter_senders: list[str] = field(default_factory=list)
+    filter_keywords: list[str] = field(default_factory=list)
+    max_fetch: int = 25
+
+
+@dataclass
 class PradoConfig:
     version: str = "1.0"
     language: str = "es"  # 'es' (default Spanish) or 'en' (English)
@@ -314,6 +335,7 @@ class PradoConfig:
     courses_root: Path = field(default_factory=lambda: Path.home() / "Documents" / "UGR_Courses")
     mfa: MfaConfig = field(default_factory=MfaConfig)
     sync: SyncConfig = field(default_factory=SyncConfig)
+    mail: MailConfig = field(default_factory=MailConfig)
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
@@ -337,6 +359,26 @@ class PradoConfig:
         else:
             sync_cfg = SyncConfig()
 
+        mail_data = data.get("mail", {})
+        if isinstance(mail_data, dict):
+            allowed_mail_keys = {
+                "enabled",
+                "imap_host",
+                "imap_port",
+                "smtp_host",
+                "smtp_port",
+                "forward_enabled",
+                "forward_to",
+                "forward_mode",
+                "filter_senders",
+                "filter_keywords",
+                "max_fetch",
+            }
+            filtered_mail = {k: v for k, v in mail_data.items() if k in allowed_mail_keys}
+            mail_cfg = MailConfig(**filtered_mail)
+        else:
+            mail_cfg = MailConfig()
+
         courses_root_val = data.get("courses_root")
         if courses_root_val:
             courses_root = Path(courses_root_val).expanduser()
@@ -357,6 +399,7 @@ class PradoConfig:
             courses_root=courses_root,
             mfa=mfa_cfg,
             sync=sync_cfg,
+            mail=mail_cfg,
         )
 
 
