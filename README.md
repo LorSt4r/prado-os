@@ -5,7 +5,7 @@
 
 [![Release: v0.2.0-beta](https://img.shields.io/badge/release-v0.2.0--beta-orange.svg)](https://github.com/LorSt4r/ugr-prado-sync/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
 [![Tests: 714 Passing](https://img.shields.io/badge/tests-714%20passed-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
 [![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
@@ -169,11 +169,24 @@ Para desarrolladores, administradores de sistemas o estudiantes que deseen conoc
 
 - **Manejo Seguro del Sistema Operativo:** Las carpetas y archivos sensibles (`config.yaml`, `session.json`, `state.db`) se crean forzando permisos POSIX `0700` y `0600` incluso bajo umasks permisivas (`0000`). En Windows NTFS, las operaciones de reemplazo atómico cuentan con un bucle de reintento con backoff exponencial para absorber cerrojos transitorios de lectura.
 - **Sin Dependencias de Red Pesadas para Calendario:** La sincronización con Google Calendar no requiere librerías externas de Google de cientos de megabytes; se comunica directamente con la API REST v3 mediante `urllib.request` y gestiona el flujo de `refresh_token` de forma nativa.
-- **Suite de Pruebas Opaque-Box y Adversarial:** Cuenta con 707 tests automatizados en `pytest` que verifican desde ataques de path traversal en nombres de secciones hasta árboles de carpetas anidados a 15 niveles de profundidad y condiciones de carrera multiproceso.
+- **Suite de Pruebas Opaque-Box, Adversarial y E2E Real sin Mocks:** Cuenta con 714 tests automatizados en `pytest` más una suite de verificación E2E en vivo (`tests/e2e/test_live_real.py`) que validan desde ataques de path traversal en nombres de secciones hasta descargas reales en PRADO UGR, correo institucional (`correo.ugr.es`) y daemons nativos en macOS, Linux y Windows.
 
 ---
 
 ## 🇬🇧 English Documentation
+
+### 👥 Authorship & AI Disclosure
+
+#### 🇮🇹 From a Real Need in Granada to an Open-Source Project
+**PradoOS** was created by **Lorenzo Vasile**, a Computer Engineering student from the *Università degli Studi di Palermo (UniPa)* during his **Erasmus+** exchange at the *Universidad de Granada (UGR, ETSIIT)* (2026/2027 academic year).  
+While juggling five core Computer Engineering courses across different departments (*Data Structures*, *Models of Computation*, *Computer Vision*, *Information Theory & Coding*, and *Operating Systems*), the need arose to optimize study time and **completely eliminate repetitive manual busywork**: downloading PDFs one by one, checking scattered forum announcements, organizing local folders, and tracking shifting submission deadlines.
+
+#### 🤖 AI Disclosure & Development Process
+This project was designed and built through AI-assisted pair programming using **Google Antigravity**:
+- **Lorenzo Vasile**: project conception, functional and security requirements specification (OS Keychain credential isolation, zero-plaintext SAML/MFA authentication flow, 4-quadrant student overwrite protection, real `correo.ugr.es` IMAP/SMTP integration), and live E2E validation across **macOS**, **Linux**, and **Windows**.
+- **AI Stack (Google Antigravity)**: **Gemini 4 Argon** was used for modular systems architecture, security auditing, and formal verification, while **Gemini 3.8 Flash** powered rapid implementation, the 714-test automated suite (including zero-mock live E2E tests), and cross-platform CI pipelines.
+
+---
 
 ### 💡 What Does PradoOS Do for You?
 
@@ -219,5 +232,5 @@ irm https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.ps1 | 
 Si **PradoOS** te ayuda a ahorrar tiempo durante el cuatrimestre, apoya el repositorio con una estrella en GitHub (`prado star`)!  
 If **PradoOS** saves you time during your university semester, please consider starring the repository on GitHub (`prado star`)!
 
-Distribuido bajo la **Licencia MIT** — Desarrollado por **Lorenzo Vasile**.  
-Distributed under the **MIT License** — Created by **Lorenzo Vasile**.
+Distribuido bajo la **Licencia GNU AGPLv3 (`AGPL-3.0`)** — Desarrollado por **Lorenzo Vasile**.  
+Distributed under the **GNU Affero General Public License v3.0 (`AGPL-3.0`)** — Created by **Lorenzo Vasile**.

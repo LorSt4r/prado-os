@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Autonomous, cross-platform academic workflow engine for Moodle and PRADO UGR"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { text = "AGPL-3.0-or-later" }
 authors = [
     { name = "Lorenzo Vasile", email = "lorenzovasile07@gmail.com" }
 ]
@@ -17,7 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Operating System :: OS Independent",
     "Topic :: Education",
     "Topic :: Utilities",
