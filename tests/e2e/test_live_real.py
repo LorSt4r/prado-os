@@ -248,8 +248,8 @@ def test_live_ugr_network_and_doctor_probes(monkeypatch: pytest.MonkeyPatch):
     assert probe_map["dependencies_and_artifacts"].status == ProbeStatus.OK
     assert "state_db" in probe_map
     assert probe_map["state_db"].status == ProbeStatus.OK
-    assert "courses_root" in probe_map
-    assert probe_map["courses_root"].status == ProbeStatus.OK
+    assert "course_root" in probe_map
+    assert probe_map["course_root"].status == ProbeStatus.OK
 
     # Note: UGR firewall geo-blocks/throttles some non-European cloud datacenter IPs (e.g. US Azure CI runners).
     # Verify reachability when not geo-filtered by UGR firewall:
