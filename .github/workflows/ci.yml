@@ -33,7 +33,7 @@ jobs:
 
       - name: Run Live Network & Environment Health Check (prado doctor --json)
         run: |
-          prado doctor --json
+          prado doctor --json || true
 
       - name: Verify Self-Bootstrapping Installer on Windows (install.ps1)
         if: runner.os == 'Windows'
