@@ -3,6 +3,7 @@
 **El motor de sincronización y flujo académico inteligente para PRADO UGR (`pradogrado`, `pradoposgrado`, `prado.ugr.es`) y Moodle.**  
 *Disponible para macOS, Linux Desktop y Windows.*
 
+[![PyPI - Version](https://img.shields.io/pypi/v/prado-os.svg?color=blue)](https://pypi.org/project/prado-os/)
 [![Release: v0.2.0-beta](https://img.shields.io/badge/release-v0.2.0--beta-orange.svg)](https://github.com/LorSt4r/prado-os/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
@@ -97,6 +98,14 @@ curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | 
 **Windows (PowerShell):**
 ```powershell
 irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex
+```
+
+#### Opción C: Mediante PyPI (`pip` / `uv`)
+Si ya dispones de Python 3.10+ en tu sistema:
+```bash
+pip install prado-os
+# o con uv (recomendado):
+uv tool install prado-os
 ```
 
 *(Si ejecutas `prado` sin argumentos en tu terminal, se abrirá un menú interactivo con opciones numeradas del 1 al 7).*
@@ -224,6 +233,14 @@ curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | 
 
 # Windows (PowerShell):
 irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex
+```
+
+#### Option C: Via PyPI (`pip` / `uv`)
+If you already have Python 3.10+ installed:
+```bash
+pip install prado-os
+# or via uv (recommended):
+uv tool install prado-os
 ```
 
 ---
