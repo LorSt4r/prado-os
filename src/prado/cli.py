@@ -823,6 +823,28 @@ def _handle_sync(args: argparse.Namespace, json_mode: bool) -> int:
                     print(f"  Google Calendar: {gcal_info.get('created', 0)} created, {gcal_info.get('skipped', 0)} existing ({gcal_info.get('calendar_id')})")
                 else:
                     print(f"  Google Calendar Error: {gcal_info.get('error')}")
+
+        # Opt-in native desktop notification if new files/materials were downloaded
+        if not dry_run and cfg.notifications.enabled and summary.downloaded_files:
+            try:
+                from prado.notifications.desktop import DesktopNotifier
+                notifier = DesktopNotifier(app_name="PradoOS")
+                count = len(summary.downloaded_files)
+                msg_body = f"{count} nuevo(s) archivo(s) descargado(s) de PRADO UGR."
+                if cfg.language == "en":
+                    msg_body = f"{count} new file(s) downloaded from PRADO UGR."
+                elif cfg.language == "it":
+                    msg_body = f"{count} nuovo/i file scaricato/i da PRADO UGR."
+                elif cfg.language == "fr":
+                    msg_body = f"{count} nouveau(x) fichier(s) téléchargé(s) de PRADO UGR."
+                notifier.notify(
+                    title="PradoOS",
+                    message=msg_body,
+                    sound=cfg.notifications.sound,
+                    urgency=cfg.notifications.urgency,
+                )
+            except Exception:
+                pass
     return 0
 
 
@@ -1027,6 +1049,109 @@ def _handle_mail(args: argparse.Namespace, json_mode: bool) -> int:
     return run_mail_tui(client=client)
 
 
+def _handle_notify(args: argparse.Namespace, json_mode: bool) -> int:
+    cfg = load_config()
+    action = getattr(args, "notify_action", "status") or "status"
+    from prado.notifications.desktop import DesktopNotifier
+
+    notifier = DesktopNotifier(app_name="PradoOS")
+    available = notifier.is_available()
+
+    if action == "on":
+        cfg.notifications.enabled = True
+        if getattr(args, "sound", None) is not None:
+            cfg.notifications.sound = bool(args.sound)
+        save_config(cfg)
+        test_sent = False
+        if available:
+            msg = "Notificaciones de escritorio de PradoOS activadas."
+            if cfg.language == "en":
+                msg = "PradoOS desktop notifications enabled."
+            elif cfg.language == "it":
+                msg = "Notifiche desktop di PradoOS attivate."
+            elif cfg.language == "fr":
+                msg = "Notifications de bureau PradoOS activées."
+            test_sent = notifier.notify(
+                title="PradoOS",
+                message=msg,
+                sound=cfg.notifications.sound,
+            )
+        if json_mode:
+            _emit_json({
+                "status": "success",
+                "enabled": True,
+                "sound": cfg.notifications.sound,
+                "desktop_available": available,
+                "test_notification_sent": test_sent,
+            })
+        else:
+            print("✓ Desktop notifications enabled (opt-in active).")
+        return 0
+
+    if action == "off":
+        cfg.notifications.enabled = False
+        save_config(cfg)
+        if json_mode:
+            _emit_json({
+                "status": "success",
+                "enabled": False,
+                "sound": cfg.notifications.sound,
+                "desktop_available": available,
+            })
+        else:
+            print("✓ Desktop notifications disabled.")
+        return 0
+
+    if action == "test":
+        msg = "Notificación de prueba de PradoOS."
+        if cfg.language == "en":
+            msg = "PradoOS test notification."
+        elif cfg.language == "it":
+            msg = "Notifica di prova di PradoOS."
+        elif cfg.language == "fr":
+            msg = "Notification de test PradoOS."
+        sent = notifier.notify(
+            title="PradoOS",
+            message=msg,
+            sound=cfg.notifications.sound,
+        )
+        if json_mode:
+            _emit_json({
+                "status": "success" if sent else "warning",
+                "test_notification_sent": sent,
+                "desktop_available": available,
+                "enabled": cfg.notifications.enabled,
+            })
+        else:
+            if sent:
+                print("✓ Test notification sent.")
+            else:
+                print("⚠ Could not send desktop notification (headless or no display server).")
+        return 0
+
+    # Default: status
+    if json_mode:
+        _emit_json({
+            "status": "success",
+            "enabled": cfg.notifications.enabled,
+            "sound": cfg.notifications.sound,
+            "urgency": cfg.notifications.urgency,
+            "desktop_available": available,
+        })
+    else:
+        st_label = "ENABLED (ON)" if cfg.notifications.enabled else "DISABLED (OFF)"
+        avail_label = "Yes" if available else "No (Headless/No GUI)"
+        print(f"PradoOS Desktop Notifications: {st_label}")
+        print(f"  • Available on system: {avail_label}")
+        print(f"  • Sound: {'Yes' if cfg.notifications.sound else 'No'}")
+        print(f"  • Urgency: {cfg.notifications.urgency}")
+        print("\nCommands to toggle:")
+        print("  prado notify on      (Enable alerts on new course materials & mail)")
+        print("  prado notify off     (Disable desktop alerts completely)")
+        print("  prado notify test    (Send a test alert)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Constructs the top-level CLI ArgumentParser and all subcommand parsers."""
     parser = argparse.ArgumentParser(
@@ -1167,6 +1292,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_mail.add_argument("--dry-run", action="store_true", help="Preview forwarding without sending SMTP messages.")
     p_mail.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
 
+    # 11. notify
+    p_notify = subparsers.add_parser(
+        "notify",
+        help="Manage native desktop notification alerts on new materials and institutional mail.",
+    )
+    p_notify.add_argument(
+        "notify_action",
+        nargs="?",
+        choices=["status", "on", "off", "test"],
+        default="status",
+        help="Notification action: 'status' (default), 'on', 'off', or 'test'.",
+    )
+    p_notify.add_argument("--sound", action="store_true", default=None, help="Enable notification sound.")
+    p_notify.add_argument("--no-sound", action="store_false", dest="sound", help="Disable notification sound.")
+    p_notify.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
+
     return parser
 
 
@@ -1294,6 +1435,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "star": _handle_star,
         "gcalendar": _handle_gcalendar,
         "mail": _handle_mail,
+        "notify": _handle_notify,
     }
 
     handler = dispatch.get(args.command)

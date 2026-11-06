@@ -7,7 +7,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 723 Passing](https://img.shields.io/badge/tests-723%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
+[![Tests: 727 Passing](https://img.shields.io/badge/tests-727%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 [![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
 > 🌐 **Idiomas / Languages / Lingue / Langues:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation) | [🇮🇹 Italiano](docs/README.it.md) | [🇫🇷 Français](docs/README.fr.md)
@@ -118,6 +118,7 @@ Todos los comandos admiten `--help` y formato estructurado `--json`:
 | `prado auth status` | Comprueba la validez de la sesión y el estado del token de confianza a 30 días. |
 | `prado discover` | Lista todas las asignaturas matriculadas detectadas en PRADO. |
 | `prado doctor --json` | Diagnóstico de salud: comprueba red UGR, credenciales, permisos y dependencias. |
+| `prado notify (on/off)` | Activa o desactiva las notificaciones de escritorio nativas (opt-in deshabilitado por defecto). |
 | `prado daemon install` | Instala un servicio en segundo plano para sincronizar cada 4 horas (`launchd`/`systemd`/`schtasks`). |
 | `prado star` | Deja una estrella al repositorio en GitHub si la herramienta te ha sido útil. |
 

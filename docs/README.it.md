@@ -7,7 +7,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](../LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 723 Passing](https://img.shields.io/badge/tests-723%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
+[![Tests: 727 Passing](https://img.shields.io/badge/tests-727%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
 > 🌐 **Altre lingue / Other languages:** [🇪🇸 Español](../README.md#-documentación-en-español) | [🇬🇧 English](../README.md#-english-documentation) | [🇫🇷 Français](README.fr.md)
 

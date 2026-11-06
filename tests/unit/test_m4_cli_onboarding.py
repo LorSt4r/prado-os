@@ -63,6 +63,7 @@ class TestOnboardingAndStarUnit:
             "imap.ugr.es",                # IMAP host
             "erasmus@correo.ugr.es",      # IMAP username
             "n",                          # Install daemon?
+            "n",                          # Desktop notifications?
         ])
         outputs = []
         wizard = OnboardingWizard(

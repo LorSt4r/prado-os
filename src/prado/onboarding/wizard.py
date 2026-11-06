@@ -471,6 +471,20 @@ class OnboardingWizard:
             if daemon_ans in ("y", "yes", "s", "si", "sí", "o", "oui"):
                 install_daemon = True
 
+            if is_en:
+                notif_prompt = "4. Enable native desktop notifications on new materials/mail? [y/N]: "
+            elif is_it:
+                notif_prompt = "4. Attivare le notifiche desktop per nuovi materiali/posta? [s/N]: "
+            elif is_fr:
+                notif_prompt = "4. Activer les notifications de bureau pour les nouveaux cours/courriels ? [o/N] : "
+            else:
+                notif_prompt = "4. ¿Activar notificaciones de escritorio para nuevos archivos/correo? [s/N]: "
+            notif_ans = self.input_fn(notif_prompt).strip().lower()
+            if notif_ans in ("y", "yes", "s", "si", "sí", "o", "oui"):
+                cfg.notifications.enabled = True
+            else:
+                cfg.notifications.enabled = False
+
         if subgroups is not None:
             cfg.sync.subgroups.update(subgroups)
 

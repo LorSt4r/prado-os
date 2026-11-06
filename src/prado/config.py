@@ -325,6 +325,13 @@ class MailConfig:
 
 
 @dataclass
+class DesktopNotificationConfig:
+    enabled: bool = False  # Disabled by default, opt-in in Phase 2
+    sound: bool = True
+    urgency: str = "normal"
+
+
+@dataclass
 class PradoConfig:
     version: str = "1.0"
     language: str = "es"  # 'es' (default Spanish), 'en' (English), 'it' (Italiano), 'fr' (Français)
@@ -336,6 +343,7 @@ class PradoConfig:
     mfa: MfaConfig = field(default_factory=MfaConfig)
     sync: SyncConfig = field(default_factory=SyncConfig)
     mail: MailConfig = field(default_factory=MailConfig)
+    notifications: DesktopNotificationConfig = field(default_factory=DesktopNotificationConfig)
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
@@ -379,6 +387,14 @@ class PradoConfig:
         else:
             mail_cfg = MailConfig()
 
+        notif_data = data.get("notifications", {})
+        if isinstance(notif_data, dict):
+            allowed_notif_keys = {"enabled", "sound", "urgency"}
+            filtered_notif = {k: v for k, v in notif_data.items() if k in allowed_notif_keys}
+            notif_cfg = DesktopNotificationConfig(**filtered_notif)
+        else:
+            notif_cfg = DesktopNotificationConfig()
+
         courses_root_val = data.get("courses_root")
         if courses_root_val:
             courses_root = Path(courses_root_val).expanduser()
@@ -400,6 +416,7 @@ class PradoConfig:
             mfa=mfa_cfg,
             sync=sync_cfg,
             mail=mail_cfg,
+            notifications=notif_cfg,
         )
 
 
