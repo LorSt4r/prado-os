@@ -196,6 +196,18 @@ def maybe_prompt_star_after_sync(
         )
         prompt_msg = "   Would you like to star the repo now? [Y/n]: "
         decline_msg = f"   No problem! You can run `prado star` anytime or visit {url}"
+    elif language == "it":
+        print_fn(
+            f"\n⭐ Ti sta tornando utile PradoOS? Aiuta altri studenti a scoprirlo lasciando una stella su GitHub ({repo})!"
+        )
+        prompt_msg = "   Vuoi lasciare una stella al repository adesso? [S/n]: "
+        decline_msg = f"   Nessun problema! Puoi eseguire `prado star` in qualsiasi momento o visitare {url}"
+    elif language == "fr":
+        print_fn(
+            f"\n⭐ PradoOS vous est utile ? Aidez d'autres étudiants à le découvrir en laissant une étoile sur GitHub ({repo}) !"
+        )
+        prompt_msg = "   Souhaitez-vous laisser une étoile sur le dépôt maintenant ? [O/n] : "
+        decline_msg = f"   Pas de problème ! Vous pouvez lancer `prado star` à tout moment ou visiter {url}"
     else:
         print_fn(
             f"\n⭐ ¿Te está resultando útil PradoOS? ¡Ayuda a otros compañeros a descubrirlo dejando una estrella en GitHub ({repo})!"
@@ -208,7 +220,7 @@ def maybe_prompt_star_after_sync(
     except (EOFError, KeyboardInterrupt):
         answer = "n"
 
-    if answer in ("", "y", "yes", "s", "si", "sí"):
+    if answer in ("", "y", "yes", "s", "si", "sí", "o", "oui"):
         res = execute_star(repo=repo, use_browser_fallback=True, config_dir=config_dir)
         print_fn(f"   {res['message']}")
         return {

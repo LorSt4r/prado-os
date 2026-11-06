@@ -127,27 +127,41 @@ class OnboardingWizard:
         """
         existing = load_config(self.config_path)
         resolved_lang = (language or existing.language or "es").strip().lower()
-        if resolved_lang not in ("es", "en"):
+        if resolved_lang not in ("es", "en", "it", "fr"):
             resolved_lang = "es"
 
         if interactive and not username:
-            self.print_fn("\n🎓 PradoOS — Configuración Inicial / Initial Setup")
+            self.print_fn("\n🎓 PradoOS — Configuración Inicial / Initial Setup / Configurazione / Configuration")
             self.print_fn("=" * 68)
 
             lang_ans = self.input_fn(
-                "🌐 0. Idioma / Language [1 = Español (por defecto), 2 = English] [1]: "
+                "🌐 0. Idioma / Language [1 = Español (default), 2 = English, 3 = Italiano, 4 = Français] [1]: "
             ).strip().lower()
             if lang_ans in ("2", "en", "english", "eng"):
                 resolved_lang = "en"
+            elif lang_ans in ("3", "it", "italiano", "ita"):
+                resolved_lang = "it"
+            elif lang_ans in ("4", "fr", "français", "francais", "fra"):
+                resolved_lang = "fr"
             else:
                 resolved_lang = "es"
 
             is_en = resolved_lang == "en"
+            is_it = resolved_lang == "it"
+            is_fr = resolved_lang == "fr"
             default_url = moodle_url or existing.moodle_url or get_default_moodle_url()
 
             if is_en:
                 plat_ans = self.input_fn(
                     f"1. Platform [1=Grado ({default_url}), 2=Posgrado, 3=CEPRUD, or custom URL] (default 1): "
+                ).strip()
+            elif is_it:
+                plat_ans = self.input_fn(
+                    f"1. Piattaforma [1=Grado ({default_url}), 2=Posgrado, 3=CEPRUD, o URL personalizzato] (default 1): "
+                ).strip()
+            elif is_fr:
+                plat_ans = self.input_fn(
+                    f"1. Plateforme [1=Grado ({default_url}), 2=Posgrado, 3=CEPRUD, ou URL personnalisée] (défaut 1) : "
                 ).strip()
             else:
                 plat_ans = self.input_fn(
@@ -161,6 +175,18 @@ class OnboardingWizard:
                     f"2. Institutional Email / Username [{default_user}]: "
                     if default_user
                     else "2. Institutional Email / Username (e.g. student@correo.ugr.es): "
+                )
+            elif is_it:
+                user_prompt = (
+                    f"2. Email Istituzionale / Nome Utente [{default_user}]: "
+                    if default_user
+                    else "2. Email Istituzionale / Nome Utente (es. student@correo.ugr.es): "
+                )
+            elif is_fr:
+                user_prompt = (
+                    f"2. Courriel Institutionnel / Identifiant [{default_user}] : "
+                    if default_user
+                    else "2. Courriel Institutionnel / Identifiant (ex. student@correo.ugr.es) : "
                 )
             else:
                 user_prompt = (
@@ -191,6 +217,12 @@ class OnboardingWizard:
                 if is_en:
                     self.print_fn("   💡 (Note: For security reasons, password characters are NOT displayed while typing. Just type it and press Enter.)")
                     entered_pass = self.password_fn("3. Institutional Password (hidden): ")
+                elif is_it:
+                    self.print_fn("   💡 (Nota: Per motivi di sicurezza, la password NON è visibile durante la digitazione. Digitala normalmente e premi Invio.)")
+                    entered_pass = self.password_fn("3. Password Istituzionale (nascosta): ")
+                elif is_fr:
+                    self.print_fn("   💡 (Note : Pour des raisons de sécurité, le mot de passe est MASQUÉ lors de la saisie. Tapez-le et appuyez sur Entrée.)")
+                    entered_pass = self.password_fn("3. Mot de Passe Institutionnel (masqué) : ")
                 else:
                     self.print_fn("   💡 (Nota: Por motivos de seguridad, la contraseña NO es visible mientras escribes. Escríbela normalmente y pulsa Enter.)")
                     entered_pass = self.password_fn("3. Contraseña Institucional (oculta): ")
@@ -207,6 +239,18 @@ class OnboardingWizard:
                 self.print_fn("   • Type 'G' and press Enter to select a folder via Graphical Window (Finder / File Explorer)")
                 self.print_fn("   • Or type a custom folder name / full path directly")
                 entered_root = self.input_fn(f"   Location or 'G' for GUI [{desktop_dir}]: ").strip()
+            elif is_it:
+                self.print_fn(f"\n4. Cartella di destinazione per i tuoi insegnamenti (default su Scrivania/Home: {default_root_path}):")
+                self.print_fn("   • Premi [Invio] per usare la Scrivania/Home e scegliere il nome della cartella")
+                self.print_fn("   • Digita 'G' e premi Invio per aprire la finestra grafica (Finder / Esplora Risorse)")
+                self.print_fn("   • O inserisci direttamente un percorso completo personalizzato")
+                entered_root = self.input_fn(f"   Posizione o 'G' per finestra grafica [{desktop_dir}]: ").strip()
+            elif is_fr:
+                self.print_fn(f"\n4. Dossier de destination pour vos cours (par défaut sur Bureau/Accueil : {default_root_path}) :")
+                self.print_fn("   • Appuyez sur [Entrée] pour utiliser l'emplacement par défaut")
+                self.print_fn("   • Tapez 'G' et appuyez sur Entrée pour ouvrir l'explorateur graphique (Finder / Explorateur de fichiers)")
+                self.print_fn("   • Ou saisissez directement un chemin complet")
+                entered_root = self.input_fn(f"   Emplacement ou 'G' pour sélecteur graphique [{desktop_dir}] : ").strip()
             else:
                 self.print_fn(f"\n4. Ubicación donde guardar tus asignaturas (por defecto en Escritorio/Inicio: {default_root_path}):")
                 self.print_fn("   • Pulsa [Enter] para usar tu Escritorio/Inicio y elegir el nombre de la carpeta base")
@@ -215,26 +259,35 @@ class OnboardingWizard:
                 entered_root = self.input_fn(f"   Ubicación o 'G' para ventana gráfica [{desktop_dir}]: ").strip()
 
             if entered_root.lower() in ("g", "gui", "finder", "explorer"):
-                gui_prompt = (
-                    "Select where to place your PRADO courses folder"
-                    if is_en
-                    else "Selecciona dónde guardar la carpeta de tus asignaturas de PRADO"
-                )
+                if is_en:
+                    gui_prompt = "Select where to place your PRADO courses folder"
+                elif is_it:
+                    gui_prompt = "Seleziona dove salvare la cartella dei tuoi corsi PRADO"
+                elif is_fr:
+                    gui_prompt = "Sélectionnez où enregistrer vos dossiers de cours PRADO"
+                else:
+                    gui_prompt = "Selecciona dónde guardar la carpeta de tus asignaturas de PRADO"
                 picked = prompt_folder_picker_gui(prompt=gui_prompt)
                 base_parent = picked if picked is not None else desktop_dir
-                name_prompt = (
-                    f"   Base folder name inside '{base_parent}' [{default_folder_name}]: "
-                    if is_en
-                    else f"   Nombre de la carpeta base dentro de '{base_parent}' [{default_folder_name}]: "
-                )
+                if is_en:
+                    name_prompt = f"   Base folder name inside '{base_parent}' [{default_folder_name}]: "
+                elif is_it:
+                    name_prompt = f"   Nome della cartella principale in '{base_parent}' [{default_folder_name}]: "
+                elif is_fr:
+                    name_prompt = f"   Nom du dossier principal dans '{base_parent}' [{default_folder_name}] : "
+                else:
+                    name_prompt = f"   Nombre de la carpeta base dentro de '{base_parent}' [{default_folder_name}]: "
                 chosen_name = self.input_fn(name_prompt).strip() or default_folder_name
                 resolved_root = base_parent if chosen_name in (".", "") else (base_parent / chosen_name)
             elif not entered_root:
-                name_prompt = (
-                    f"   Base folder name on '{desktop_dir}' [{default_folder_name}]: "
-                    if is_en
-                    else f"   Nombre de la carpeta base en '{desktop_dir}' [{default_folder_name}]: "
-                )
+                if is_en:
+                    name_prompt = f"   Base folder name on '{desktop_dir}' [{default_folder_name}]: "
+                elif is_it:
+                    name_prompt = f"   Nome della cartella principale in '{desktop_dir}' [{default_folder_name}]: "
+                elif is_fr:
+                    name_prompt = f"   Nom du dossier principal dans '{desktop_dir}' [{default_folder_name}] : "
+                else:
+                    name_prompt = f"   Nombre de la carpeta base en '{desktop_dir}' [{default_folder_name}]: "
                 chosen_name = self.input_fn(name_prompt).strip() or default_folder_name
                 resolved_root = (desktop_dir / chosen_name).expanduser()
             else:
@@ -252,6 +305,20 @@ class OnboardingWizard:
                     "   • 'smart' (AI Mode only): Groups files into Teoria/ & Practicas/ with course acronyms (only recommended if configured with an AI Agent)."
                 )
                 entered_preset = self.input_fn(f"   Mode [mirror/smart] [{default_preset}]: ").strip().lower()
+            elif is_it:
+                self.print_fn(
+                    "\n5. Organizzazione delle Cartelle:\n"
+                    "   • 'mirror' (Default): Struttura originale di PRADO e nomi ufficiali dei tuoi insegnamenti.\n"
+                    "   • 'smart' (Solo con IA): Raggruppa in Teoria/ e Pratiche/ con acronimi (ideale se affiancato da un assistente IA)."
+                )
+                entered_preset = self.input_fn(f"   Modalità [mirror/smart] [{default_preset}]: ").strip().lower()
+            elif is_fr:
+                self.print_fn(
+                    "\n5. Organisation des Dossiers :\n"
+                    "   • 'mirror' (Par défaut) : Structure originale de PRADO et noms officiels des cours.\n"
+                    "   • 'smart' (Mode IA) : Regroupe en Théorie/ et Travaux Pratiques/ (recommandé avec un assistant IA)."
+                )
+                entered_preset = self.input_fn(f"   Mode [mirror/smart] [{default_preset}] : ").strip().lower()
             else:
                 self.print_fn(
                     "\n5. Organización de Carpetas:\n"
@@ -262,11 +329,14 @@ class OnboardingWizard:
             resolved_preset = entered_preset if entered_preset in ("smart", "mirror") else default_preset
 
             if semester is None:
-                sem_prompt = (
-                    "6. Semester Filter [1 = 1st Semester, 2 = 2nd Semester, Enter = All Active]: "
-                    if is_en
-                    else "6. Filtro de Cuatrimestre [1 = 1º Cuatrimestre, 2 = 2º Cuatrimestre, Enter = Todos los activos]: "
-                )
+                if is_en:
+                    sem_prompt = "6. Semester Filter [1 = 1st Semester, 2 = 2nd Semester, Enter = All Active]: "
+                elif is_it:
+                    sem_prompt = "6. Filtro Semestre [1 = 1º Semestre, 2 = 2º Semestre, Invio = Tutti gli attivi]: "
+                elif is_fr:
+                    sem_prompt = "6. Filtre de Semestre [1 = 1er Semestre, 2 = 2e Semestre, Entrée = Tous les cours actifs] : "
+                else:
+                    sem_prompt = "6. Filtro de Cuatrimestre [1 = 1º Cuatrimestre, 2 = 2º Cuatrimestre, Enter = Todos los activos]: "
                 sem_ans = self.input_fn(sem_prompt).strip()
                 if sem_ans in ("1", "2"):
                     semester = int(sem_ans)
@@ -341,6 +411,8 @@ class OnboardingWizard:
         """
         cfg = load_config(self.config_path)
         is_en = cfg.language == "en"
+        is_it = cfg.language == "it"
+        is_fr = cfg.language == "fr"
 
         if interactive and subgroups is None and imap_enabled is None:
             if is_en:
@@ -387,13 +459,16 @@ class OnboardingWizard:
                     )
                     imap_password = self.password_fn(pwd_msg)
 
-            daemon_prompt = (
-                "3. Install automatic background sync every 4 hours? [y/N]: "
-                if is_en
-                else "3. ¿Activar sincronización automática en segundo plano cada 4 horas? [s/N]: "
-            )
+            if is_en:
+                daemon_prompt = "3. Install automatic background sync every 4 hours? [y/N]: "
+            elif is_it:
+                daemon_prompt = "3. Installare la sincronizzazione automatica ogni 4 ore? [s/N]: "
+            elif is_fr:
+                daemon_prompt = "3. Activer la synchronisation automatique toutes les 4 heures ? [o/N] : "
+            else:
+                daemon_prompt = "3. ¿Activar sincronización automática en segundo plano cada 4 horas? [s/N]: "
             daemon_ans = self.input_fn(daemon_prompt).strip().lower()
-            if daemon_ans in ("y", "yes", "s", "si", "sí"):
+            if daemon_ans in ("y", "yes", "s", "si", "sí", "o", "oui"):
                 install_daemon = True
 
         if subgroups is not None:

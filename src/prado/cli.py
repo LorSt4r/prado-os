@@ -1192,6 +1192,36 @@ def _run_interactive_menu() -> int:
         print("║  [0] 🚪 Exit                                                 ║")
         print("╚══════════════════════════════════════════════════════════════╝")
         prompt_str = "\nSelect an option [1-8, 0 to exit]: "
+    elif lang == "it":
+        print("\n╔══════════════════════════════════════════════════════════════╗")
+        print("║        🎓 PradoOS — Motore Accademico PRADO UGR              ║")
+        print("╠══════════════════════════════════════════════════════════════╣")
+        print("║  [1] 🔄 Sincronizza Insegnamenti e Posta Ora                 ║")
+        print("║  [2] 📬 Lettore Posta UGR e Regole Inoltro Automatico        ║")
+        print("║  [3] 🔧 Configurazione Iniziale / Modifica Impostazioni      ║")
+        print("║  [4] 📚 Scopri ed Elenca Insegnamenti Iscritti               ║")
+        print("║  [5] 🩺 Diagnostica del Sistema (Doctor)                     ║")
+        print("║  [6] ⏰ Attiva Sincronizzazione Automatica (Ogni 4h)         ║")
+        print("║  [7] 📅 Sincronizza Scadenze con Google Calendar             ║")
+        print("║  [8] ⭐ Lascia una Stella a prado-os su GitHub               ║")
+        print("║  [0] 🚪 Esci                                                 ║")
+        print("╚══════════════════════════════════════════════════════════════╝")
+        prompt_str = "\nScegli un'opzione [1-8, 0 per uscire]: "
+    elif lang == "fr":
+        print("\n╔══════════════════════════════════════════════════════════════╗")
+        print("║        🎓 PradoOS — Moteur Académique PRADO UGR              ║")
+        print("╠══════════════════════════════════════════════════════════════╣")
+        print("║  [1] 🔄 Synchroniser Cours et Courrier Maintenant            ║")
+        print("║  [2] 📬 Lecteur Courriel UGR et Règles de Redirection        ║")
+        print("║  [3] 🔧 Configuration Initiale / Modifier Paramètres         ║")
+        print("║  [4] 📚 Découvrir et Lister les Cours Inscrits               ║")
+        print("║  [5] 🩺 Diagnostic du Système (Doctor)                       ║")
+        print("║  [6] ⏰ Activer Synchronisation Automatique (Toutes les 4h)  ║")
+        print("║  [7] 📅 Synchroniser les Échéances avec Google Calendar      ║")
+        print("║  [8] ⭐ Laisser une Étoile à prado-os sur GitHub             ║")
+        print("║  [0] 🚪 Quitter                                              ║")
+        print("╚══════════════════════════════════════════════════════════════╝")
+        prompt_str = "\nChoisissez une option [1-8, 0 pour quitter] : "
     else:
         print("\n╔══════════════════════════════════════════════════════════════╗")
         print("║        🎓 PradoOS — Motor Académico PRADO UGR                ║")

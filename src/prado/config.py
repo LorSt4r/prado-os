@@ -327,7 +327,7 @@ class MailConfig:
 @dataclass
 class PradoConfig:
     version: str = "1.0"
-    language: str = "es"  # 'es' (default Spanish) or 'en' (English)
+    language: str = "es"  # 'es' (default Spanish), 'en' (English), 'it' (Italiano), 'fr' (Français)
     moodle_url: str = field(default_factory=get_default_moodle_url)
     sso_type: str = "ugr_saml"
     username: Optional[str] = None
@@ -386,7 +386,7 @@ class PradoConfig:
             courses_root = Path.home() / "Documents" / "UGR_Courses"
 
         lang = str(data.get("language", "es")).strip().lower()
-        if lang not in ("es", "en"):
+        if lang not in ("es", "en", "it", "fr"):
             lang = "es"
 
         return cls(

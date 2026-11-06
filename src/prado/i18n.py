@@ -1,0 +1,302 @@
+"""
+Internationalization (i18n) module for PradoOS (`prado-os`).
+
+Supported languages:
+- 'es': Español (Default / UGR Primary)
+- 'en': English (International / Erasmus)
+- 'it': Italiano (Primary Erasmus community at UGR ~35%)
+- 'fr': Français (Second largest Western European Erasmus community ~15%)
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict
+
+SUPPORTED_LANGUAGES = ("es", "en", "it", "fr")
+DEFAULT_LANGUAGE = "es"
+
+LANGUAGE_NAMES = {
+    "es": "Español (Predeterminado)",
+    "en": "English",
+    "it": "Italiano",
+    "fr": "Français",
+}
+
+TRANSLATIONS: Dict[str, Dict[str, str]] = {
+    # -------------------------------------------------------------------------
+    # Main Interactive Menu (CLI)
+    # -------------------------------------------------------------------------
+    "menu_header": {
+        "es": "🎓 PradoOS — Motor Académico PRADO UGR",
+        "en": "🎓 PradoOS — PRADO UGR Academic Engine",
+        "it": "🎓 PradoOS — Motore Accademico PRADO UGR",
+        "fr": "🎓 PradoOS — Moteur Académique PRADO UGR",
+    },
+    "menu_opt_1": {
+        "es": "[1] 🔄 Sincronizar Asignaturas y Correo Ahora",
+        "en": "[1] 🔄 Sync Courses and Mail Now",
+        "it": "[1] 🔄 Sincronizza Insegnamenti e Posta Ora",
+        "fr": "[1] 🔄 Synchroniser Cours et Courrier Maintenant",
+    },
+    "menu_opt_2": {
+        "es": "[2] 📬 Lector de Correo UGR y Reenvío Automático",
+        "en": "[2] 📬 Read UGR Mail & Auto-Forwarding Rules",
+        "it": "[2] 📬 Lettore Posta UGR e Regole Inoltro Automatico",
+        "fr": "[2] 📬 Lecteur Courriel UGR et Règles de Redirection",
+    },
+    "menu_opt_3": {
+        "es": "[3] 🔧 Configuración Inicial / Cambiar Ajustes (Wizard)",
+        "en": "[3] 🔧 First-Time Setup / Change Settings (Wizard)",
+        "it": "[3] 🔧 Configurazione Iniziale / Modifica Impostazioni (Wizard)",
+        "fr": "[3] 🔧 Configuration Initiale / Modifier Paramètres (Assistant)",
+    },
+    "menu_opt_4": {
+        "es": "[4] 📚 Descubrir y Listar Asignaturas Matriculadas",
+        "en": "[4] 📚 Discover & List Enrolled Courses",
+        "it": "[4] 📚 Scopri ed Elenca Insegnamenti Iscritti",
+        "fr": "[4] 📚 Découvrir et Lister les Cours Inscrits",
+    },
+    "menu_opt_5": {
+        "es": "[5] 🩺 Diagnóstico del Sistema (Doctor)",
+        "en": "[5] 🩺 Run System Health Check (Doctor)",
+        "it": "[5] 🩺 Diagnostica del Sistema (Doctor)",
+        "fr": "[5] 🩺 Diagnostic du Système (Doctor)",
+    },
+    "menu_opt_6": {
+        "es": "[6] ⏰ Activar Sincronización Automática (Cada 4h)",
+        "en": "[6] ⏰ Enable Automatic Background Sync (Every 4h)",
+        "it": "[6] ⏰ Attiva Sincronizzazione Automatica (Ogni 4h)",
+        "fr": "[6] ⏰ Activer la Synchronisation Automatique (Toutes les 4h)",
+    },
+    "menu_opt_7": {
+        "es": "[7] 📅 Sincronizar Entregas con Google Calendar",
+        "en": "[7] 📅 Sync Deadlines to Google Calendar",
+        "it": "[7] 📅 Sincronizza Scadenze con Google Calendar",
+        "fr": "[7] 📅 Synchroniser les Échéances avec Google Calendar",
+    },
+    "menu_opt_8": {
+        "es": "[8] ⭐ Dar una Estrella a prado-os en GitHub",
+        "en": "[8] ⭐ Star prado-os on GitHub",
+        "it": "[8] ⭐ Lascia una Stella a prado-os su GitHub",
+        "fr": "[8] ⭐ Laisser une Étoile à prado-os sur GitHub",
+    },
+    "menu_opt_0": {
+        "es": "[0] 🚪 Salir",
+        "en": "[0] 🚪 Exit",
+        "it": "[0] 🚪 Esci",
+        "fr": "[0] 🚪 Quitter",
+    },
+    "menu_prompt": {
+        "es": "\nElige una opción [1-8, 0 para salir]: ",
+        "en": "\nSelect an option [1-8, 0 to exit]: ",
+        "it": "\nScegli un'opzione [1-8, 0 per uscire]: ",
+        "fr": "\nChoisissez une option [1-8, 0 pour quitter] : ",
+    },
+    "invalid_option": {
+        "es": "Opción no válida. Inténtalo de nuevo.",
+        "en": "Invalid option. Please try again.",
+        "it": "Opzione non valida. Riprova.",
+        "fr": "Option non valide. Veuillez réessayer.",
+    },
+
+    # -------------------------------------------------------------------------
+    # Onboarding Wizard Strings
+    # -------------------------------------------------------------------------
+    "wizard_welcome_banner": {
+        "es": "🎓 ASISTENTE DE CONFIGURACIÓN DE PRADOOS",
+        "en": "🎓 PRADOOS INITIAL SETUP WIZARD",
+        "it": "🎓 ASSISTENTE DI CONFIGURAZIONE DI PRADOOS",
+        "fr": "🎓 ASSISTANT DE CONFIGURATION DE PRADOOS",
+    },
+    "wizard_welcome_sub": {
+        "es": "Configuración rápida en 2 sencillos pasos.",
+        "en": "Quick setup in 2 simple steps.",
+        "it": "Configurazione rapida in 2 semplici passaggi.",
+        "fr": "Configuration rapide en 2 étapes simples.",
+    },
+    "wizard_q1_lang": {
+        "es": "¿Qué idioma prefieres usar?",
+        "en": "Which language do you prefer to use?",
+        "it": "Quale lingua preferisci usare?",
+        "fr": "Quelle langue préférez-vous utiliser ?",
+    },
+    "wizard_q1_folder": {
+        "es": "¿Dónde te gustaría guardar las carpetas de tus asignaturas?",
+        "en": "Where would you like to keep your university courses folder?",
+        "it": "Dove vorresti salvare le cartelle dei tuoi insegnamenti?",
+        "fr": "Où souhaitez-vous enregistrer les dossiers de vos cours ?",
+    },
+    "wizard_q1_folder_help": {
+        "es": "Introduce la ruta, pulsa [Enter] para usar la ruta por defecto o pulsa [G] para abrir el selector gráfico nativo.",
+        "en": "Enter path, press [Enter] for default, or press [G] to open the native graphical folder picker.",
+        "it": "Inserisci il percorso, premi [Invio] per il default o [G] per aprire il selettore grafico nativo.",
+        "fr": "Entrez le chemin, appuyez sur [Entrée] par défaut ou [G] pour ouvrir le sélecteur graphique.",
+    },
+    "wizard_q2_schedule": {
+        "es": "¿Deseas activar la sincronización automática en segundo plano (cada 4 horas)?",
+        "en": "Would you like to enable automatic background sync (every 4 hours)?",
+        "it": "Vuoi attivare la sincronizzazione automatica in background (ogni 4 ore)?",
+        "fr": "Souhaitez-vous activer la synchronisation automatique en arrière-plan (toutes les 4 heures) ?",
+    },
+    "wizard_q2_schedule_sub": {
+        "es": "Sincronizará materiales y revisará tu correo UGR periódicamente sin que tengas que abrir el terminal.",
+        "en": "This will sync materials and check your UGR email periodically without opening the terminal.",
+        "it": "Sincronizzerà materiali e controllerà la posta UGR periodicamente senza dover aprire il terminale.",
+        "fr": "Cela synchronisera les cours et vérifiera vos courriels UGR sans ouvrir le terminal.",
+    },
+    "wizard_preset_prompt": {
+        "es": "¿Qué estilo de organización prefieres?",
+        "en": "Which organization preset do you prefer?",
+        "it": "Quale stile di organizzazione preferisci?",
+        "fr": "Quel style d'organisation préférez-vous ?",
+    },
+    "wizard_preset_mirror": {
+        "es": "[1] Mirror (Recomendado): mantiene los nombres oficiales de PRADO y la estructura de los profesores.",
+        "en": "[1] Mirror (Recommended): keeps official PRADO course names and professor section layout.",
+        "it": "[1] Mirror (Consigliato): mantiene i nomi ufficiali di PRADO e la struttura dei docenti.",
+        "fr": "[1] Mirror (Recommandé) : conserve les noms officiels de PRADO et la structure des professeurs.",
+    },
+    "wizard_preset_smart": {
+        "es": "[2] Smart / IA: organiza automáticamente en Teoria/, Practicas/ y General/ (ideal para asistentes IA).",
+        "en": "[2] Smart / AI: auto-sorts into Theory/, Labs/, and General/ (ideal for AI assistants).",
+        "it": "[2] Smart / IA: organizza automaticamente in Teoria/, Pratiche/ e Generale/ (ideale per agenti IA).",
+        "fr": "[2] Smart / IA : classe automatiquement en Théorie/, Travaux Pratiques/ et Général/.",
+    },
+    "wizard_summary_ready": {
+        "es": "Configuración lista. Guardando credenciales y preparando la primera sincronización...",
+        "en": "Setup ready. Saving credentials and preparing initial sync...",
+        "it": "Configurazione completata. Salvataggio credenziali e avvio della prima sincronizzazione...",
+        "fr": "Configuration prête. Enregistrement des identifiants et lancement de la première synchronisation...",
+    },
+    "wizard_login_prompt": {
+        "es": "Iniciando sesión segura en PRADO UGR...",
+        "en": "Starting secure login to PRADO UGR...",
+        "it": "Avvio accesso sicuro a PRADO UGR...",
+        "fr": "Connexion sécurisée à PRADO UGR en cours...",
+    },
+    "wizard_login_success": {
+        "es": "¡Sesión iniciada con éxito! Dispositivo de confianza activado por 30 días.",
+        "en": "Login successful! 30-day device trust token activated.",
+        "it": "Accesso riuscito! Token dispositivo attendibile attivato per 30 giorni.",
+        "fr": "Connexion réussie ! Jeton de confiance 30 jours activé.",
+    },
+
+    # -------------------------------------------------------------------------
+    # GitHub Star Dialog
+    # -------------------------------------------------------------------------
+    "star_prompt": {
+        "es": "¿Te gustaría dejar una estrella al proyecto prado-os en GitHub para apoyar su desarrollo?",
+        "en": "Would you like to leave a star on GitHub to support prado-os development?",
+        "it": "Ti andrebbe di lasciare una stella a prado-os su GitHub per supportare lo sviluppo?",
+        "fr": "Souhaitez-vous laisser une étoile sur GitHub pour soutenir le développement de prado-os ?",
+    },
+    "star_success": {
+        "es": "¡Muchas gracias por tu apoyo con una estrella en GitHub!",
+        "en": "Thank you so much for starring the repository on GitHub!",
+        "it": "Grazie mille per il supporto con una stella su GitHub!",
+        "fr": "Merci beaucoup pour votre soutien avec une étoile sur GitHub !",
+    },
+    "star_skipped": {
+        "es": "Sin problema. ¡Esperamos que PradoOS te sea de gran utilidad!",
+        "en": "No problem! We hope PradoOS saves you plenty of time this semester!",
+        "it": "Nessun problema. Buono studio e buon semestre con PradoOS!",
+        "fr": "Pas de souci ! Nous espérons que PradoOS vous fera gagner un temps précieux ce semestre !",
+    },
+
+    # -------------------------------------------------------------------------
+    # UGR Mail TUI Reader
+    # -------------------------------------------------------------------------
+    "mail_title": {
+        "es": "📬 PradoOS — Lector de Correo Institucional UGR (@correo.ugr.es)",
+        "en": "📬 PradoOS — UGR Institutional Mail Reader (@correo.ugr.es)",
+        "it": "📬 PradoOS — Lettore Posta Istituzionale UGR (@correo.ugr.es)",
+        "fr": "📬 PradoOS — Lecteur de Courriel Institutionnel UGR (@correo.ugr.es)",
+    },
+    "mail_controls": {
+        "es": "Controles: [1-N] Abrir | [F] Filtro | [R] Reglas de Reenvío | [A] Descargar Adjuntos | [Q] Salir",
+        "en": "Controls: [1-N] Open | [F] Filter | [R] Forwarding Rules | [A] Download Attachments | [Q] Exit",
+        "it": "Controlli: [1-N] Apri | [F] Filtro | [R] Regole Inoltro | [A] Salva Allegati | [Q] Esci",
+        "fr": "Contrôles : [1-N] Ouvrir | [F] Filtrer | [R] Règles de Redirection | [A] Pièces Jointes | [Q] Quitter",
+    },
+    "mail_empty": {
+        "es": "No hay correos para mostrar en esta vista.",
+        "en": "No emails found in this view.",
+        "it": "Nessuna email presente in questa visualizzazione.",
+        "fr": "Aucun courriel à afficher dans cette vue.",
+    },
+    "mail_filter_active": {
+        "es": "Filtro activo: {filter_name}",
+        "en": "Active filter: {filter_name}",
+        "it": "Filtro attivo: {filter_name}",
+        "fr": "Filtre actif : {filter_name}",
+    },
+    "mail_forwarding_rules_title": {
+        "es": "Configuración de Reglas de Auto-Reenvío",
+        "en": "Auto-Forwarding Rules Configuration",
+        "it": "Configurazione Regole di Inoltro Automatico",
+        "fr": "Configuration des Règles de Redirection Automatique",
+    },
+    "mail_attachments_saved": {
+        "es": "Adjunto guardado en: {dest}",
+        "en": "Attachment saved to: {dest}",
+        "it": "Allegato salvato in: {dest}",
+        "fr": "Pièce jointe enregistrée dans : {dest}",
+    },
+
+    # -------------------------------------------------------------------------
+    # Sync & Common Feedback
+    # -------------------------------------------------------------------------
+    "sync_starting": {
+        "es": "Iniciando sincronización de asignaturas...",
+        "en": "Starting course synchronization...",
+        "it": "Avvio sincronizzazione insegnamenti...",
+        "fr": "Démarrage de la synchronisation des cours...",
+    },
+    "sync_completed": {
+        "es": "Sincronización completada con éxito.",
+        "en": "Synchronization completed successfully.",
+        "it": "Sincronizzazione completata con successo.",
+        "fr": "Synchronisation terminée avec succès.",
+    },
+    "doctor_healthy": {
+        "es": "Diagnóstico completado: todos los sistemas funcionan correctamente.",
+        "en": "Health check passed: all systems operating normally.",
+        "it": "Diagnostica completata: tutti i sistemi funzionano correttamente.",
+        "fr": "Diagnostic réussi : tous les systèmes fonctionnent correctement.",
+    },
+}
+
+
+def normalize_language(lang_code: str | None) -> str:
+    """Normalize language code to one of ('es', 'en', 'it', 'fr'), defaulting to 'es'."""
+    if not lang_code:
+        return DEFAULT_LANGUAGE
+    code = lang_code.strip().lower()
+    if code in ("es", "spanish", "español", "esp"):
+        return "es"
+    if code in ("en", "english", "eng", "inglés", "ingles"):
+        return "en"
+    if code in ("it", "italian", "italiano", "ita"):
+        return "it"
+    if code in ("fr", "french", "français", "francais", "fra"):
+        return "fr"
+    return DEFAULT_LANGUAGE
+
+
+def t(key: str, lang: str = DEFAULT_LANGUAGE, **kwargs: Any) -> str:
+    """
+    Translate key for given language with fallback hierarchy:
+    lang -> 'es' -> 'en' -> key itself.
+    """
+    normalized = normalize_language(lang)
+    entry = TRANSLATIONS.get(key)
+    if not entry:
+        return key
+
+    text = entry.get(normalized) or entry.get("es") or entry.get("en") or key
+    if kwargs:
+        try:
+            return text.format(**kwargs)
+        except Exception:
+            return text
+    return text
