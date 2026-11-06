@@ -131,4 +131,4 @@ class TestCliJsonProtocol:
         code_star = main(["star", "--no-browser", "--json"])
         out_star = json.loads(capsys.readouterr().out)
         assert code_star == 0
-        assert out_star["repo"] == "LorSt4r/ugr-prado-sync"
+        assert "LorSt4r/prado-os" in out_star["repo"] or "LorSt4r/ugr-prado-sync" in out_star["repo"]

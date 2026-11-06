@@ -17,7 +17,7 @@ import webbrowser
 
 from prado.config import ensure_secure_dir, get_config_dir, write_secure_file
 
-DEFAULT_GITHUB_REPO = "LorSt4r/ugr-prado-sync"
+DEFAULT_GITHUB_REPO = "LorSt4r/prado-os"
 DEFAULT_GITHUB_URL = f"https://github.com/{DEFAULT_GITHUB_REPO}"
 STAR_MARKER_FILENAME = ".star_prompted"
 SYNC_COUNT_FILENAME = ".sync_count"

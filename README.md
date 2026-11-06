@@ -1,14 +1,14 @@
-# 🎓 UGR PRADO Sync — PradoOS (`ugr-prado-sync`)
+# 🎓 PradoOS (`prado-os`)
 
 **El motor de sincronización y flujo académico inteligente para PRADO UGR (`pradogrado`, `pradoposgrado`, `prado.ugr.es`) y Moodle.**  
 *Disponible para macOS, Linux Desktop y Windows.*
 
-[![Release: v0.2.0-beta](https://img.shields.io/badge/release-v0.2.0--beta-orange.svg)](https://github.com/LorSt4r/ugr-prado-sync/releases)
+[![Release: v0.2.0-beta](https://img.shields.io/badge/release-v0.2.0--beta-orange.svg)](https://github.com/LorSt4r/prado-os/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 714 Passing](https://img.shields.io/badge/tests-714%20passed-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
-[![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/ugr-prado-sync/actions)
+[![Tests: 714 Passing](https://img.shields.io/badge/tests-714%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
+[![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
 > 🌐 **Idiomas / Languages:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation)
 
@@ -81,7 +81,7 @@ Si estudias en la Universidad de Granada, PradoOS resuelve en segundo plano todo
 #### Opción A: Mediante Asistente de IA (Antigravity, Claude Code, Cursor, Codex)
 Pega este mensaje en tu asistente de programación con IA:
 ```text
-Instala y configura https://github.com/LorSt4r/ugr-prado-sync siguiendo BOOTSTRAP.md
+Instala y configura https://github.com/LorSt4r/prado-os siguiendo BOOTSTRAP.md
 ```
 *El agente leerá [`BOOTSTRAP.md`](BOOTSTRAP.md), te hablará en tu idioma preferido (español o inglés) y completará la configuración inicial en menos de 60 segundos.*
 
@@ -91,12 +91,12 @@ Instala y configura https://github.com/LorSt4r/ugr-prado-sync siguiendo BOOTSTRA
 
 **macOS y Linux Desktop:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex
 ```
 
 *(Si ejecutas `prado` sin argumentos en tu terminal, se abrirá un menú interactivo con opciones numeradas del 1 al 7).*
@@ -210,7 +210,7 @@ PradoOS turns your university Moodle / PRADO UGR portal into an automated, self-
 #### Option A: Via AI Assistant (Antigravity, Claude Code, Cursor, Codex)
 Send this prompt to your AI assistant:
 ```text
-Install and configure https://github.com/LorSt4r/ugr-prado-sync for me following BOOTSTRAP.md
+Install and configure https://github.com/LorSt4r/prado-os for me following BOOTSTRAP.md
 ```
 
 #### Option B: 1-Click Standalone Terminal Installation
@@ -219,10 +219,10 @@ Install and configure https://github.com/LorSt4r/ugr-prado-sync for me following
 
 ```bash
 # macOS & Linux Desktop:
-curl -fsSL https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | bash
 
 # Windows (PowerShell):
-irm https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex
 ```
 
 ---

@@ -243,7 +243,7 @@ class GoogleCalendarSync:
                     f"Actividad: {item.title}\n"
                     f"Plataforma: PRADO UGR\n"
                     f"Enlace directo: {item.url or 'https://pradogrado.ugr.es'}\n\n"
-                    f"Sincronizado automáticamente mediante PradoOS (ugr-prado-sync)."
+                    f"Sincronizado automáticamente mediante PradoOS (prado-os)."
                 ),
                 "start": {"dateTime": start_str},
                 "end": {"dateTime": end_str},

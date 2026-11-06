@@ -1,7 +1,7 @@
 # 🎓 PradoOS — AI Agent Bootstrap Playbook (`BOOTSTRAP.md`)
 
 Welcome, AI Coding Assistant (**Antigravity**, **Claude Code**, **Cursor**, **Codex**, or **Windsurf**)!
-A student has shared this repository with you so you can autonomously install, configure, and tailor **PradoOS (`ugr-prado-sync`)** to their operating system (macOS, Windows, or Linux Desktop) and academic faculty.
+A student has shared this repository with you so you can autonomously install, configure, and tailor **PradoOS (`prado-os`)** to their operating system (macOS, Windows, or Linux Desktop) and academic faculty.
 
 ---
 

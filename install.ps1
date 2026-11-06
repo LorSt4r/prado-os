@@ -2,7 +2,7 @@
 # PradoOS (`prado-os`) -- Self-Bootstrapping Installer for Windows 10/11
 # Works on fresh Windows machines without Python or Git pre-installed!
 # Usage:
-#   irm https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex
 # =============================================================================
 
 function Download-BinaryFile($Url, $DestFile) {
@@ -132,9 +132,9 @@ function Install-PradoOS {
     $ProgressPreference = "SilentlyContinue"
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-    $RepoUrl = if ($env:PRADO_REPO_URL) { $env:PRADO_REPO_URL } else { "https://github.com/LorSt4r/ugr-prado-sync.git" }
-    $ZipUrl = "https://github.com/LorSt4r/ugr-prado-sync/archive/refs/heads/main.zip"
-    $InstallDir = if ($env:PRADO_INSTALL_DIR) { $env:PRADO_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "ugr-prado-sync" }
+    $RepoUrl = if ($env:PRADO_REPO_URL) { $env:PRADO_REPO_URL } else { "https://github.com/LorSt4r/prado-os.git" }
+    $ZipUrl = "https://github.com/LorSt4r/prado-os/archive/refs/heads/main.zip"
+    $InstallDir = if ($env:PRADO_INSTALL_DIR) { $env:PRADO_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "prado-os" }
 
     Write-Host ""
     Write-Host "==> PradoOS Installer (Windows 10/11)" -ForegroundColor Cyan
@@ -165,8 +165,8 @@ function Install-PradoOS {
 
         if (-not (Test-Path (Join-Path $InstallDir ".git"))) {
             Write-Host "==> Downloading latest PradoOS source archive from GitHub..." -ForegroundColor Cyan
-            $ZipPath = Join-Path $env:TEMP "ugr-prado-sync-main.zip"
-            $ExtractPath = Join-Path $env:TEMP "ugr-prado-sync-extract"
+            $ZipPath = Join-Path $env:TEMP "prado-os-main.zip"
+            $ExtractPath = Join-Path $env:TEMP "prado-os-extract"
 
             if (Test-Path $ExtractPath) { Remove-Item -Recurse -Force $ExtractPath -ErrorAction SilentlyContinue }
             if (-not (Download-BinaryFile $ZipUrl $ZipPath)) {
@@ -178,7 +178,7 @@ function Install-PradoOS {
                 return
             }
 
-            $ExtractedRoot = Join-Path $ExtractPath "ugr-prado-sync-main"
+            $ExtractedRoot = Join-Path $ExtractPath "prado-os-main"
             if (-not (Test-Path $ExtractedRoot)) {
                 $FirstSub = Get-ChildItem -Directory $ExtractPath | Select-Object -First 1
                 if ($FirstSub) { $ExtractedRoot = $FirstSub.FullName }

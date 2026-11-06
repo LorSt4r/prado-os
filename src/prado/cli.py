@@ -1188,7 +1188,7 @@ def _run_interactive_menu() -> int:
         print("║  [5] 🩺 Run System Health Check (Doctor)                     ║")
         print("║  [6] ⏰ Enable Automatic Background Sync (Every 4h)          ║")
         print("║  [7] 📅 Sync Deadlines to Google Calendar                    ║")
-        print("║  [8] ⭐ Star ugr-prado-sync on GitHub                        ║")
+        print("║  [8] ⭐ Star prado-os on GitHub                             ║")
         print("║  [0] 🚪 Exit                                                 ║")
         print("╚══════════════════════════════════════════════════════════════╝")
         prompt_str = "\nSelect an option [1-8, 0 to exit]: "
@@ -1203,7 +1203,7 @@ def _run_interactive_menu() -> int:
         print("║  [5] 🩺 Diagnóstico del Sistema (Doctor)                     ║")
         print("║  [6] ⏰ Activar Sincronización Automática (Cada 4h)          ║")
         print("║  [7] 📅 Sincronizar Entregas con Google Calendar             ║")
-        print("║  [8] ⭐ Dar una Estrella a ugr-prado-sync en GitHub          ║")
+        print("║  [8] ⭐ Dar una Estrella a prado-os en GitHub                ║")
         print("║  [0] 🚪 Salir                                                ║")
         print("╚══════════════════════════════════════════════════════════════╝")
         prompt_str = "\nElige una opción [1-8, 0 para salir]: "

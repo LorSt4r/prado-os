@@ -3,14 +3,14 @@
 # PradoOS (`prado-os`) — Self-Bootstrapping Installer for macOS & Linux Desktop
 # Works even on fresh systems without Python or Git pre-installed!
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/LorSt4r/ugr-prado-sync/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | bash
 #   or locally: ./install.sh
 # =============================================================================
 set -euo pipefail
 
-REPO_URL="${PRADO_REPO_URL:-https://github.com/LorSt4r/ugr-prado-sync.git}"
-TAR_URL="https://github.com/LorSt4r/ugr-prado-sync/archive/refs/heads/main.tar.gz"
-INSTALL_DIR="${PRADO_INSTALL_DIR:-$HOME/.local/share/ugr-prado-sync}"
+REPO_URL="${PRADO_REPO_URL:-https://github.com/LorSt4r/prado-os.git}"
+TAR_URL="https://github.com/LorSt4r/prado-os/archive/refs/heads/main.tar.gz"
+INSTALL_DIR="${PRADO_INSTALL_DIR:-$HOME/.local/share/prado-os}"
 BIN_DIR="${PRADO_BIN_DIR:-$HOME/.local/bin}"
 
 printf "\033[1;34m==> PradoOS Installer (macOS / Linux Desktop)\033[0m\n"
