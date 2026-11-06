@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    width: 1280px;
+    height: 640px;
+    background: #090A0F;
+    overflow: hidden;
+    position: relative;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #F8FAFC;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 70px;
+  }
+
+  /* Sophisticated Background Mesh & Gradients */
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 85%);
+  }
+
+  .glow-ugr {
+    position: absolute;
+    width: 650px;
+    height: 650px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(163, 29, 36, 0.28) 0%, rgba(220, 38, 38, 0.12) 40%, transparent 70%);
+    top: -150px;
+    left: -100px;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+
+  .glow-cyan {
+    position: absolute;
+    width: 550px;
+    height: 550px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, rgba(56, 189, 248, 0.06) 45%, transparent 70%);
+    bottom: -120px;
+    right: 50px;
+    filter: blur(90px);
+    pointer-events: none;
+  }
+
+  .glow-gold {
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+    top: 200px;
+    left: 450px;
+    filter: blur(70px);
+    pointer-events: none;
+  }
+
+  /* Left Hero Content */
+  .hero-content {
+    position: relative;
+    z-index: 10;
+    max-width: 580px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Brand Pill & Tag */
+  .brand-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(163, 29, 36, 0.16);
+    border: 1px solid rgba(220, 38, 38, 0.35);
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #FCA5A5;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 16px rgba(163, 29, 36, 0.2);
+  }
+
+  .badge-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #EF4444;
+    box-shadow: 0 0 10px #EF4444;
+  }
+
+  .version-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #94A3B8;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 5px 10px;
+    border-radius: 8px;
+  }
+
+  /* Logo & Title Lockup */
+  .title-lockup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .brand-title-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  /* Modernized SVG Logo Icon */
+  .app-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #A31D24 0%, #681116 50%, #1E0507 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+      0 12px 30px -4px rgba(163, 29, 36, 0.5),
+      0 0 0 1px rgba(220, 38, 38, 0.3),
+      inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .app-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom right, rgba(255,255,255,0.2), transparent 60%);
+  }
+
+  .app-icon svg {
+    width: 36px;
+    height: 36px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .brand-title {
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    line-height: 1;
+    background: linear-gradient(180deg, #FFFFFF 20%, #CBD5E1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .brand-title .os {
+    color: #F87171;
+    background: linear-gradient(135deg, #F87171 0%, #EF4444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .brand-subtitle {
+    font-size: 21px;
+    font-weight: 700;
+    color: #E2E8F0;
+    letter-spacing: -0.3px;
+    margin-top: 4px;
+  }
+
+  .brand-description {
+    font-size: 15px;
+    line-height: 1.55;
+    color: #94A3B8;
+    font-weight: 400;
+    margin-top: 4px;
+  }
+
+  /* Feature Grid / Feature Chips */
+  .features-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 14px;
+    margin-top: 4px;
+  }
+
+  .feature-chip {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #CBD5E1;
+  }
+
+  .feature-icon-wrapper {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .chip-sync .feature-icon-wrapper { background: rgba(14, 165, 233, 0.15); color: #38BDF8; }
+  .chip-shield .feature-icon-wrapper { background: rgba(34, 197, 94, 0.15); color: #4ADE80; }
+  .chip-mail .feature-icon-wrapper { background: rgba(245, 158, 11, 0.15); color: #FBBF24; }
+  .chip-ai .feature-icon-wrapper { background: rgba(168, 85, 247, 0.15); color: #C084FC; }
+
+  /* Footer Tech Stack & Badges */
+  .tech-badges {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .tech-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: #94A3B8;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .tech-tag.agpl {
+    color: #60A5FA;
+    border-color: rgba(96, 165, 250, 0.3);
+    background: rgba(37, 99, 235, 0.1);
+    font-weight: 600;
+  }
+
+  .tech-tag.os-icons {
+    color: #E2E8F0;
+    font-weight: 500;
+  }
+
+  /* Right Side: Mockup Frame */
+  .mockup-container {
+    position: relative;
+    z-index: 10;
+    width: 530px;
+    perspective: 1000px;
+  }
+
+  .window-frame {
+    width: 100%;
+    background: #0E121B;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    box-shadow: 
+      0 25px 60px -10px rgba(0, 0, 0, 0.8),
+      0 12px 28px -5px rgba(163, 29, 36, 0.2),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    transform: rotateY(-3deg) rotateX(2deg);
+    transition: transform 0.3s ease;
+  }
+
+  .window-titlebar {
+    height: 38px;
+    background: #141923;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    position: relative;
+  }
+
+  .window-dots {
+    display: flex;
+    gap: 7px;
+  }
+
+  .dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+  }
+
+  .dot-red { background: #FF5F56; }
+  .dot-yellow { background: #FFBD2E; }
+  .dot-green { background: #27C93F; }
+
+  .window-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: #94A3B8;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .window-body {
+    padding: 16px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: #E2E8F0;
+  }
+
+  .cli-prompt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .cli-user { color: #38BDF8; font-weight: 600; }
+  .cli-dir { color: #818CF8; }
+  .cli-cmd { color: #F8FAFC; font-weight: 600; }
+
+  .cli-banner-box {
+    border: 1px solid #A31D24;
+    border-radius: 8px;
+    background: rgba(163, 29, 36, 0.08);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+
+  .cli-banner-title {
+    color: #F87171;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cli-banner-sub {
+    color: #94A3B8;
+    font-size: 10.5px;
+    margin-top: 2px;
+  }
+
+  .cli-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cli-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 0;
+  }
+
+  .row-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .icon-check { color: #4ADE80; font-weight: bold; }
+  .icon-sync { color: #38BDF8; }
+  .icon-star { color: #FBBF24; }
+
+  .status-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+
+  .status-ok { background: rgba(34, 197, 94, 0.15); color: #4ADE80; }
+  .status-pro { background: rgba(56, 189, 248, 0.15); color: #38BDF8; }
+  .status-lock { background: rgba(248, 113, 113, 0.15); color: #F87171; }
+
+  /* Floating Decorative Glow on Window */
+  .window-accent-card {
+    position: absolute;
+    bottom: -16px;
+    right: -16px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #F8FAFC;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22C55E;
+    box-shadow: 0 0 8px #22C55E;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Ambient Light Effects -->
+  <div class="bg-grid"></div>
+  <div class="glow-ugr"></div>
+  <div class="glow-cyan"></div>
+  <div class="glow-gold"></div>
+
+  <!-- Subtle Official UGR Crest Silhouette in Background -->
+  <img src="ugr_emblem_white.png" style="position: absolute; left: -25px; bottom: -25px; width: 280px; opacity: 0.055; filter: blur(1px); pointer-events: none; z-index: 1;">
+
+  <!-- Left: Content Information -->
+  <div class="hero-content">
+    
+    <div class="brand-header">
+      <div class="brand-badge">
+        <span class="badge-pulse"></span>
+        UNIVERSIDAD DE GRANADA · ETSIIT
+      </div>
+      <div class="version-tag">v0.2.0-beta</div>
+    </div>
+
+    <div class="title-lockup">
+      <div class="brand-title-row">
+        <div class="app-icon">
+          <!-- Stylized Modern UGR Pomegranate & Terminal Graduation Crown -->
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 3L4 10L18 17L32 10L18 3Z" fill="url(#grad-roof)" stroke="#FFA3A8" stroke-width="1.2" stroke-linejoin="round"/>
+            <path d="M9 13.5V22.5C9 26.5 13 29.5 18 29.5C23 29.5 27 26.5 27 22.5V13.5" stroke="#FFA3A8" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M32 10V22M32 22L29.5 24.5M32 22L34.5 24.5" stroke="#FFD1D3" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Synchronizing Core Arrow inside Crown -->
+            <path d="M14.5 20C14.5 18.067 16.067 16.5 18 16.5C19.3 16.5 20.4 17.2 21 18.2" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M21.5 21C21.5 22.933 19.933 24.5 18 24.5C16.7 24.5 15.6 23.8 15 22.8" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M21 16.5V18.5H19" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15 24.5V22.5H17" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="grad-roof" x1="18" y1="3" x2="18" y2="17" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FF6B72"/>
+                <stop offset="1" stop-color="#C5222A"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-title">
+          Prado<span class="os">OS</span>
+        </div>
+      </div>
+
+      <div class="brand-subtitle">
+        Academic Workflow Engine for PRADO UGR & Moodle
+      </div>
+      <div class="brand-description">
+        Sincronización autónoma de materiales, 4-quadrant zero-overwrite, integración con Google Calendar y lector de correo universitario.
+      </div>
+    </div>
+
+    <!-- 4 Core Value Pillars -->
+    <div class="features-container">
+      <div class="feature-chip chip-sync">
+        <div class="feature-icon-wrapper">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+        </div>
+        <span>Sync Inteligente de PRADO</span>
+      </div>
+
+      <div class="feature-chip chip-shield">
+        <div class="feature-icon-wrapper">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <span>Protección Anti-Sobrescritura</span>
+      </div>
+
+      <div class="feature-chip chip-mail">
+        <div class="feature-icon-wrapper">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+        <span>Correo @correo.ugr.es & Reenvío</span>
+      </div>
+
+      <div class="feature-chip chip-ai">
+        <div class="feature-icon-wrapper">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 18v4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M20 12h4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
+        </div>
+        <span>AI-Ready (Bootstrap Concierge)</span>
+      </div>
+    </div>
+
+    <!-- Badges Row -->
+    <div class="tech-badges">
+      <div class="tech-tag agpl">GNU AGPLv3</div>
+      <div class="tech-tag os-icons">macOS · Linux · Windows</div>
+      <div class="tech-tag">Zero Cloud · 100% Local</div>
+      <div class="tech-tag">718 Tests Passing</div>
+    </div>
+
+  </div>
+
+  <!-- Right: Glassmorphic TUI Preview -->
+  <div class="mockup-container">
+    <div class="window-frame">
+      <div class="window-titlebar">
+        <div class="window-dots">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="window-title">
+          <span>prado</span>
+          <span style="color: #64748B;">—</span>
+          <span style="color: #E2E8F0;">ugr-prado-sync</span>
+        </div>
+      </div>
+
+      <div class="window-body">
+        <div class="cli-prompt">
+          <span class="cli-user">lorenzo@etsiit</span>
+          <span class="cli-dir">~</span>
+          <span style="color: #64748B;">$</span>
+          <span class="cli-cmd">prado sync --adopt</span>
+        </div>
+
+        <div class="cli-banner-box">
+          <div class="cli-banner-title">
+            <span>🎓 PRADO UGR — Sesión SAML OK</span>
+            <span style="color: #4ADE80; font-size: 11px;">MFA 30d</span>
+          </div>
+          <div class="cli-banner-sub">
+            5 asignaturas matriculadas · Destino: ~/Documents/UGR
+          </div>
+        </div>
+
+        <div class="cli-rows">
+          <div class="cli-row">
+            <div class="row-left">
+              <span class="icon-check">✓</span>
+              <span>Estructura de Datos</span>
+            </div>
+            <span class="status-badge status-ok">36 archivos</span>
+          </div>
+
+          <div class="cli-row">
+            <div class="row-left">
+              <span class="icon-check">✓</span>
+              <span>Visión por Computador</span>
+            </div>
+            <span class="status-badge status-ok">P2 protegida</span>
+          </div>
+
+          <div class="cli-row">
+            <div class="row-left">
+              <span class="icon-sync">↻</span>
+              <span>Teoría de la Información</span>
+            </div>
+            <span class="status-badge status-pro">DASHBOARD.md</span>
+          </div>
+
+          <div class="cli-row">
+            <div class="row-left">
+              <span class="icon-check">✓</span>
+              <span>Google Calendar Sync</span>
+            </div>
+            <span class="status-badge status-pro">14 eventos</span>
+          </div>
+
+          <div class="cli-row">
+            <div class="row-left">
+              <span class="icon-check">✓</span>
+              <span>Buzón @correo.ugr.es</span>
+            </div>
+            <span class="status-badge status-lock">Reenvío ON</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Floating Badge -->
+    <div class="window-accent-card">
+      <div class="live-dot"></div>
+      <span>Safe Overwrite & Keychain Locked</span>
+    </div>
+  </div>
+
+</body>
+</html>
