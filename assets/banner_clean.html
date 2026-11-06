@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    width: 1280px;
+    height: 640px;
+    background: #0D1117; /* GitHub Dark Default */
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #E6EDF3;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 48px 56px 40px 56px;
+    position: relative;
+    border: 1px solid #30363D;
+  }
+
+  /* Very subtle, razor-clean top accent bar */
+  .top-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #A31D24; /* Official UGR Crimson */
+  }
+
+  /* Top Navigation & Identity Row */
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .repo-path {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: #7D8590;
+  }
+
+  .repo-owner {
+    color: #E6EDF3;
+    font-weight: 500;
+  }
+
+  .repo-slash {
+    color: #484F58;
+  }
+
+  .repo-name {
+    color: #E6EDF3;
+    font-weight: 700;
+  }
+
+  .header-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #30363D;
+    background: #161B22;
+    color: #E6EDF3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .badge.license {
+    color: #58A6FF;
+    border-color: #1F6FEB44;
+    background: #0D419D22;
+  }
+
+  .badge.ugr {
+    color: #FFA1A6;
+    border-color: #A31D2444;
+    background: #A31D2422;
+  }
+
+  /* Main Split Layout: Left Text & Specs, Right Real Terminal Window */
+  .main-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    margin: auto 0;
+  }
+
+  /* Left Side: Product Identity */
+  .left-col {
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .product-title {
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .terminal-prompt-icon {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    color: #A31D24;
+    font-weight: 700;
+  }
+
+  .product-tagline {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #7D8590;
+    font-weight: 400;
+  }
+
+  /* Spec List - Clean GitHub Issue / Markdown Style */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    margin-top: 8px;
+  }
+
+  .spec-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: #C9D1D9;
+    font-weight: 500;
+  }
+
+  .spec-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3FB950; /* Green check dot */
+    flex-shrink: 0;
+  }
+
+  /* Right Side: Authentic Monospace Terminal Box */
+  .terminal-box {
+    width: 580px;
+    background: #010409;
+    border: 1px solid #30363D;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .terminal-bar {
+    background: #161B22;
+    border-bottom: 1px solid #21262D;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    justify-content: space-between;
+  }
+
+  .terminal-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .tdot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .tdot.r { background: #FF5F56; }
+  .tdot.y { background: #FFBD2E; }
+  .tdot.g { background: #27C93F; }
+
+  .terminal-tab {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #7D8590;
+  }
+
+  .terminal-body {
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #C9D1D9;
+    background: #010409;
+  }
+
+  .t-cmd {
+    color: #58A6FF;
+    font-weight: 600;
+  }
+
+  .t-dim {
+    color: #484F58;
+  }
+
+  .t-green {
+    color: #3FB950;
+  }
+
+  .t-yellow {
+    color: #D29922;
+  }
+
+  .t-red {
+    color: #F85149;
+  }
+
+  .t-cyan {
+    color: #388BFD;
+  }
+
+  /* Footer Meta Row */
+  .footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-top: 14px;
+    border-top: 1px solid #21262D;
+    font-size: 12px;
+    color: #7D8590;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .footer-platforms {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .footer-platforms span {
+    color: #C9D1D9;
+  }
+</style>
+</head>
+<body>
+
+  <div class="top-accent"></div>
+
+  <!-- Header: Repository identity & release tag -->
+  <div class="header-row">
+    <div class="repo-path">
+      <span class="repo-owner">LorSt4r</span>
+      <span class="repo-slash">/</span>
+      <span class="repo-name">ugr-prado-sync</span>
+    </div>
+
+    <div class="header-badges">
+      <div class="badge ugr">ETSIIT · Universidad de Granada</div>
+      <div class="badge license">GNU AGPLv3</div>
+      <div class="badge">v0.2.0-beta</div>
+    </div>
+  </div>
+
+  <!-- Main Section -->
+  <div class="main-content">
+    
+    <!-- Left: Minimalist Clean Headline -->
+    <div class="left-col">
+      <div class="product-title">
+        <span class="terminal-prompt-icon">›</span>
+        <span>PradoOS</span>
+      </div>
+
+      <div class="product-tagline">
+        Autonomous academic workflow engine for PRADO UGR and Moodle. Sincronización local sin pérdidas, Google Calendar y correo institucional.
+      </div>
+
+      <div class="spec-grid">
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <span>SAML SSO + MFA 30d</span>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <span>4-Quadrant Overwrite Safety</span>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <span>Google Calendar Alerts</span>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <span>Correo @correo.ugr.es & Reenvío</span>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <span>Zero Plaintext Passwords</span>
+        </div>
+        <div class="spec-item">
+          <div class="spec-dot"></div>
+          <span>718 Tests · 100% CI Passing</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Authentic Terminal Session -->
+    <div class="terminal-box">
+      <div class="terminal-bar">
+        <div class="terminal-dots">
+          <div class="tdot r"></div>
+          <div class="tdot y"></div>
+          <div class="tdot g"></div>
+        </div>
+        <div class="terminal-tab">bash — 80x24</div>
+        <div style="width: 30px;"></div>
+      </div>
+
+      <div class="terminal-body">
+        <div><span class="t-dim">$</span> <span class="t-cmd">prado sync --adopt</span></div>
+        <div class="t-dim">-----------------------------------------------------</div>
+        <div><span class="t-green">✔</span> Sesión SimpleSAMLphp verificada <span class="t-dim">(Trust MFA activo)</span></div>
+        <div><span class="t-green">✔</span> Descubiertas <span class="t-cmd">5 asignaturas</span> en PRADO UGR:</div>
+        <div style="padding-left: 14px;">
+          <div>• Estructura de Datos <span class="t-dim">.......</span> <span class="t-green">[36 archivos OK]</span></div>
+          <div>• Visión por Computador <span class="t-dim">....</span> <span class="t-green">[P2 local protegida]</span></div>
+          <div>• Teoría de la Información <span class="t-dim">.</span> <span class="t-green">[Actualizado]</span></div>
+        </div>
+        <div><span class="t-green">✔</span> Google Calendar: <span class="t-cyan">14 entregas y exámenes sincronizados</span></div>
+        <div><span class="t-green">✔</span> Correo institucional: <span class="t-yellow">3 nuevos avisos</span> <span class="t-dim">➔ Reenvío aplicado</span></div>
+        <div><span class="t-green">✔</span> Dashboard generado: <span class="t-cmd">~/Documents/UGR/DASHBOARD.md</span></div>
+        <div class="t-dim">-----------------------------------------------------</div>
+        <div><span class="t-green">PradoOS sync completado con éxito en 1.84s</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer: Technical metadata -->
+  <div class="footer-row">
+    <div class="footer-platforms">
+      Plataformas: <span>macOS (Darwin)</span> · <span>Linux (systemd)</span> · <span>Windows (schtasks)</span>
+    </div>
+    <div>100% Local · Zero Telemetry · Open Source</div>
+  </div>
+
+</body>
+</html>
