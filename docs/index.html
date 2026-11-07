@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PradoOS — Tus Asignaturas y Entregas de PRADO UGR Siempre al Día</title>
+  <meta name="description" content="Descarga PradoOS gratis para macOS, Windows y Linux. Sincroniza automáticamente tus apuntes de PRADO UGR, recibe tus entregas en el calendario y reenvía correos de profesores a tu Gmail.">
+  <style>
+    :root {
+      --bg: #0b0d13;
+      --bg-card: #141822;
+      --bg-elevated: #1b202e;
+      --border: #262c3f;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #e11d48;
+      --accent-hover: #be123c;
+      --accent-glow: rgba(225, 29, 72, 0.28);
+      --green: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1f1224 0%, var(--bg) 52%);
+      color: var(--text);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* Navbar */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 19px; }
+    .brand-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg, #e11d48, #9f1239);
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      box-shadow: 0 6px 18px var(--accent-glow);
+    }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .lang-switch { display: flex; gap: 5px; background: var(--bg-card); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+    .lang-btn {
+      padding: 5px 9px; font-size: 12px; font-weight: 600; border-radius: 6px;
+      border: none; background: transparent; color: var(--muted); cursor: pointer;
+    }
+    .lang-btn.active { background: var(--accent); color: #fff; }
+    .gh-link {
+      padding: 7px 13px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      background: var(--bg-card); border: 1px solid var(--border);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .gh-link:hover { border-color: var(--muted); }
+
+    /* Hero */
+    .hero {
+      padding: 64px 0 48px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 44px;
+      align-items: center;
+    }
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; text-align: center; padding: 40px 0; }
+      .hero-actions { justify-content: center; }
+      .os-pills { justify-content: center; }
+    }
+    .pill-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 13px; border-radius: 999px;
+      background: rgba(225, 29, 72, 0.14); border: 1px solid rgba(225, 29, 72, 0.35);
+      color: #fda4af; font-size: 12.5px; font-weight: 600; margin-bottom: 18px;
+    }
+    h1 {
+      font-size: clamp(32px, 4.4vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      margin-bottom: 18px;
+    }
+    .hero-sub {
+      font-size: 17px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      max-width: 560px;
+    }
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    @media (max-width: 900px) {
+      .hero-sub { margin-left: auto; margin-right: auto; }
+      .hero-actions { align-items: center; }
+    }
+    .btn-download-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 28px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      box-shadow: 0 12px 32px var(--accent-glow);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .btn-download-main:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+    }
+    .os-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      align-items: center;
+    }
+    .os-link {
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      font-weight: 600;
+      color: var(--text);
+      font-size: 12.5px;
+    }
+    .os-link:hover { border-color: var(--accent); }
+
+    /* Visual Preview Box */
+    .preview-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .preview-img {
+      width: 100%;
+      max-width: 440px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+    }
+
+    /* 3 Steps Section */
+    .steps-section { padding: 48px 0; }
+    .section-title {
+      text-align: center;
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+      margin-bottom: 34px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 820px) {
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .step-num {
+      display: inline-flex;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: rgba(225, 29, 72, 0.16);
+      color: #fda4af;
+      font-weight: 800;
+      font-size: 14px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .step-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .step-desc { font-size: 14px; color: var(--muted); }
+
+    /* Tray Simulation + Features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin: 20px 0 48px;
+    }
+    @media (max-width: 780px) {
+      .features-grid { grid-template-columns: 1fr; }
+    }
+    .feat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .feat-icon { font-size: 24px; }
+    .feat-title { font-size: 15.5px; font-weight: 700; margin-bottom: 4px; }
+    .feat-desc { font-size: 13.5px; color: var(--muted); }
+
+    /* Quick Help / Terminal Alternative */
+    .help-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 48px;
+    }
+    .code-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #090b10;
+      border: 1px solid var(--border);
+      padding: 11px 14px;
+      border-radius: 9px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      color: #e5e7eb;
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+    .copy-btn {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { border-color: var(--accent); }
+
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 28px 0 40px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Top Navbar -->
+    <nav class="navbar">
+      <div class="brand">
+        <div class="brand-icon">🎓</div>
+        <span>PradoOS <span style="font-weight:400; font-size:13px; color:var(--muted);">UGR</span></span>
+      </div>
+      <div class="nav-right">
+        <div class="lang-switch">
+          <button class="lang-btn active" id="btn-es" onclick="setLang('es')">🇪🇸 ES</button>
+          <button class="lang-btn" id="btn-en" onclick="setLang('en')">🇬🇧 EN</button>
+          <button class="lang-btn" id="btn-it" onclick="setLang('it')">🇮🇹 IT</button>
+          <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">🇫🇷 FR</button>
+        </div>
+        <a class="gh-link" href="https://github.com/LorSt4r/prado-os" target="_blank" rel="noopener">
+          ⭐ GitHub
+        </a>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div>
+        <div class="pill-badge" data-i18n="hero_badge">✨ Cero Terminal • Para Estudiantes de la UGR</div>
+        <h1 data-i18n="hero_title">Tus apuntes y entregas de PRADO UGR, siempre al día sin mover un dedo.</h1>
+        <p class="hero-sub" data-i18n="hero_sub">
+          Olvídate de entrar cada día a PRADO a descargar PDFs uno por uno o revisar cuándo vence una práctica. PradoOS vive en tu Barra de Menús (Mac) o Bandeja del Sistema (Windows) y lo hace todo en segundo plano.
+        </p>
+
+        <div class="hero-actions">
+          <a id="mainDownloadBtn" class="btn-download-main" href="https://github.com/LorSt4r/prado-os/releases/latest/download/PradoOS-macos.zip">
+            <span id="mainDownloadIcon">🍏</span>
+            <span id="mainDownloadText">Descargar para macOS (.zip)</span>
+          </a>
+
+          <div class="os-pills">
+            <span data-i18n="other_platforms">Otras plataformas:</span>
+            <a class="os-link" href="https://github.com/LorSt4r/prado-os/releases/latest/download/PradoOS-macos.zip">🍏 macOS (.app)</a>
+            <a class="os-link" href="https://github.com/LorSt4r/prado-os/releases/latest/download/PradoOS-windows.zip">🪟 Windows (.exe)</a>
+            <a class="os-link" href="https://github.com/LorSt4r/prado-os/releases/latest/download/PradoOS-linux.tar.gz">🐧 Linux</a>
+            <a class="os-link" href="https://github.com/LorSt4r/prado-os/releases/latest" target="_blank" rel="noopener">📦 Releases</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-wrap">
+        <img class="preview-img" src="assets/gui_01_dashboard.png" alt="PradoOS — Ventana Compacta de Configuración">
+      </div>
+    </section>
+
+    <!-- 3 Easy Steps -->
+    <section class="steps-section">
+      <h2 class="section-title" data-i18n="steps_title">¿Cómo funciona? En 3 pasos de 30 segundos</h2>
+      <p class="section-sub" data-i18n="steps_sub">No necesitas instalar Python, ni Git, ni abrir ninguna consola.</p>
+
+      <div class="grid-3">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-title" data-i18n="s1_title">Descarga y Abre la App</div>
+          <div class="step-desc" data-i18n="s1_desc">
+            Descarga el archivo para tu Mac o Windows, descomprímelo y abre <b>PradoOS</b>. Verás el icono del birrete 🎓 arriba en tu barra de menús o junto al reloj.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-title" data-i18n="s2_title">Conecta tu Cuenta UGR</div>
+          <div class="step-desc" data-i18n="s2_desc">
+            Introduce tu correo <code>@correo.ugr.es</code>, tu contraseña (guardada en el Llavero seguro de tu sistema) y elige en qué carpeta quieres tus apuntes.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-title" data-i18n="s3_title">Todo Sincronizado desde la Barra</div>
+          <div class="step-desc" data-i18n="s3_desc">
+            Haz clic en el icono 🎓 de la barra en cualquier momento para abrir tus asignaturas en Finder/Explorador, ver próximas entregas o sincronizar al instante.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Core Features -->
+    <section class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon">🛡️</div>
+        <div>
+          <div class="feat-title" data-i18n="f1_title">Jamás Sobrescribe tu Trabajo</div>
+          <div class="feat-desc" data-i18n="f1_desc">Si modificas un notebook <code>.ipynb</code>, código <code>.cpp</code> o un PDF y el profesor sube otra versión, tu archivo queda protegido por hash SHA-256.</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📬</div>
+        <div>
+          <div class="feat-title" data-i18n="f2_title">Reenvío Automático a tu Gmail / iCloud</div>
+          <div class="feat-desc" data-i18n="f2_desc">No te pierdas ningún cambio de examen: PradoOS reenvía automáticamente los correos de tus profesores desde <code>@correo.ugr.es</code> a tu correo personal.</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📅</div>
+        <div>
+          <div class="feat-title" data-i18n="f3_title">Entregas y Exámenes en tu Calendario</div>
+          <div class="feat-desc" data-i18n="f3_desc">Consulta las cuentas atrás directamente en el menú de la bandeja o sincronízalas con 1 clic en Google Calendar y Apple Calendar (<code>deadlines.ics</code>).</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔑</div>
+        <div>
+          <div class="feat-title" data-i18n="f4_title">Verificación 2FA cada 30 Días</div>
+          <div class="feat-desc" data-i18n="f4_desc">Gracias al token de confianza de la UGR, solo introduces el código de 6 dígitos una vez al mes.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Note for First Open on macOS / Windows + Terminal 1-Liner -->
+    <section class="help-box">
+      <div style="font-size:16px; font-weight:700; margin-bottom:8px;" data-i18n="faq_title">💡 Nota al abrir por primera vez en macOS / Windows (o instalación en 1 comando)</div>
+      <p style="font-size:13.5px; color:var(--muted); margin-bottom:14px;" data-i18n="faq_desc">
+        Al ser software libre gratuito sin cuota de certificado comercial de Apple/Microsoft, la primera vez que abras <code>PradoOS.app</code> en Mac haz <b>Clic Derecho ➔ Abrir</b> (o ejecuta el comando de abajo, que instala automáticamente <code>PradoOS.app</code> en tu carpeta Aplicaciones y en el Menú Inicio de Windows sin avisos):
+      </p>
+
+      <div style="font-size:12.5px; font-weight:600; color:var(--muted); margin-top:8px;">🍏 macOS / 🐧 Linux (Terminal):</div>
+      <div class="code-row">
+        <code id="cmdUnix">curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | bash</code>
+        <button class="copy-btn" onclick="copyCmd('cmdUnix', this)">📋 Copiar</button>
+      </div>
+
+      <div style="font-size:12.5px; font-weight:600; color:var(--muted); margin-top:12px;">🪟 Windows (PowerShell):</div>
+      <div class="code-row">
+        <code id="cmdWin">irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex</code>
+        <button class="copy-btn" onclick="copyCmd('cmdWin', this)">📋 Copiar</button>
+      </div>
+    </section>
+
+    <footer>
+      Creado por <b>Lorenzo Vasile</b> (Università degli Studi di Palermo ➔ Universidad de Granada, ETSIIT) • Licencia Open-Source GNU AGPLv3
+    </footer>
+  </div>
+
+<script>
+const URLS = {
+  mac: "https://github.com/LorSt4r/prado-os/releases/latest/download/PradoOS-macos.zip",
+  win: "https://github.com/LorSt4r/prado-os/releases/latest/download/PradoOS-windows.zip",
+  linux: "https://github.com/LorSt4r/prado-os/releases/latest/download/PradoOS-linux.tar.gz"
+};
+
+let currentOS = "mac";
+const ua = (navigator.userAgent || navigator.platform || "").toLowerCase();
+if (ua.includes("win")) {
+  currentOS = "win";
+} else if (ua.includes("linux") && !ua.includes("android")) {
+  currentOS = "linux";
+}
+
+const TEXTS = {
+  es: {
+    hero_badge: "✨ Cero Terminal • Para Estudiantes de la UGR",
+    hero_title: "Tus apuntes y entregas de PRADO UGR, siempre al día sin mover un dedo.",
+    hero_sub: "Olvídate de entrar cada día a PRADO a descargar PDFs uno por uno o revisar cuándo vence una práctica. PradoOS vive en tu Barra de Menús (Mac) o Bandeja del Sistema (Windows) y lo hace todo en segundo plano.",
+    dl_mac: "Descargar para macOS (.zip)",
+    dl_win: "Descargar para Windows (.zip)",
+    dl_linux: "Descargar para Linux (.tar.gz)",
+    other_platforms: "Otras plataformas:",
+    steps_title: "¿Cómo funciona? En 3 pasos de 30 segundos",
+    steps_sub: "No necesitas instalar Python, ni Git, ni abrir ninguna consola.",
+    s1_title: "Descarga y Abre la App",
+    s1_desc: "Descarga el archivo para tu Mac o Windows, descomprímelo y abre PradoOS. Verás el icono del birrete 🎓 arriba en tu barra de menús o junto al reloj.",
+    s2_title: "Conecta tu Cuenta UGR",
+    s2_desc: "Introduce tu correo @correo.ugr.es, tu contraseña (guardada en el Llavero seguro de tu sistema) y elige en qué carpeta quieres tus apuntes.",
+    s3_title: "Todo Sincronizado desde la Barra",
+    s3_desc: "Haz clic en el icono 🎓 de la barra en cualquier momento para abrir tus asignaturas en Finder/Explorador, ver próximas entregas o sincronizar al instante.",
+    f1_title: "Jamás Sobrescribe tu Trabajo",
+    f1_desc: "Si modificas un notebook .ipynb, código .cpp o un PDF y el profesor sube otra versión, tu archivo queda protegido por hash SHA-256.",
+    f2_title: "Reenvío Automático a tu Gmail / iCloud",
+    f2_desc: "No te pierdas ningún cambio de examen: PradoOS reenvía automáticamente los correos de tus profesores desde @correo.ugr.es a tu correo personal.",
+    f3_title: "Entregas y Exámenes en tu Calendario",
+    f3_desc: "Consulta las cuentas atrás directamente en el menú de la bandeja o sincronízalas con 1 clic en Google Calendar y Apple Calendar (deadlines.ics).",
+    f4_title: "Verificación 2FA cada 30 Días",
+    f4_desc: "Gracias al token de confianza de la UGR, solo introduces el código de 6 dígitos una vez al mes."
+  },
+  en: {
+    hero_badge: "✨ Zero Terminal • Built for UGR Students",
+    hero_title: "Your PRADO UGR courses & deadlines, always synced automatically.",
+    hero_sub: "Stop logging into PRADO every day just to download PDFs one by one. PradoOS lives quietly in your macOS Menu Bar or Windows System Tray and keeps your folders, calendar, and email in sync.",
+    dl_mac: "Download for macOS (.zip)",
+    dl_win: "Download for Windows (.zip)",
+    dl_linux: "Download for Linux (.tar.gz)",
+    other_platforms: "Other platforms:",
+    steps_title: "How does it work? 3 simple steps in 30 seconds",
+    steps_sub: "No Python, no Git, and no terminal required.",
+    s1_title: "Download & Launch",
+    s1_desc: "Download the bundle for your Mac or Windows PC, unzip it, and open PradoOS. The graduation cap icon 🎓 appears in your Menu Bar or System Tray.",
+    s2_title: "Connect Your UGR Account",
+    s2_desc: "Enter your @correo.ugr.es email, password (stored securely in your OS Keychain), and pick your local courses folder.",
+    s3_title: "1-Click Control from the Menu Bar",
+    s3_desc: "Click the 🎓 icon anytime to open any course folder in Finder/Explorer, check upcoming exam countdowns, or sync on demand.",
+    f1_title: "Zero Overwrites Guarantee",
+    f1_desc: "Edit your .ipynb notebooks or code freely—PradoOS tracks SHA-256 hashes and never overwrites your modified files.",
+    f2_title: "Auto-Forward UGR Mail to Gmail / iCloud",
+    f2_desc: "Automatically forwards professor announcements from @correo.ugr.es straight to your personal email.",
+    f3_title: "Deadlines & Exams in Your Calendar",
+    f3_desc: "View upcoming deadlines right in the tray menu or sync them to Google Calendar & Apple Calendar (deadlines.ics).",
+    f4_title: "30-Day 2FA Device Trust",
+    f4_desc: "Enter your 6-digit verification code only once a month."
+  },
+  it: {
+    hero_badge: "✨ Zero Terminale • Per gli Studenti dell'UGR",
+    hero_title: "I tuoi appunti e scadenze di PRADO UGR, sempre aggiornati da soli.",
+    hero_sub: "Dimentica di entrare ogni giorno su PRADO per scaricare i PDF uno alla volta. PradoOS vive nella Barra dei Menu (Mac) o nella System Tray (Windows) e sincronizza tutto in background.",
+    dl_mac: "Scarica per macOS (.zip)",
+    dl_win: "Scarica per Windows (.zip)",
+    dl_linux: "Scarica per Linux (.tar.gz)",
+    other_platforms: "Altre piattaforme:",
+    steps_title: "Come funziona? In 3 passaggi da 30 secondi",
+    steps_sub: "Non serve installare Python o Git né usare il terminale.",
+    s1_title: "Scarica e Apri l'App",
+    s1_desc: "Scarica il pacchetto per Mac o Windows, estrailo e apri PradoOS. Vedrai l'icona del tocco di laurea 🎓 nella barra in alto o vicino all'orologio.",
+    s2_title: "Collega il tuo Account UGR",
+    s2_desc: "Inserisci la tua email @correo.ugr.es, la password (salvata nel Portachiavi sicuro di sistema) e scegli dove salvare i corsi.",
+    s3_title: "Tutto a portata di clic dalla Barra",
+    s3_desc: "Clicca sull'icona 🎓 in qualsiasi momento per aprire le materie in Finder/Explorer, vedere le prossime scadenze o sincronizzare subito.",
+    f1_title: "Zero Sovrascritture Garantito",
+    f1_desc: "Se modifichi un notebook .ipynb o un file di codice, PradoOS lo protegge tramite hash SHA-256 senza mai sovrascriverlo.",
+    f2_title: "Inoltro Automatico su Gmail / iCloud",
+    f2_desc: "Inoltra automaticamente le email dei docenti da @correo.ugr.es al tuo indirizzo personale.",
+    f3_title: "Scadenze ed Esami sul Calendario",
+    f3_desc: "Controlla i countdown direttamente dal menu della barra o sincronizzali su Google Calendar e Apple Calendar.",
+    f4_title: "Verifica 2FA ogni 30 Giorni",
+    f4_desc: "Inserisci il codice a 6 cifre solo una volta al mese."
+  },
+  fr: {
+    hero_badge: "✨ Zéro Terminal • Pour les Étudiants de l'UGR",
+    hero_title: "Vos cours et échéances PRADO UGR, toujours à jour automatiquement.",
+    hero_sub: "Plus besoin de télécharger vos PDF un par un. PradoOS se loge dans votre Barre des Menus (Mac) ou Zone de Notification (Windows) et synchronise tout en arrière-plan.",
+    dl_mac: "Télécharger pour macOS (.zip)",
+    dl_win: "Télécharger pour Windows (.zip)",
+    dl_linux: "Télécharger pour Linux (.tar.gz)",
+    other_platforms: "Autres plateformes :",
+    steps_title: "Comment ça marche ? En 3 étapes de 30 secondes",
+    steps_sub: "Aucun besoin de Python, de Git ni de terminal.",
+    s1_title: "Téléchargez et Ouvrez l'App",
+    s1_desc: "Téléchargez l'application pour Mac ou Windows et lancez PradoOS. L'icône 🎓 apparaît dans votre barre des menus.",
+    s2_title: "Connectez votre Compte UGR",
+    s2_desc: "Saisissez votre courriel @correo.ugr.es, votre mot de passe (stocké dans le Trousseau natif) et choisissez votre dossier.",
+    s3_title: "Contrôle en 1 Clic depuis la Barre",
+    s3_desc: "Cliquez sur l'icône 🎓 pour ouvrir vos matières dans le Finder/Explorateur, voir vos examens ou synchroniser.",
+    f1_title: "Garantie Zéro-Écrasement",
+    f1_desc: "Vos fichiers modifiés (.ipynb, .cpp) sont protégés par hachage SHA-256 et ne sont jamais écrasés.",
+    f2_title: "Redirection Auto vers Gmail / iCloud",
+    f2_desc: "Redirige automatiquement les courriels de vos professeurs (@correo.ugr.es) vers votre boîte personnelle.",
+    f3_title: "Échéances et Examens dans votre Calendrier",
+    f3_desc: "Consultez vos dates limites dans le menu ou synchronisez-les avec Google Calendar et Apple Calendar.",
+    f4_title: "Confiance 2FA pendant 30 Jours",
+    f4_desc: "Saisissez le code à 6 chiffres une seule fois par mois."
+  }
+};
+
+function updateDownloadButton(lang) {
+  const dict = TEXTS[lang] || TEXTS.es;
+  const btn = document.getElementById("mainDownloadBtn");
+  const icon = document.getElementById("mainDownloadIcon");
+  const txt = document.getElementById("mainDownloadText");
+
+  if (currentOS === "win") {
+    btn.href = URLS.win;
+    icon.textContent = "🪟";
+    txt.textContent = dict.dl_win;
+  } else if (currentOS === "linux") {
+    btn.href = URLS.linux;
+    icon.textContent = "🐧";
+    txt.textContent = dict.dl_linux;
+  } else {
+    btn.href = URLS.mac;
+    icon.textContent = "🍏";
+    txt.textContent = dict.dl_mac;
+  }
+}
+
+function setLang(lang) {
+  const dict = TEXTS[lang] || TEXTS.es;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (dict[k]) el.textContent = dict[k];
+  });
+  ["es", "en", "it", "fr"].forEach(c => {
+    document.getElementById("btn-" + c).classList.toggle("active", c === lang);
+  });
+  updateDownloadButton(lang);
+}
+
+function copyCmd(id, btn) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text);
+  const old = btn.textContent;
+  btn.textContent = "✓ Copiado";
+  setTimeout(() => btn.textContent = old, 2000);
+}
+
+setLang("es");
+</script>
+</body>
+</html>

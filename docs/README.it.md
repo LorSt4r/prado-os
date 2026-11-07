@@ -9,7 +9,8 @@
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
 [![Tests: 747 Passing](https://img.shields.io/badge/tests-747%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
-> 🌐 **Altre lingue / Other languages:** [🇪🇸 Español](../README.md#-documentación-en-español) | [🇬🇧 English](../README.md#-english-documentation) | [🇫🇷 Français](README.fr.md)
+> 🌐 **Pagina Web di Download Diretto (1 Clic):** **[https://lorst4r.github.io/prado-os/](https://lorst4r.github.io/prado-os/)**  
+> 🌍 **Altre lingue / Other languages:** [🇪🇸 Español](../README.md#-documentación-en-español) | [🇬🇧 English](../README.md#-english-documentation) | [🇫🇷 Français](README.fr.md)
 
 <p align="center">
   <img src="../assets/screens/gui_01_dashboard.png" alt="PradoOS — Configurazione Compatta e Barra dei Menu" width="520">

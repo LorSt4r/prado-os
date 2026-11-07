@@ -11,7 +11,8 @@
 [![Tests: 747 Passing](https://img.shields.io/badge/tests-747%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 [![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
-> 🌐 **Idiomas / Languages / Lingue / Langues:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation) | [🇮🇹 Italiano](docs/README.it.md) | [🇫🇷 Français](docs/README.fr.md)
+> 🌐 **Web de Descarga Directa (1 Clic):** **[https://lorst4r.github.io/prado-os/](https://lorst4r.github.io/prado-os/)**  
+> 🌍 **Idiomas / Languages / Lingue / Langues:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation) | [🇮🇹 Italiano](docs/README.it.md) | [🇫🇷 Français](docs/README.fr.md)
 
 <p align="center">
   <img src="assets/screens/gui_01_dashboard.png" alt="PradoOS — Configuración Rápida y App en Barra de Menús / System Tray" width="520">
