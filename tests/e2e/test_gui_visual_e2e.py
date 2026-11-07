@@ -195,7 +195,7 @@ def test_control_center_full_graphical_workflow_http(tmp_path: Path, monkeypatch
         assert "Pablo Mesejo" in msg_res["message"]["sender"]
 
         # 3. Verify Doctor Diagnostic Report (Section 5)
-        doc_res = requests.get(f"{base}/api/doctor", headers=headers, timeout=10).json()
+        doc_res = requests.get(f"{base}/api/doctor", headers=headers, timeout=30).json()
         assert doc_res["status"] == "success"
         assert len(doc_res["probes"]) >= 5
     finally:

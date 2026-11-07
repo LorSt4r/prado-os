@@ -340,7 +340,7 @@ function Install-PradoOS {
         $Shortcut.Arguments = "-m prado.ui.tray"
         $Shortcut.WorkingDirectory = $SrcDir
         if (Test-Path $IcoPath) { $Shortcut.IconLocation = $IcoPath }
-        $Shortcut.Description = "PradoOS — UGR Academic Sync & System Tray"
+        $Shortcut.Description = "PradoOS -- UGR Academic Sync and System Tray"
         $Shortcut.Save()
     } catch {}
 

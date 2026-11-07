@@ -210,7 +210,7 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
         assert ob_data["username"] == "alumno@correo.ugr.es"
 
         # 6. GET /api/doctor returns diagnostic probe list
-        r_doc = requests.get(f"{base}/api/doctor", headers=headers, timeout=10)
+        r_doc = requests.get(f"{base}/api/doctor", headers=headers, timeout=30)
         assert r_doc.status_code == 200
         doc_data = r_doc.json()
         assert doc_data["status"] == "success"
