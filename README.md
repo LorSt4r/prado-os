@@ -8,7 +8,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 727 Passing](https://img.shields.io/badge/tests-727%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
+[![Tests: 745 Passing](https://img.shields.io/badge/tests-745%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 [![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
 > 🌐 **Idiomas / Languages / Lingue / Langues:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation) | [🇮🇹 Italiano](docs/README.it.md) | [🇫🇷 Français](docs/README.fr.md)
@@ -79,22 +79,21 @@ Si estudias en la Universidad de Granada, PradoOS resuelve en segundo plano todo
 
 ### 🚀 Inicio Rápido
 
-#### 🌟 Opción 1 (Recomendada): App Nativa de Escritorio en Barra de Menús (Cero Terminal)
+#### 🌟 Opción 1 (Recomendada): App Gráfica Nativa de Escritorio — Centro de Control + Barra de Menús (Cero Terminal)
 ¡No necesitas abrir ningún terminal ni saber programar!
 Descarga la aplicación gráfica autónoma desde **[GitHub Releases](https://github.com/LorSt4r/prado-os/releases)**:
-- 🍏 **macOS:** Descarga [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y haz doble clic en `PradoOS.app`. Se ancla discretamente en tu **Barra de Menús superior**.
-- 🪟 **Windows:** Descarga [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y ejecuta `PradoOS.exe`. Se ancla en la **Bandeja del Sistema (System Tray)** junto al reloj.
+- 🍏 **macOS:** Descarga [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y haz doble clic en `PradoOS.app`. Abre la ventana nativa del **Centro de Control de PradoOS** y permanece anclada en tu **Barra de Menús superior**.
+- 🪟 **Windows:** Descarga [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y ejecuta `PradoOS.exe`. Abre el **Centro de Control de PradoOS** y se ancla en la **Bandeja del Sistema (System Tray)** junto al reloj.
 - 🐧 **Linux:** Descarga [`PradoOS-linux.tar.gz`](https://github.com/LorSt4r/prado-os/releases).
 
-**Control total con 1 clic desde la barra de menús:**
-- 🔄 **Sincronizar Ahora:** Descarga tus asignaturas y transparencias de PRADO en segundo plano.
-- 📂 **Abrir Carpeta de Apuntes:** Abre en Finder / Explorador tu carpeta organizada con temas, guiones y PDFs.
-- 📅 **Abrir Calendario:** Acceso inmediato a tus entregas y exámenes en Google Calendar o Apple Calendar.
-- 📬 **Abrir Correo UGR:** Acceso rápido a tu Webmail institucional.
-- 🔔 **Notificaciones de Escritorio:** Activa o desactiva avisos cuando los profesores suban nuevos materiales.
-- ⚙️ **Configurar Cuenta:** Introduce tu correo y contraseña UGR mediante ventanas nativas seguras.
+**¿Qué incluye la ventana del Centro de Control de PradoOS?**
+- 🪄 **Asistente Gráfico de Primer Uso y Modal 2FA en Vivo:** Configura idioma (`🇪🇸 ES`, `🇬🇧 EN`, `🇮🇹 IT`, `🇫🇷 FR`), portal (`Grado`, `Posgrado`, `CEPRUD`), credenciales en el Llavero nativo, código MFA de 6 dígitos en tiempo real y selector gráfico de carpeta.
+- 📊 **Panel Principal en Tiempo Real:** Barra de progreso asignatura por asignatura, consola de actividad en vivo, tarjetas de estado (archivos protegidos por SHA-256), próximas entregas/exámenes con cuenta atrás y apertura en 1 clic en Finder/Explorador.
+- 📚 **Gestor de Asignaturas y Subgrupos:** Activa/desactiva asignaturas, filtra subgrupos de prácticas (`C2`, `A3`, `B1`), alterna entre modo `mirror` (estructura exacta del profesor) y `smart` (Teoría / Prácticas / General).
+- 📬 **Lector Gráfico de Correo UGR (`@correo.ugr.es`) y Auto-Reenvío:** Bandeja dividida sin marcar tus correos como leídos en segundo plano (`BODY.PEEK[]`), descarga de adjuntos con selector nativo de carpetas y reglas de reenvío automático a `@gmail.com` / `@icloud.com`.
+- 📅 **Calendario, Daemon 4h y Diagnóstico Doctor:** Sincronización en 1 clic con Google Calendar / Apple Calendar (`deadlines.ics`), activación del servicio automático cada 4 horas y verificación de las 9 sondas de salud (`Doctor`).
 
-*(Si ya tienes PradoOS instalado vía CLI/pip, puedes lanzar la app en cualquier momento con `prado app` o `prado-app`).*
+*(Si ya tienes PradoOS instalado vía CLI/pip, puedes lanzar el Centro de Control y la bandeja en cualquier momento con `prado app` o `prado-app`).*
 
 #### Opción 2: Mediante Asistente de IA (Antigravity, Claude Code, Cursor, Codex)
 Pega este mensaje en tu asistente de programación con IA:

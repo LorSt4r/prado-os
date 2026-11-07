@@ -57,12 +57,14 @@ class MfaResolver:
         json_mode: bool = False,
         agent_code: Optional[str] = None,
         gui_mode: bool = False,
+        code_callback: Optional[Any] = None,
     ) -> None:
         self.config = mfa_config or MfaConfig()
         self.interactive = interactive
         self.json_mode = json_mode
         self.agent_code = agent_code
         self.gui_mode = gui_mode
+        self.code_callback = code_callback
 
     def resolve_code(
         self,
@@ -113,7 +115,14 @@ class MfaResolver:
             if code:
                 return code
 
-        # Tier 3: GUI Dialog, Interactive TTY Prompt, or Non-interactive Agent Protocol
+        # Tier 3: Custom UI Callback, GUI Dialog, Interactive TTY Prompt, or Non-interactive Agent Protocol
+        if callable(self.code_callback):
+            cb_code = self.code_callback()
+            if cb_code:
+                m_cb = re.search(r"\b([0-9]{6})\b", str(cb_code).strip())
+                if m_cb:
+                    return m_cb.group(1)
+
         if self.gui_mode:
             from prado.auth.credentials import prompt_gui_input
 

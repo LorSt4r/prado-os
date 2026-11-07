@@ -7,7 +7,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](../LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 727 Passing](https://img.shields.io/badge/tests-727%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
+[![Tests: 745 Passing](https://img.shields.io/badge/tests-745%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
 > 🌐 **Altre lingue / Other languages:** [🇪🇸 Español](../README.md#-documentación-en-español) | [🇬🇧 English](../README.md#-english-documentation) | [🇫🇷 Français](README.fr.md)
 
@@ -39,21 +39,20 @@ Dovendo conciliare corsi impegnativi di diversi dipartimenti (Estructura de Dato
 
 ## 🚀 Installazione Rapida
 
-### 🌟 Opzione 1: App Grafica Standalone nella Barra dei Menu (Zero Terminale)
+### 🌟 Opzione 1: App Grafica Desktop — Centro di Controllo + Barra dei Menu (Zero Terminale)
 Non serve aprire il terminale né installare Python o Git!
 Scarica l'applicazione pre-compilata direttamente da **[GitHub Releases](https://github.com/LorSt4r/prado-os/releases)**:
-- 🍏 **macOS:** Scarica [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), estrai e apri `PradoOS.app` (si posiziona nella **Barra dei Menu superiore**).
-- 🪟 **Windows:** Scarica [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), estrai ed esegui `PradoOS.exe` (si posiziona nella **System Tray** accanto all'orologio).
+- 🍏 **macOS:** Scarica [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), estrai e apri `PradoOS.app` (apre la finestra nativa del **Centro di Controllo PradoOS** e resta attiva nella **Barra dei Menu superiore**).
+- 🪟 **Windows:** Scarica [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), estrai ed esegui `PradoOS.exe` (apre il **Centro di Controllo PradoOS** e resta nella **System Tray** accanto all'orologio).
 
-**Funzionalità con 1 clic:**
-- 🔄 **Sincronizza Ora:** Scarica i nuovi materiali da PRADO in background senza bloccare il computer.
-- 📂 **Apri Cartella Appunti:** Apre direttamente in Finder / Explorer la cartella organizzata con tutti i tuoi insegnamenti.
-- 📅 **Apri Calendario:** Accesso immediato alle scadenze di esami e consegne su Google Calendar / Apple Calendar.
-- 📬 **Apri Posta UGR:** Accesso istantaneo alla Webmail `@correo.ugr.es`.
-- 🔔 **Notifiche Desktop:** Attiva o disattiva gli avvisi quando i docenti pubblicano nuovi file.
-- ⚙️ **Configurazione Account:** Inserisci email istituzionale e password tramite finestre native sicure.
+**Cosa include il Centro di Controllo Desktop:**
+- 🪄 **Wizard di Primo Avvio e Modale 2FA Live:** Scelta lingua (`IT`, `ES`, `EN`, `FR`), portale PRADO, salvataggio credenziali nel Portachiavi nativo, inserimento codice MFA a 6 cifre in tempo reale e selettore grafico della cartella.
+- 📊 **Dashboard in Tempo Reale:** Barra di avanzamento materia per materia, log live, file protetti da sovrascrittura (SHA-256), scadenze ed esami imminenti e apertura rapida in Finder/Explorer.
+- 📚 **Gestione Materie e Sottogruppi:** Attiva/disattiva corsi, imposta i sottogruppi di laboratorio (`C2`, `A3`, `B1`) e scegli tra modalità `mirror` o `smart`.
+- 📬 **Lettore Grafico Posta UGR (`@correo.ugr.es`) & Auto-Inoltro:** Visualizzazione split-pane che preserva lo stato di non letto (`BODY.PEEK[]`), download allegati con selettore cartella nativo e inoltro selettivo automatico verso `@gmail.com` / `@icloud.com`.
+- 📅 **Calendario, Daemon 4h & Diagnostica Doctor:** Sincronizzazione con 1 clic su Google Calendar / Apple Calendar (`deadlines.ics`), attivazione sync automatica ogni 4 ore e verifica delle 9 sonde diagnostiche (`Doctor`).
 
-*(Se hai già installato la CLI tramite pip/uv, puoi avviare l'app in qualsiasi momento con `prado app` o `prado-app`).*
+*(Se hai già installato la CLI tramite pip/uv, puoi avviare il Centro di Controllo e la tray in qualsiasi momento con `prado app` o `prado-app`).*
 
 ### Opzione 2: Installazione Rapida via Terminale (Senza prerequisiti)
 

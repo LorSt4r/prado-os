@@ -268,6 +268,12 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
     # -------------------------------------------------------------------------
     # System Tray / Menu Bar App (GUI)
     # -------------------------------------------------------------------------
+    "tray_open_control_center": {
+        "es": "🖥️ Abrir Centro de Control PradoOS",
+        "en": "🖥️ Open PradoOS Control Center",
+        "it": "🖥️ Apri Centro di Controllo PradoOS",
+        "fr": "🖥️ Ouvrir le Centre de Contrôle PradoOS",
+    },
     "tray_status_idle": {
         "es": "🟢 PradoOS: Al día",
         "en": "🟢 PradoOS: Up to date",

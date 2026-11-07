@@ -98,23 +98,25 @@ class TestFeature01GitHygieneBoundaries:
 
 class TestFeature02PackageSetupBoundaries:
     def test_f02_b01_pyproject_toml_valid_toml_parsing(self):
+        import prado
         root = Path(__file__).resolve().parent.parent.parent
         pyproject = root / "pyproject.toml"
         try:
             import tomllib
             parsed = tomllib.loads(pyproject.read_text(encoding="utf-8"))
             assert parsed["project"]["name"] == "prado-os"
-            assert parsed["project"]["version"] == "0.1.0"
+            assert parsed["project"]["version"] == prado.__version__
         except ImportError:
             pass
 
     def test_f02_b02_pyproject_version_semver_format(self):
+        import prado
         root = Path(__file__).resolve().parent.parent.parent
         pyproject = root / "pyproject.toml"
         content = pyproject.read_text(encoding="utf-8")
         m = re.search(r'version\s*=\s*"(\d+\.\d+\.\d+)"', content)
         assert m is not None
-        assert m.group(1) == "0.1.0"
+        assert m.group(1) == prado.__version__
 
     def test_f02_b03_pyproject_dependencies_minimum_versions(self):
         root = Path(__file__).resolve().parent.parent.parent

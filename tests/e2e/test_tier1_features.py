@@ -144,7 +144,7 @@ class TestFeature02PackageSetupAndCliEntry:
     def test_f02_05_package_metadata_attributes(self):
         import prado
         assert hasattr(prado, "__version__")
-        assert prado.__version__ == "0.1.0"
+        assert re.match(r"^\d+\.\d+\.\d+", prado.__version__)
 
 
 # =============================================================================

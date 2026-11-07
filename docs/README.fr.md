@@ -7,7 +7,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](../LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 727 Passing](https://img.shields.io/badge/tests-727%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
+[![Tests: 745 Passing](https://img.shields.io/badge/tests-745%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
 > 🌐 **Autres langues / Other languages:** [🇪🇸 Español](../README.md#-documentación-en-español) | [🇬🇧 English](../README.md#-english-documentation) | [🇮🇹 Italiano](README.it.md)
 
@@ -39,19 +39,18 @@ Face au défi de concilier des cours exigeants de différents départements (Str
 
 ## 🚀 Installation Rapide
 
-### 🌟 Option 1 : Application Autonome dans la Barre des Menus (Zéro Terminal)
+### 🌟 Option 1 : Application Graphique de Bureau — Centre de Contrôle + Barre des Menus (Zéro Terminal)
 Aucun besoin d'ouvrir un terminal ni de maîtriser la programmation !
 Téléchargez l'application prête à l'emploi sur **[GitHub Releases](https://github.com/LorSt4r/prado-os/releases)** :
-- 🍏 **macOS :** Téléchargez [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), décompressez et ouvrez `PradoOS.app` (se loge dans votre **Barre des Menus supérieure**).
-- 🪟 **Windows :** Téléchargez [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), décompressez et lancez `PradoOS.exe` (se loge dans la **Zone de notification / System Tray** à côté de l'horloge).
+- 🍏 **macOS :** Téléchargez [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), décompressez et ouvrez `PradoOS.app` (ouvre la fenêtre native du **Centre de Contrôle PradoOS** et se loge dans votre **Barre des Menus supérieure**).
+- 🪟 **Windows :** Téléchargez [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), décompressez et lancez `PradoOS.exe` (ouvre le **Centre de Contrôle PradoOS** et se loge dans la **Zone de notification / System Tray**).
 
-**Fonctionnalités en 1 clic :**
-- 🔄 **Synchroniser Maintenant :** Télécharge les cours et documents de PRADO en arrière-plan sans bloquer votre machine.
-- 📂 **Ouvrir Dossier des Cours :** Accédez directement dans le Finder / Explorateur à vos diapositives et TD classés par matière.
-- 📅 **Ouvrir Calendrier :** Accès instantané à vos examens et devoirs sur Google Calendar / Apple Calendar.
-- 📬 **Ouvrir Messagerie UGR :** Accès immédiat au Webmail institutionnel `@correo.ugr.es`.
-- 🔔 **Notifications du Bureau :** Activez ou désactivez les alertes lors de la publication de nouveaux fichiers par les professeurs.
-- ⚙️ **Configuration :** Saisissez vos identifiants via des fenêtres graphiques natives et sécurisées.
+**Ce qu'inclut le Centre de Contrôle PradoOS :**
+- 🪄 **Assistant de Premier Lancement et Modale 2FA en Direct :** Choix de la langue (`FR`, `ES`, `EN`, `IT`), portail PRADO, trousseau sécurisé natif, saisie du code MFA à 6 chiffres en temps réel et sélecteur graphique de dossier.
+- 📊 **Tableau de Bord en Temps Réel :** Barre de progression matière par matière, journaux en direct, fichiers protégés par SHA-256, prochaines échéances/examens et ouverture en 1 clic dans le Finder/Explorateur.
+- 📚 **Gestion des Matières et Sous-groupes :** Activez/désactivez vos cours, filtrez vos sous-groupes de TP (`C2`, `A3`, `B1`) et choisissez entre le mode `mirror` ou `smart`.
+- 📬 **Lecteur Graphique de Courriel UGR (`@correo.ugr.es`) & Redirection Auto :** Vue divisée préservant l'état non lu (`BODY.PEEK[]`), téléchargement des pièces jointes et règles de redirection automatique vers `@gmail.com` / `@icloud.com`.
+- 📅 **Calendrier, Démon 4h & Diagnostic Doctor :** Synchronisation en 1 clic avec Google Calendar / Apple Calendar (`deadlines.ics`), synchronisation automatique toutes les 4 heures et vérification des 9 sondes de santé (`Doctor`).
 
 *(Si vous avez déjà installé la CLI via pip/uv, vous pouvez lancer l'application à tout moment avec `prado app` ou `prado-app`).*
 

@@ -110,6 +110,8 @@ def _obtain_authenticated_session(
     mfa_code: Optional[str] = None,
     interactive: bool = True,
     json_mode: bool = False,
+    gui_mode: bool = False,
+    code_callback: Optional[Any] = None,
 ) -> requests.Session:
     """
     Returns an authenticated requests.Session using saved cookies if valid,
@@ -134,6 +136,8 @@ def _obtain_authenticated_session(
         interactive=interactive and not json_mode,
         json_mode=json_mode,
         agent_code=mfa_code,
+        gui_mode=gui_mode,
+        code_callback=code_callback,
     )
     driver = UgrSamlDriver(
         base_url=cfg.moodle_url,
@@ -380,6 +384,8 @@ def _handle_discover(args: argparse.Namespace, json_mode: bool) -> int:
         cfg=cfg,
         interactive=not args.no_interactive,
         json_mode=json_mode,
+        gui_mode=bool(getattr(args, "gui", False)),
+        code_callback=getattr(args, "code_callback", None),
     )
 
     discovery = CourseDiscovery(session=session, base_url=base_url)
@@ -680,6 +686,8 @@ def _handle_sync(args: argparse.Namespace, json_mode: bool) -> int:
         cfg=cfg,
         interactive=not args.no_interactive,
         json_mode=json_mode,
+        gui_mode=bool(getattr(args, "gui", False)),
+        code_callback=getattr(args, "code_callback", None),
     )
 
     discovery = CourseDiscovery(session=session, base_url=cfg.moodle_url)

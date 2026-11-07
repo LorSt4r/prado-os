@@ -61,6 +61,8 @@ def build() -> int:
         "prado",
         "prado.ui",
         "prado.ui.tray",
+        "prado.ui.server",
+        "prado.ui.frontend",
         "prado.ui.dialogs",
         "prado.ui.icon",
         "prado.i18n",
@@ -74,6 +76,11 @@ def build() -> int:
         "keyring",
         "keyring.backends",
     ]
+    try:
+        import webview  # noqa: F401
+        hidden_imports.append("webview")
+    except ImportError:
+        pass
 
     if sys.platform == "darwin":
         hidden_imports.extend([
@@ -129,9 +136,17 @@ def build() -> int:
             subprocess.run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(app_path), str(zip_dest)], check=True)
             print(f"  ✓ Created: {zip_dest} ({zip_dest.stat().st_size / (1024 * 1024):.1f} MB)")
     elif sys.platform in ("win32", "cygwin") or os.name == "nt":
+        win_dir = dist_dir / "PradoOS"
         exe_path = dist_dir / "PradoOS.exe"
-        if exe_path.exists():
-            zip_dest = dist_dir / "PradoOS-windows.zip"
+        zip_dest = dist_dir / "PradoOS-windows.zip"
+        if win_dir.is_dir():
+            print(f"📦 Packaging Windows release archive: {zip_dest.name}...")
+            with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
+                for p in win_dir.rglob("*"):
+                    if p.is_file():
+                        zf.write(p, arcname=str(Path("PradoOS") / p.relative_to(win_dir)))
+            print(f"  ✓ Created: {zip_dest} ({zip_dest.stat().st_size / (1024 * 1024):.1f} MB)")
+        elif exe_path.exists():
             print(f"📦 Packaging Windows release archive: {zip_dest.name}...")
             with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
                 zf.write(exe_path, arcname="PradoOS.exe")
