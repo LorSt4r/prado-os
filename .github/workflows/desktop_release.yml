@@ -11,6 +11,9 @@ on:
 permissions:
   contents: write
 
+env:
+  PYTHONUTF8: "1"
+
 jobs:
   build-desktop:
     name: Build Standalone Desktop App (${{ matrix.os }})

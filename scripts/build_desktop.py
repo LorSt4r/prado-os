@@ -22,6 +22,13 @@ import zipfile
 
 
 def build() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     repo_root = Path(__file__).resolve().parent.parent
     assets_dir = repo_root / "assets"
     packaging_dir = repo_root / "packaging"

@@ -19,14 +19,65 @@ import threading
 import time
 from typing import Any, Callable, List, Optional
 
+class _HeadlessMenuItem:
+    """Fallback MenuItem representation when running on headless Linux without X11."""
+
+    def __init__(
+        self,
+        text: Any,
+        action: Any = None,
+        checked: Any = None,
+        radio: bool = False,
+        default: bool = False,
+        visible: bool = True,
+        enabled: bool = True,
+    ) -> None:
+        self._text = text
+        self.submenu = action if isinstance(action, _HeadlessMenu) else None
+        self.action = None if self.submenu is not None else action
+        self.checked = checked
+        self.radio = radio
+        self.default = default
+        self.visible = visible
+        self.enabled = enabled
+
+    @property
+    def text(self) -> str:
+        return str(self._text(self)) if callable(self._text) else str(self._text)
+
+
+class _HeadlessMenu:
+    """Fallback Menu representation when running on headless Linux without X11."""
+
+    SEPARATOR: Any = None
+
+    def __init__(self, *items: Any) -> None:
+        self.items = tuple(items)
+
+    def __iter__(self):
+        return iter(self.items)
+
+
+_HeadlessMenu.SEPARATOR = _HeadlessMenuItem("- - - -", None)
+
+
+class _HeadlessPystrayStub:
+    Menu = _HeadlessMenu
+    MenuItem = _HeadlessMenuItem
+    Icon = None
+
+
 try:
     import pystray
-except ImportError:
-    pystray = None  # type: ignore[assignment]
+
+    _PYSTRAY_AVAILABLE = True
+except Exception:
+    pystray = _HeadlessPystrayStub  # type: ignore[assignment]
+    _PYSTRAY_AVAILABLE = False
 
 try:
     import webview
-except ImportError:
+except Exception:
     webview = None  # type: ignore[assignment]
 
 from prado import __version__
@@ -558,14 +609,14 @@ class PradoTrayApp:
         """
         Launches PradoOS in the OS Menu Bar / System Tray + Compact Setup Card.
         """
-        if pystray is None:
-            raise RuntimeError(
-                "pystray is not installed. Install with 'pip install pystray pillow' to run the GUI app."
-            )
-
         if is_headless_environment():
             raise RuntimeError(
                 "Cannot launch PradoOS Desktop App in a headless or CI environment without a display server."
+            )
+
+        if not _PYSTRAY_AVAILABLE or getattr(pystray, "Icon", None) is None:
+            raise RuntimeError(
+                "pystray is not installed. Install with 'pip install pystray pillow' to run the GUI app."
             )
 
         # 1. Start local loopback server for the compact Setup / 2FA window
