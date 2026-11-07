@@ -215,9 +215,10 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   .kpi-val { font-size: 26px; font-weight: 700; margin-top: 6px; }
   .two-col {
     display: grid;
-    grid-template-columns: 1.1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 18px;
   }
+  .two-col > * { min-width: 0; }
   /* Buttons & Inputs */
   .btn {
     display: inline-flex;
@@ -265,6 +266,8 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .badge-idle { background: var(--green-soft); color: var(--green); }
   .badge-syncing { background: var(--amber-soft); color: var(--amber); }
@@ -664,8 +667,8 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
       <!-- Doctor Diagnostic Card -->
       <div class="card">
         <div class="card-title">
-          <span>🩺 <span data-i18n="card_doctor">Diagnóstico Integral de Salud (PradoOS Doctor)</span></span>
-          <button class="btn btn-primary btn-sm" onclick="runDoctor()" id="btnRunDoctor">🩺 <span data-i18n="btn_run_doctor">Ejecutar Diagnóstico</span></button>
+          <span>🛡️ <span data-i18n="card_doctor">Diagnóstico Integral de Salud (PradoOS Doctor)</span></span>
+          <button class="btn btn-primary btn-sm" onclick="runDoctor()" id="btnRunDoctor">🛡️ <span data-i18n="btn_run_doctor">Ejecutar Diagnóstico</span></button>
         </div>
         <div class="item-list" id="doctorProbesList">
           <div style="font-size:12.5px; color:var(--text-muted);" data-i18n="doctor_hint">Pulsa "Ejecutar Diagnóstico" para verificar conectividad con PRADO UGR, llavero del sistema, base de datos SQLite y permisos.</div>
@@ -1503,8 +1506,30 @@ async function submitMfaCode() {
   }
 }
 
+async function handleUrlHash() {
+  const qs = new URLSearchParams(window.location.search);
+  const h = (window.location.hash || "").replace("#", "").trim().toLowerCase() || (qs.get("view") || "").trim().toLowerCase();
+  if (qs.get("logs") === "1" && !logsVisible) {
+    toggleLogs();
+  }
+  if (h === "settings" || h === "onboarding") {
+    openOnboardingModal(true);
+  } else if (["dashboard", "courses", "mail", "calendar"].includes(h)) {
+    switchTab(h);
+    if (h === "mail" && qs.get("open_msg")) {
+      await loadMailInbox(false);
+      await openMailMessage(qs.get("open_msg"), document.querySelector(".mail-item"));
+    }
+    if (h === "calendar" && qs.get("run_doctor") === "1") {
+      await runDoctor();
+    }
+  }
+}
+
+window.addEventListener("hashchange", handleUrlHash);
+
 // Initial load & live polling (every 1.5s)
-refreshState();
+refreshState().then(() => handleUrlHash());
 setInterval(refreshState, 1500);
 </script>
 </body>

@@ -8,18 +8,43 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 745 Passing](https://img.shields.io/badge/tests-745%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
+[![Tests: 747 Passing](https://img.shields.io/badge/tests-747%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 [![CI Matrix: 100% Passing](https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
 > 🌐 **Idiomas / Languages / Lingue / Langues:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation) | [🇮🇹 Italiano](docs/README.it.md) | [🇫🇷 Français](docs/README.fr.md)
 
 <p align="center">
-  <img src="assets/prado-demo.gif" alt="PradoOS — UGR PRADO Sync Interactive TUI, Onboarding, UGR Mail & Dashboard Demo" width="100%">
+  <img src="assets/screens/gui_01_dashboard.png" alt="PradoOS Desktop Control Center — Panel Principal, Entregas y Protección Anti-Sobrescritura" width="100%">
 </p>
 
 <details>
-<summary>📸 <b>Ver galería completa de interfaces (Menú TUI, Asistente de Onboarding, Lector de Correo UGR, Sincronización Incremental y Doctor)</b></summary>
+<summary>🖥️ <b>Ver galería completa del Centro de Control Gráfico de Escritorio (Asignaturas, Correo UGR, Calendario, Doctor y Onboarding)</b></summary>
 <br>
+
+#### 1. Panel Principal en Tiempo Real (`PradoOS.app` / `PradoOS.exe` / `prado app`)
+![Panel Principal del Centro de Control](assets/screens/gui_01_dashboard.png)
+
+#### 2. Gestor de Asignaturas, Subgrupos (`C2`, `A3`) y Organización de Carpetas (`mirror` / `smart`)
+![Gestor de Asignaturas y Subgrupos](assets/screens/gui_02_courses.png)
+
+#### 3. Lector Gráfico de Correo UGR (`@correo.ugr.es`) con `BODY.PEEK[]` y Auto-Reenvío Selectivo
+![Lector Gráfico de Correo UGR y Auto-Reenvío](assets/screens/gui_03_mail.png)
+
+#### 4. Calendario (`deadlines.ics` / Google Calendar), Daemon 4h y Diagnóstico Doctor (9 Sondas)
+![Calendario, Daemon y Doctor](assets/screens/gui_04_calendar_doctor.png)
+
+#### 5. Asistente Gráfico de Configuración Inicial y Llavero Nativo
+![Asistente Gráfico de Configuración](assets/screens/gui_05_onboarding.png)
+
+</details>
+
+<details>
+<summary>⌨️ <b>Ver galería de la Interfaz de Terminal / CLI Interactiva (TUI)</b></summary>
+<br>
+
+<p align="center">
+  <img src="assets/prado-demo.gif" alt="PradoOS — UGR PRADO Sync Interactive TUI, Onboarding, UGR Mail & Dashboard Demo" width="100%">
+</p>
 
 #### 1. Menú Interactivo Principal (`prado`)
 ![Menú Principal de PradoOS](assets/screens/01_main_menu.png)

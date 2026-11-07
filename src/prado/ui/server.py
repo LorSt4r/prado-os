@@ -742,7 +742,8 @@ class PradoControlCenterAPI:
         refresh: bool = False,
     ) -> Dict[str, Any]:
         try:
-            self.cfg = load_config()
+            if get_config_file().exists():
+                self.cfg = load_config()
             cache = load_mail_cache(get_mail_cache_file())
             messages = cache.get("messages", [])
 
@@ -777,7 +778,8 @@ class PradoControlCenterAPI:
 
     def read_mail_message(self, uid: str, mark_seen: bool = True) -> Dict[str, Any]:
         try:
-            self.cfg = load_config()
+            if get_config_file().exists():
+                self.cfg = load_config()
             client = UgrMailClient(config=self.cfg)
             msg = client.read_message(uid=str(uid), mark_seen=mark_seen)
             self._loaded_messages[str(uid)] = msg
@@ -1031,7 +1033,7 @@ class PradoUIServer:
                     self._send_json(server_ref.api.get_full_state())
                 elif path == "/api/courses/discover":
                     self._send_json(server_ref.api.discover_courses_live())
-                elif path == "/api/mail/messages":
+                elif path in ("/api/mail/messages", "/api/mail/inbox"):
                     f_mode = (qs.get("filter") or ["all"])[0]
                     q_str = (qs.get("q") or [""])[0]
                     refresh = (qs.get("refresh") or ["0"])[0] in ("1", "true")

@@ -7,9 +7,25 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](../LICENSE)
 [![Platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-informational)](#)
-[![Tests: 745 Passing](https://img.shields.io/badge/tests-745%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
+[![Tests: 747 Passing](https://img.shields.io/badge/tests-747%20passed-brightgreen)](https://github.com/LorSt4r/prado-os/actions)
 
 > 🌐 **Altre lingue / Other languages:** [🇪🇸 Español](../README.md#-documentación-en-español) | [🇬🇧 English](../README.md#-english-documentation) | [🇫🇷 Français](README.fr.md)
+
+<p align="center">
+  <img src="../assets/screens/gui_01_dashboard.png" alt="PradoOS Desktop Control Center" width="100%">
+</p>
+
+<details>
+<summary>🖥️ <b>Galleria del Centro di Controllo Desktop (Materie, Posta UGR, Calendario, Doctor e Onboarding)</b></summary>
+<br>
+
+![Dashboard Principale](../assets/screens/gui_01_dashboard.png)
+![Gestione Materie e Sottogruppi](../assets/screens/gui_02_courses.png)
+![Lettore Posta UGR e Auto-Inoltro](../assets/screens/gui_03_mail.png)
+![Calendario, Daemon 4h e Doctor](../assets/screens/gui_04_calendar_doctor.png)
+![Wizard di Configurazione](../assets/screens/gui_05_onboarding.png)
+
+</details>
 
 ---
 

@@ -69,6 +69,7 @@ class PradoTrayApp:
         self.last_error: Optional[str] = None
         self._sync_lock = threading.Lock()
         self._running = True
+        self._quitting = False
         self._main_loop_active = False
         self._auto_sync_enabled = False
         self._auto_sync_interval_mins = 60
@@ -197,6 +198,10 @@ class PradoTrayApp:
             try:
                 self.window.show()
                 self.window.restore()
+                if section == "settings":
+                    self.window.evaluate_js("openOnboardingModal(true)")
+                elif section in ("dashboard", "courses", "mail", "calendar"):
+                    self.window.evaluate_js(f"switchTab('{section}')")
                 return target_url
             except Exception:
                 pass
@@ -397,10 +402,14 @@ class PradoTrayApp:
                 self.window = webview.create_window(
                     title="PradoOS — Centro de Control Académico UGR",
                     url=control_url,
-                    width=1160,
-                    height=780,
+                    width=1180,
+                    height=790,
                     min_size=(920, 620),
                 )
+                try:
+                    self.window.events.closing += self._on_window_closing
+                except Exception:
+                    pass
                 webview.start()
                 self.stop()
                 return
@@ -415,10 +424,33 @@ class PradoTrayApp:
             open_url(control_url)
         self.icon.run()
 
+    def _on_window_closing(self) -> bool:
+        """
+        When the user closes the Control Center window (red X), hide it to the
+        Menu Bar / System Tray instead of terminating the background daemon/tray,
+        unless Quit was explicitly requested.
+        """
+        if self._quitting:
+            return True
+        if self.window is not None:
+            try:
+                self.window.hide()
+                return False
+            except Exception:
+                pass
+        return True
+
     def stop(self) -> None:
         """Stops the application, shuts down the local server, and closes the tray icon."""
+        self._quitting = True
         self._running = False
         self._main_loop_active = False
+        if self.window is not None:
+            try:
+                self.window.destroy()
+            except Exception:
+                pass
+            self.window = None
         if self.server:
             self.server.stop()
             self.server = None
