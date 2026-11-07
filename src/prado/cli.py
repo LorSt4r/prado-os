@@ -1152,6 +1152,18 @@ def _handle_notify(args: argparse.Namespace, json_mode: bool) -> int:
     return 0
 
 
+def _handle_app(args: argparse.Namespace, json_mode: bool) -> int:
+    try:
+        from prado.ui.tray import run_tray_app
+        return run_tray_app(detached=bool(getattr(args, "detached", False)))
+    except Exception as exc:
+        if json_mode:
+            _emit_json({"status": "error", "error": str(exc)})
+        else:
+            print(f"✗ Failed to start PradoOS App: {exc}", file=sys.stderr)
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Constructs the top-level CLI ArgumentParser and all subcommand parsers."""
     parser = argparse.ArgumentParser(
@@ -1308,6 +1320,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_notify.add_argument("--no-sound", action="store_false", dest="sound", help="Disable notification sound.")
     p_notify.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
 
+    # 12. app / gui
+    p_app = subparsers.add_parser(
+        "app",
+        help="Launch native System Tray / Menu Bar app.",
+    )
+    p_app.add_argument("--detached", action="store_true", help="Run detached in the background.")
+    p_app.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
+
+    p_gui = subparsers.add_parser(
+        "gui",
+        help="Alias for 'prado app'.",
+    )
+    p_gui.add_argument("--detached", action="store_true", help="Run detached in the background.")
+    p_gui.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
+
     return parser
 
 
@@ -1330,9 +1357,10 @@ def _run_interactive_menu() -> int:
         print("║  [6] ⏰ Enable Automatic Background Sync (Every 4h)          ║")
         print("║  [7] 📅 Sync Deadlines to Google Calendar                    ║")
         print("║  [8] ⭐ Star prado-os on GitHub                             ║")
+        print("║  [9] 🖥️ Launch System Tray / Menu Bar App                   ║")
         print("║  [0] 🚪 Exit                                                 ║")
         print("╚══════════════════════════════════════════════════════════════╝")
-        prompt_str = "\nSelect an option [1-8, 0 to exit]: "
+        prompt_str = "\nSelect an option [1-9, 0 to exit]: "
     elif lang == "it":
         print("\n╔══════════════════════════════════════════════════════════════╗")
         print("║        🎓 PradoOS — Motore Accademico PRADO UGR              ║")
@@ -1345,9 +1373,10 @@ def _run_interactive_menu() -> int:
         print("║  [6] ⏰ Attiva Sincronizzazione Automatica (Ogni 4h)         ║")
         print("║  [7] 📅 Sincronizza Scadenze con Google Calendar             ║")
         print("║  [8] ⭐ Lascia una Stella a prado-os su GitHub               ║")
+        print("║  [9] 🖥️ Avvia Applicazione Barra Menu (Tray App)            ║")
         print("║  [0] 🚪 Esci                                                 ║")
         print("╚══════════════════════════════════════════════════════════════╝")
-        prompt_str = "\nScegli un'opzione [1-8, 0 per uscire]: "
+        prompt_str = "\nScegli un'opzione [1-9, 0 per uscire]: "
     elif lang == "fr":
         print("\n╔══════════════════════════════════════════════════════════════╗")
         print("║        🎓 PradoOS — Moteur Académique PRADO UGR              ║")
@@ -1360,9 +1389,10 @@ def _run_interactive_menu() -> int:
         print("║  [6] ⏰ Activer Synchronisation Automatique (Toutes les 4h)  ║")
         print("║  [7] 📅 Synchroniser les Échéances avec Google Calendar      ║")
         print("║  [8] ⭐ Laisser une Étoile à prado-os sur GitHub             ║")
+        print("║  [9] 🖥️ Lancer l'Application de la Barre des Menus          ║")
         print("║  [0] 🚪 Quitter                                              ║")
         print("╚══════════════════════════════════════════════════════════════╝")
-        prompt_str = "\nChoisissez une option [1-8, 0 pour quitter] : "
+        prompt_str = "\nChoisissez une option [1-9, 0 pour quitter] : "
     else:
         print("\n╔══════════════════════════════════════════════════════════════╗")
         print("║        🎓 PradoOS — Motor Académico PRADO UGR                ║")
@@ -1375,9 +1405,10 @@ def _run_interactive_menu() -> int:
         print("║  [6] ⏰ Activar Sincronización Automática (Cada 4h)          ║")
         print("║  [7] 📅 Sincronizar Entregas con Google Calendar             ║")
         print("║  [8] ⭐ Dar una Estrella a prado-os en GitHub                ║")
+        print("║  [9] 🖥️ Iniciar Aplicación en Barra de Menús (Tray App)     ║")
         print("║  [0] 🚪 Salir                                                ║")
         print("╚══════════════════════════════════════════════════════════════╝")
-        prompt_str = "\nElige una opción [1-8, 0 para salir]: "
+        prompt_str = "\nElige una opción [1-9, 0 para salir]: "
 
     try:
         choice = input(prompt_str).strip()
@@ -1394,6 +1425,7 @@ def _run_interactive_menu() -> int:
         "6": ["daemon", "install"],
         "7": ["gcalendar"],
         "8": ["star"],
+        "9": ["app"],
     }
     if choice in menu_map:
         return main(menu_map[choice])
@@ -1436,6 +1468,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "gcalendar": _handle_gcalendar,
         "mail": _handle_mail,
         "notify": _handle_notify,
+        "app": _handle_app,
+        "gui": _handle_app,
     }
 
     handler = dispatch.get(args.command)

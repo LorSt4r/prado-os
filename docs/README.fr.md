@@ -37,7 +37,25 @@ Face au défi de concilier des cours exigeants de différents départements (Str
 
 ---
 
-## 🚀 Installation Rapide en 1 Clic (Sans prérequis)
+## 🚀 Installation Rapide
+
+### 🌟 Option 1 : Application Autonome dans la Barre des Menus (Zéro Terminal)
+Aucun besoin d'ouvrir un terminal ni de maîtriser la programmation !
+Téléchargez l'application prête à l'emploi sur **[GitHub Releases](https://github.com/LorSt4r/prado-os/releases)** :
+- 🍏 **macOS :** Téléchargez [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), décompressez et ouvrez `PradoOS.app` (se loge dans votre **Barre des Menus supérieure**).
+- 🪟 **Windows :** Téléchargez [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), décompressez et lancez `PradoOS.exe` (se loge dans la **Zone de notification / System Tray** à côté de l'horloge).
+
+**Fonctionnalités en 1 clic :**
+- 🔄 **Synchroniser Maintenant :** Télécharge les cours et documents de PRADO en arrière-plan sans bloquer votre machine.
+- 📂 **Ouvrir Dossier des Cours :** Accédez directement dans le Finder / Explorateur à vos diapositives et TD classés par matière.
+- 📅 **Ouvrir Calendrier :** Accès instantané à vos examens et devoirs sur Google Calendar / Apple Calendar.
+- 📬 **Ouvrir Messagerie UGR :** Accès immédiat au Webmail institutionnel `@correo.ugr.es`.
+- 🔔 **Notifications du Bureau :** Activez ou désactivez les alertes lors de la publication de nouveaux fichiers par les professeurs.
+- ⚙️ **Configuration :** Saisissez vos identifiants via des fenêtres graphiques natives et sécurisées.
+
+*(Si vous avez déjà installé la CLI via pip/uv, vous pouvez lancer l'application à tout moment avec `prado app` ou `prado-app`).*
+
+### Option 2 : Installation en 1 Clic par Terminal (Sans prérequis)
 
 > 💡 Aucun besoin d'avoir Python ou Git préinstallés. Le script installe un environnement isolé et lance automatiquement l'assistant de configuration (choisissez **Français**).
 
@@ -60,6 +78,7 @@ irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex
 | Commande | Description |
 |---|---|
 | `prado` | Ouvre le menu interactif principal. |
+| `prado app / prado gui` | Lance l'application graphique native dans la barre des menus (macOS) ou la barre des tâches (Windows/Linux). |
 | `prado onboard` | Lance l'assistant de configuration pas à pas en français. |
 | `prado sync --adopt` | Synchronise les nouveaux cours, met à jour `DASHBOARD.md` et vérifie les courriels. |
 | `prado mail` | Ouvre le lecteur de courriels `@correo.ugr.es` et les filtres. |

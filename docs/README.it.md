@@ -37,7 +37,25 @@ Dovendo conciliare corsi impegnativi di diversi dipartimenti (Estructura de Dato
 
 ---
 
-## 🚀 Installazione Rapida in 1 Clic (Senza prerequisiti)
+## 🚀 Installazione Rapida
+
+### 🌟 Opzione 1: App Grafica Standalone nella Barra dei Menu (Zero Terminale)
+Non serve aprire il terminale né installare Python o Git!
+Scarica l'applicazione pre-compilata direttamente da **[GitHub Releases](https://github.com/LorSt4r/prado-os/releases)**:
+- 🍏 **macOS:** Scarica [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), estrai e apri `PradoOS.app` (si posiziona nella **Barra dei Menu superiore**).
+- 🪟 **Windows:** Scarica [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), estrai ed esegui `PradoOS.exe` (si posiziona nella **System Tray** accanto all'orologio).
+
+**Funzionalità con 1 clic:**
+- 🔄 **Sincronizza Ora:** Scarica i nuovi materiali da PRADO in background senza bloccare il computer.
+- 📂 **Apri Cartella Appunti:** Apre direttamente in Finder / Explorer la cartella organizzata con tutti i tuoi insegnamenti.
+- 📅 **Apri Calendario:** Accesso immediato alle scadenze di esami e consegne su Google Calendar / Apple Calendar.
+- 📬 **Apri Posta UGR:** Accesso istantaneo alla Webmail `@correo.ugr.es`.
+- 🔔 **Notifiche Desktop:** Attiva o disattiva gli avvisi quando i docenti pubblicano nuovi file.
+- ⚙️ **Configurazione Account:** Inserisci email istituzionale e password tramite finestre native sicure.
+
+*(Se hai già installato la CLI tramite pip/uv, puoi avviare l'app in qualsiasi momento con `prado app` o `prado-app`).*
+
+### Opzione 2: Installazione Rapida via Terminale (Senza prerequisiti)
 
 > 💡 Non serve avere Python né Git già installati. L'installer scarica un ambiente isolato nello spazio utente e lancia automaticamente l'assistente iniziale (dove puoi scegliere **Italiano**).
 
@@ -60,6 +78,7 @@ irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex
 | Comando | Descrizione |
 |---|---|
 | `prado` | Apre il menu interattivo principale. |
+| `prado app / prado gui` | Avvia l'applicazione nativa nella barra dei menu (macOS) o tray (Windows/Linux). |
 | `prado onboard` | Esegue il wizard guidato di configurazione in italiano. |
 | `prado sync --adopt` | Scarica i nuovi materiali, aggiorna `DASHBOARD.md` e controlla la posta. |
 | `prado mail` | Apre il lettore di posta `@correo.ugr.es` con filtri e regole di inoltro. |

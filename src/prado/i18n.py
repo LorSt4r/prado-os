@@ -264,6 +264,112 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "it": "Diagnostica completata: tutti i sistemi funzionano correttamente.",
         "fr": "Diagnostic réussi : tous les systèmes fonctionnent correctement.",
     },
+
+    # -------------------------------------------------------------------------
+    # System Tray / Menu Bar App (GUI)
+    # -------------------------------------------------------------------------
+    "tray_status_idle": {
+        "es": "🟢 PradoOS: Al día",
+        "en": "🟢 PradoOS: Up to date",
+        "it": "🟢 PradoOS: Aggiornato",
+        "fr": "🟢 PradoOS: À jour",
+    },
+    "tray_status_syncing": {
+        "es": "🟡 PradoOS: Sincronizando...",
+        "en": "🟡 PradoOS: Syncing...",
+        "it": "🟡 PradoOS: Sincronizzazione in corso...",
+        "fr": "🟡 PradoOS: Synchronisation en cours...",
+    },
+    "tray_status_error": {
+        "es": "🔴 PradoOS: Error / Iniciar Sesión",
+        "en": "🔴 PradoOS: Error / Login Required",
+        "it": "🔴 PradoOS: Errore / Login Richiesto",
+        "fr": "🔴 PradoOS: Erreur / Connexion Requise",
+    },
+    "tray_last_sync": {
+        "es": "Última sinc.: {time}",
+        "en": "Last sync: {time}",
+        "it": "Ultima sinc.: {time}",
+        "fr": "Dernière sync : {time}",
+    },
+    "tray_sync_now": {
+        "es": "🔄 Sincronizar Ahora",
+        "en": "🔄 Sync Now",
+        "it": "🔄 Sincronizza Ora",
+        "fr": "🔄 Synchroniser Maintenant",
+    },
+    "tray_open_folder": {
+        "es": "📂 Abrir Carpeta de Apuntes",
+        "en": "📂 Open Courses Folder",
+        "it": "📂 Apri Cartella Appunti",
+        "fr": "📂 Ouvrir Dossier des Cours",
+    },
+    "tray_open_calendar": {
+        "es": "📅 Abrir Calendario de Entregas",
+        "en": "📅 Open Deadlines Calendar",
+        "it": "📅 Apri Calendario Scadenze",
+        "fr": "📅 Ouvrir Calendrier des Échéances",
+    },
+    "tray_open_mail": {
+        "es": "📬 Abrir Correo UGR",
+        "en": "📬 Open UGR Webmail",
+        "it": "📬 Apri Webmail UGR",
+        "fr": "📬 Ouvrir Messagerie UGR",
+    },
+    "tray_settings": {
+        "es": "⚙️ Configuración / Iniciar Sesión",
+        "en": "⚙️ Settings / Login",
+        "it": "⚙️ Impostazioni / Login",
+        "fr": "⚙️ Paramètres / Connexion",
+    },
+    "tray_notifications": {
+        "es": "🔔 Notificaciones de Escritorio",
+        "en": "🔔 Desktop Notifications",
+        "it": "🔔 Notifiche Desktop",
+        "fr": "🔔 Notifications du Bureau",
+    },
+    "tray_auto_sync": {
+        "es": "⏰ Sincronización Automática (Segundo Plano)",
+        "en": "⏰ Auto-Sync in Background",
+        "it": "⏰ Sincronizzazione Automatica in Background",
+        "fr": "⏰ Synchronisation Automatique en Arrière-plan",
+    },
+    "tray_github": {
+        "es": "⭐ PradoOS en GitHub",
+        "en": "⭐ PradoOS on GitHub",
+        "it": "⭐ PradoOS su GitHub",
+        "fr": "⭐ PradoOS sur GitHub",
+    },
+    "tray_quit": {
+        "es": "❌ Salir de PradoOS",
+        "en": "❌ Quit PradoOS",
+        "it": "❌ Esci da PradoOS",
+        "fr": "❌ Quitter PradoOS",
+    },
+    "tray_sync_success_notification": {
+        "es": "Sincronización completada con éxito.",
+        "en": "Sync completed successfully.",
+        "it": "Sincronizzazione completata con successo.",
+        "fr": "Synchronisation terminée avec succès.",
+    },
+    "tray_sync_error_notification": {
+        "es": "Error en sincronización: {error}",
+        "en": "Sync error: {error}",
+        "it": "Errore di sincronizzazione: {error}",
+        "fr": "Erreur de synchronisation : {error}",
+    },
+    "tray_credentials_saved": {
+        "es": "Credenciales UGR guardadas de forma segura en el llavero del sistema.",
+        "en": "UGR credentials securely stored in OS Keychain/Vault.",
+        "it": "Credenziali UGR salvate in sicurezza nel portachiavi di sistema.",
+        "fr": "Identifiants UGR enregistrés en toute sécurité dans le trousseau.",
+    },
+    "tray_login_cancelled": {
+        "es": "Inicio de sesión cancelado.",
+        "en": "Login cancelled.",
+        "it": "Login annullato.",
+        "fr": "Connexion annulée.",
+    },
 }
 
 

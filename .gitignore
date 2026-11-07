@@ -58,3 +58,6 @@ USER.md
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# PyInstaller spec files
+*.spec

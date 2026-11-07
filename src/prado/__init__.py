@@ -2,7 +2,7 @@
 PradoOS: Autonomous, cross-platform academic workflow engine for Moodle / PRADO UGR.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Lorenzo Vasile"
 __email__ = "lorenzovasile07@gmail.com"
 

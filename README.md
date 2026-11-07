@@ -79,14 +79,31 @@ Si estudias en la Universidad de Granada, PradoOS resuelve en segundo plano todo
 
 ### 🚀 Inicio Rápido
 
-#### Opción A: Mediante Asistente de IA (Antigravity, Claude Code, Cursor, Codex)
+#### 🌟 Opción 1 (Recomendada): App Nativa de Escritorio en Barra de Menús (Cero Terminal)
+¡No necesitas abrir ningún terminal ni saber programar!
+Descarga la aplicación gráfica autónoma desde **[GitHub Releases](https://github.com/LorSt4r/prado-os/releases)**:
+- 🍏 **macOS:** Descarga [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y haz doble clic en `PradoOS.app`. Se ancla discretamente en tu **Barra de Menús superior**.
+- 🪟 **Windows:** Descarga [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y ejecuta `PradoOS.exe`. Se ancla en la **Bandeja del Sistema (System Tray)** junto al reloj.
+- 🐧 **Linux:** Descarga [`PradoOS-linux.tar.gz`](https://github.com/LorSt4r/prado-os/releases).
+
+**Control total con 1 clic desde la barra de menús:**
+- 🔄 **Sincronizar Ahora:** Descarga tus asignaturas y transparencias de PRADO en segundo plano.
+- 📂 **Abrir Carpeta de Apuntes:** Abre en Finder / Explorador tu carpeta organizada con temas, guiones y PDFs.
+- 📅 **Abrir Calendario:** Acceso inmediato a tus entregas y exámenes en Google Calendar o Apple Calendar.
+- 📬 **Abrir Correo UGR:** Acceso rápido a tu Webmail institucional.
+- 🔔 **Notificaciones de Escritorio:** Activa o desactiva avisos cuando los profesores suban nuevos materiales.
+- ⚙️ **Configurar Cuenta:** Introduce tu correo y contraseña UGR mediante ventanas nativas seguras.
+
+*(Si ya tienes PradoOS instalado vía CLI/pip, puedes lanzar la app en cualquier momento con `prado app` o `prado-app`).*
+
+#### Opción 2: Mediante Asistente de IA (Antigravity, Claude Code, Cursor, Codex)
 Pega este mensaje en tu asistente de programación con IA:
 ```text
 Instala y configura https://github.com/LorSt4r/prado-os siguiendo BOOTSTRAP.md
 ```
 *El agente leerá [`BOOTSTRAP.md`](BOOTSTRAP.md), te hablará en tu idioma preferido (español o inglés) y completará la configuración inicial en menos de 60 segundos.*
 
-#### Opción B: Instalación en 1 Clic por Terminal (100% Determinista, sin IA)
+#### Opción 3: Instalación en 1 Clic por Terminal (CLI)
 
 > 💡 **Cero configuración previa:** No necesitas tener Python ni Git instalados previamente. El instalador detecta tu entorno, descarga un runtime aislado en espacio de usuario (sin permisos de administrador) y lanza automáticamente el asistente en **Español** (o **Inglés**) junto con la primera descarga de tus asignaturas.
 
@@ -100,7 +117,7 @@ curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | 
 irm https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.ps1 | iex
 ```
 
-#### Opción C: Mediante PyPI (`pip` / `uv`)
+#### Opción 4: Mediante PyPI (`pip` / `uv`)
 Si ya dispones de Python 3.10+ en tu sistema:
 ```bash
 pip install prado-os
@@ -108,7 +125,7 @@ pip install prado-os
 uv tool install prado-os
 ```
 
-*(Si ejecutas `prado` sin argumentos en tu terminal, se abrirá un menú interactivo con opciones numeradas del 1 al 7).*
+*(Si ejecutas `prado` sin argumentos en tu terminal, se abrirá un menú interactivo con opciones numeradas del 1 al 9).*
 
 ---
 
@@ -128,6 +145,7 @@ Todos los comandos admiten `--help` y formato estructurado `--json`:
 | `prado discover` | Lista todas las asignaturas matriculadas detectadas en PRADO. |
 | `prado doctor --json` | Diagnóstico de salud: comprueba red UGR, credenciales, permisos y dependencias. |
 | `prado notify (on/off)` | Activa o desactiva las notificaciones de escritorio nativas (opt-in deshabilitado por defecto). |
+| `prado app / prado gui` | Inicia la app nativa en la barra de menús (macOS) o bandeja del sistema (Windows/Linux). |
 | `prado daemon install` | Instala un servicio en segundo plano para sincronizar cada 4 horas (`launchd`/`systemd`/`schtasks`). |
 | `prado star` | Deja una estrella al repositorio en GitHub si la herramienta te ha sido útil. |
 
