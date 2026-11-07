@@ -319,10 +319,36 @@ function Install-PradoOS {
         Set-Content -Path $LocalCmdWrapper -Value $LocalCmdContent -Force -ErrorAction SilentlyContinue
     } catch {}
 
+    $PythonwExe = Join-Path $VenvDir "Scripts\pythonw.exe"
+    if (-not (Test-Path $PythonwExe)) { $PythonwExe = Join-Path $VenvDir "Scripts\python.exe" }
+    $LocalAppWrapper = Join-Path $LocalBinDir "prado-app.cmd"
+    $LocalAppContent = "@echo off`r`nstart `"`" `"$PythonwExe`" -m prado.ui.tray %*"
+    try {
+        Set-Content -Path $LocalAppWrapper -Value $LocalAppContent -Force -ErrorAction SilentlyContinue
+    } catch {}
+
+    # Create Windows Start Menu shortcut for PradoOS Tray App
+    try {
+        $IconDir = Join-Path $SrcDir "packaging\assets"
+        & (Join-Path $VenvDir "Scripts\python.exe") -c "from pathlib import Path; from prado.ui.icon import generate_desktop_assets; generate_desktop_assets(Path(r'$IconDir'))" 2>$null
+        $IcoPath = Join-Path $IconDir "prado_icon.ico"
+        $StartMenuDir = [Environment]::GetFolderPath("Programs")
+        $ShortcutPath = Join-Path $StartMenuDir "PradoOS.lnk"
+        $WshShell = New-Object -ComObject WScript.Shell
+        $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+        $Shortcut.TargetPath = $PythonwExe
+        $Shortcut.Arguments = "-m prado.ui.tray"
+        $Shortcut.WorkingDirectory = $SrcDir
+        if (Test-Path $IcoPath) { $Shortcut.IconLocation = $IcoPath }
+        $Shortcut.Description = "PradoOS — UGR Academic Sync & System Tray"
+        $Shortcut.Save()
+    } catch {}
+
     Write-Host ""
     Write-Host "[OK] PradoOS installed successfully!" -ForegroundColor Green
-    Write-Host "  Command    : prado"
-    Write-Host "  Executable : $PradoExe"
+    Write-Host "  CLI Command : prado"
+    Write-Host "  Tray App    : prado app (or 'PradoOS' in Windows Start Menu)"
+    Write-Host "  Executable  : $PradoExe"
     Write-Host ""
 
     # -------------------------------------------------------------------------

@@ -62,8 +62,15 @@ printf "==> Preparing Python virtual environment at %s\n" "$VENV_DIR"
 
 if [ -x "$VENV_DIR/bin/python" ] && "$VENV_DIR/bin/python" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
     printf "==> Reusing existing Python >= 3.10 virtual environment\n"
-    "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
-    "$VENV_DIR/bin/pip" install -e "$SRC_DIR"
+    if [ -x "$VENV_DIR/bin/pip" ]; then
+        "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
+        "$VENV_DIR/bin/pip" install -e "$SRC_DIR"
+    elif command -v uv >/dev/null 2>&1; then
+        uv pip install --python "$VENV_DIR/bin/python" -e "$SRC_DIR"
+    else
+        "$VENV_DIR/bin/python" -m ensurepip --upgrade >/dev/null 2>&1 || true
+        "$VENV_DIR/bin/python" -m pip install -e "$SRC_DIR"
+    fi
 elif [ -n "$PYTHON_BIN" ]; then
     "$PYTHON_BIN" -m venv --clear "$VENV_DIR"
     "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel >/dev/null
@@ -74,9 +81,42 @@ else
     uv pip install --python "$VENV_DIR/bin/python" -e "$SRC_DIR"
 fi
 
-# 4. Symlink `prado` binary into ~/.local/bin
+# 4. Symlink `prado`, `prado-app`, and `prado-gui` binaries into ~/.local/bin
 mkdir -p "$BIN_DIR"
 ln -sf "$VENV_DIR/bin/prado" "$BIN_DIR/prado"
+ln -sf "$VENV_DIR/bin/prado-app" "$BIN_DIR/prado-app" 2>/dev/null || true
+ln -sf "$VENV_DIR/bin/prado-gui" "$BIN_DIR/prado-gui" 2>/dev/null || true
+
+# On macOS, also create a lightweight ~/Applications/PradoOS.app launcher bundle
+if [ "$(uname -s)" = "Darwin" ]; then
+    APP_BUNDLE="$HOME/Applications/PradoOS.app"
+    mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
+    cat > "$APP_BUNDLE/Contents/MacOS/PradoOS" <<EOF
+#!/usr/bin/env bash
+export PATH="$BIN_DIR:/opt/homebrew/bin:/usr/local/bin:\$PATH"
+exec "$VENV_DIR/bin/python" -m prado.ui.tray
+EOF
+    chmod +x "$APP_BUNDLE/Contents/MacOS/PradoOS"
+    "$VENV_DIR/bin/python" -c "from pathlib import Path; from prado.ui.icon import generate_desktop_assets; generate_desktop_assets(Path('$APP_BUNDLE/Contents/Resources'))" 2>/dev/null || true
+    cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key><string>PradoOS</string>
+    <key>CFBundleDisplayName</key><string>PradoOS</string>
+    <key>CFBundleIdentifier</key><string>es.ugr.prado.os</string>
+    <key>CFBundleVersion</key><string>0.2.0</string>
+    <key>CFBundleShortVersionString</key><string>0.2.0</string>
+    <key>CFBundleExecutable</key><string>PradoOS</string>
+    <key>CFBundleIconFile</key><string>prado_icon.icns</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>LSUIElement</key><true/>
+    <key>NSHighResolutionCapable</key><true/>
+</dict>
+</plist>
+EOF
+fi
 
 # Ensure ~/.local/bin is in PATH for future sessions if missing
 SHELL_RC=""
@@ -92,8 +132,12 @@ if [ -n "$SHELL_RC" ] && [ -f "$SHELL_RC" ]; then
 fi
 
 printf "\033[1;32m✓ PradoOS installed successfully!\033[0m\n"
-printf "  Command    : %s/prado\n" "$BIN_DIR"
-printf "  Executable : %s/prado\n\n" "$BIN_DIR"
+printf "  CLI Command : %s/prado\n" "$BIN_DIR"
+printf "  Tray App    : %s/prado-app (or 'prado app')\n" "$BIN_DIR"
+if [ "$(uname -s)" = "Darwin" ]; then
+    printf "  macOS App   : %s/Applications/PradoOS.app\n" "$HOME"
+fi
+printf "\n"
 
 # 5. Launch Onboarding Wizard if interactive
 if [ -z "${CI:-}" ] && [ -z "${PRADO_NO_INTERACTIVE:-}" ] && [ -t 0 ]; then
