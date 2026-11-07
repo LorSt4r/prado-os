@@ -12,20 +12,8 @@
 > 🌐 **Altre lingue / Other languages:** [🇪🇸 Español](../README.md#-documentación-en-español) | [🇬🇧 English](../README.md#-english-documentation) | [🇫🇷 Français](README.fr.md)
 
 <p align="center">
-  <img src="../assets/screens/gui_01_dashboard.png" alt="PradoOS Desktop Control Center" width="100%">
+  <img src="../assets/screens/gui_01_dashboard.png" alt="PradoOS — Configurazione Compatta e Barra dei Menu" width="520">
 </p>
-
-<details>
-<summary>🖥️ <b>Galleria del Centro di Controllo Desktop (Materie, Posta UGR, Calendario, Doctor e Onboarding)</b></summary>
-<br>
-
-![Dashboard Principale](../assets/screens/gui_01_dashboard.png)
-![Gestione Materie e Sottogruppi](../assets/screens/gui_02_courses.png)
-![Lettore Posta UGR e Auto-Inoltro](../assets/screens/gui_03_mail.png)
-![Calendario, Daemon 4h e Doctor](../assets/screens/gui_04_calendar_doctor.png)
-![Wizard di Configurazione](../assets/screens/gui_05_onboarding.png)
-
-</details>
 
 ---
 

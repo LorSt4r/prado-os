@@ -46,6 +46,13 @@ def test_tray_menu_structure_and_labels(tmp_path: Path):
     app.status = "error"
     assert "Error" in app._get_status_text()
 
+    # Verify cascading submenus exist (Courses, Deadlines, Mail, Language)
+    submenu_titles = [str(it.text) for it in items if getattr(it, "submenu", None) is not None]
+    assert any("Asignaturas" in t for t in submenu_titles)
+    assert any("Entregas" in t for t in submenu_titles)
+    assert any("Correo UGR" in t for t in submenu_titles)
+    assert any("Idioma" in t for t in submenu_titles)
+
 
 def test_tray_menu_i18n(tmp_path: Path):
     for lang, expected_status in [

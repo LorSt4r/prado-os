@@ -14,29 +14,8 @@
 > 🌐 **Idiomas / Languages / Lingue / Langues:** [🇪🇸 Español (Principal)](#-documentación-en-español) | [🇬🇧 English](#-english-documentation) | [🇮🇹 Italiano](docs/README.it.md) | [🇫🇷 Français](docs/README.fr.md)
 
 <p align="center">
-  <img src="assets/screens/gui_01_dashboard.png" alt="PradoOS Desktop Control Center — Panel Principal, Entregas y Protección Anti-Sobrescritura" width="100%">
+  <img src="assets/screens/gui_01_dashboard.png" alt="PradoOS — Configuración Rápida y App en Barra de Menús / System Tray" width="520">
 </p>
-
-<details>
-<summary>🖥️ <b>Ver galería completa del Centro de Control Gráfico de Escritorio (Asignaturas, Correo UGR, Calendario, Doctor y Onboarding)</b></summary>
-<br>
-
-#### 1. Panel Principal en Tiempo Real (`PradoOS.app` / `PradoOS.exe` / `prado app`)
-![Panel Principal del Centro de Control](assets/screens/gui_01_dashboard.png)
-
-#### 2. Gestor de Asignaturas, Subgrupos (`C2`, `A3`) y Organización de Carpetas (`mirror` / `smart`)
-![Gestor de Asignaturas y Subgrupos](assets/screens/gui_02_courses.png)
-
-#### 3. Lector Gráfico de Correo UGR (`@correo.ugr.es`) con `BODY.PEEK[]` y Auto-Reenvío Selectivo
-![Lector Gráfico de Correo UGR y Auto-Reenvío](assets/screens/gui_03_mail.png)
-
-#### 4. Calendario (`deadlines.ics` / Google Calendar), Daemon 4h y Diagnóstico Doctor (9 Sondas)
-![Calendario, Daemon y Doctor](assets/screens/gui_04_calendar_doctor.png)
-
-#### 5. Asistente Gráfico de Configuración Inicial y Llavero Nativo
-![Asistente Gráfico de Configuración](assets/screens/gui_05_onboarding.png)
-
-</details>
 
 <details>
 <summary>⌨️ <b>Ver galería de la Interfaz de Terminal / CLI Interactiva (TUI)</b></summary>
@@ -104,21 +83,21 @@ Si estudias en la Universidad de Granada, PradoOS resuelve en segundo plano todo
 
 ### 🚀 Inicio Rápido
 
-#### 🌟 Opción 1 (Recomendada): App Gráfica Nativa de Escritorio — Centro de Control + Barra de Menús (Cero Terminal)
+#### 🌟 Opción 1 (Recomendada): App Nativa en Barra de Menús / System Tray + Configuración en 1 Pantalla (Cero Terminal)
 ¡No necesitas abrir ningún terminal ni saber programar!
 Descarga la aplicación gráfica autónoma desde **[GitHub Releases](https://github.com/LorSt4r/prado-os/releases)**:
-- 🍏 **macOS:** Descarga [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y haz doble clic en `PradoOS.app`. Abre la ventana nativa del **Centro de Control de PradoOS** y permanece anclada en tu **Barra de Menús superior**.
-- 🪟 **Windows:** Descarga [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y ejecuta `PradoOS.exe`. Abre el **Centro de Control de PradoOS** y se ancla en la **Bandeja del Sistema (System Tray)** junto al reloj.
+- 🍏 **macOS:** Descarga [`PradoOS-macos.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y haz doble clic en `PradoOS.app`. Vive discretamente en tu **Barra de Menús superior**.
+- 🪟 **Windows:** Descarga [`PradoOS-windows.zip`](https://github.com/LorSt4r/prado-os/releases), descomprime y ejecuta `PradoOS.exe`. Vive en la **Bandeja del Sistema (System Tray)** junto al reloj.
 - 🐧 **Linux:** Descarga [`PradoOS-linux.tar.gz`](https://github.com/LorSt4r/prado-os/releases).
 
-**¿Qué incluye la ventana del Centro de Control de PradoOS?**
-- 🪄 **Asistente Gráfico de Primer Uso y Modal 2FA en Vivo:** Configura idioma (`🇪🇸 ES`, `🇬🇧 EN`, `🇮🇹 IT`, `🇫🇷 FR`), portal (`Grado`, `Posgrado`, `CEPRUD`), credenciales en el Llavero nativo, código MFA de 6 dígitos en tiempo real y selector gráfico de carpeta.
-- 📊 **Panel Principal en Tiempo Real:** Barra de progreso asignatura por asignatura, consola de actividad en vivo, tarjetas de estado (archivos protegidos por SHA-256), próximas entregas/exámenes con cuenta atrás y apertura en 1 clic en Finder/Explorador.
-- 📚 **Gestor de Asignaturas y Subgrupos:** Activa/desactiva asignaturas, filtra subgrupos de prácticas (`C2`, `A3`, `B1`), alterna entre modo `mirror` (estructura exacta del profesor) y `smart` (Teoría / Prácticas / General).
-- 📬 **Lector Gráfico de Correo UGR (`@correo.ugr.es`) y Auto-Reenvío:** Bandeja dividida sin marcar tus correos como leídos en segundo plano (`BODY.PEEK[]`), descarga de adjuntos con selector nativo de carpetas y reglas de reenvío automático a `@gmail.com` / `@icloud.com`.
-- 📅 **Calendario, Daemon 4h y Diagnóstico Doctor:** Sincronización en 1 clic con Google Calendar / Apple Calendar (`deadlines.ics`), activación del servicio automático cada 4 horas y verificación de las 9 sondas de salud (`Doctor`).
+**Todo el control desde el menú de la bandeja (estilo Dropbox / Google Drive):**
+- 🔄 **Sincronizar Ahora** y **📂 Abrir Carpeta de Apuntes** con 1 clic.
+- 📚 **Submenú `Mis Asignaturas ▸`:** Abre directamente la carpeta de cualquiera de tus asignaturas en Finder/Explorador, alterna entre modo `Mirror` (oficial PRADO) y `Smart` (Teoría/Prácticas), o cambia la carpeta de destino.
+- 📅 **Submenú `Próximas Entregas ▸`:** Consulta tus próximos exámenes y entregas con cuenta atrás directamente en el menú y sincronízalos con Google Calendar o `deadlines.ics`.
+- 📬 **Submenú `Correo UGR (@correo.ugr.es) ▸`:** Activa/desactiva el auto-reenvío de correos de profesores a tu `@gmail.com` / `@icloud.com`, comprueba el buzón al instante o abre Webmail.
+- ⚙️ **Ventana Compacta de Configuración (1 sola tarjeta):** Al primer uso (o pulsando *Configurar Cuenta UGR*), introduce tu correo, contraseña (guardada en el Llavero nativo), carpeta y correo personal de reenvío en una única pantalla limpia, con soporte para el código MFA de 6 dígitos en tiempo real.
 
-*(Si ya tienes PradoOS instalado vía CLI/pip, puedes lanzar el Centro de Control y la bandeja en cualquier momento con `prado app` o `prado-app`).*
+*(Si ya tienes PradoOS instalado vía CLI/pip, puedes lanzar la app en cualquier momento con `prado app` o `prado-app`).*
 
 #### Opción 2: Mediante Asistente de IA (Antigravity, Claude Code, Cursor, Codex)
 Pega este mensaje en tu asistente de programación con IA:

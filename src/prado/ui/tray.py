@@ -1,22 +1,23 @@
 """
-PradoOS Desktop Orchestrator: Native WebView Control Center + System Tray App.
+PradoOS Desktop Orchestrator: Rich Hierarchical System Tray + Compact Setup Card.
 
-Combines:
-1. Native Desktop Control Center window via `pywebview` (WebKit on macOS, Edge WebView2 on Windows,
-   GTK WebKit2 on Linux, with seamless browser fallback).
-2. Local loopback REST/Event server (`PradoUIServer` on `127.0.0.1:<ephemeral_port>`).
-3. Persistent System Tray / Menu Bar icon (`pystray`) with thread-safe Cocoa/Win32 updates.
+Follows the Dropbox / Tailscale / Google Drive Desktop architecture:
+1. 100% of daily controls live in the OS Menu Bar / System Tray (`pystray`) with
+   native cascading submenus for Enrolled Courses, Upcoming Deadlines, UGR Mail
+   Auto-Forwarding, Folder Preset (Mirror/Smart), Language (ES/EN/IT/FR), and Doctor.
+2. A single compact native window (520x630px via `pywebview`) for quick Account Setup
+   and live 6-digit MFA verification.
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime
-import os
+from pathlib import Path
 import sys
 import threading
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
 try:
     import pystray
@@ -33,9 +34,11 @@ from prado.config import PradoConfig, load_config, save_config
 from prado.exceptions import AuthenticationRequiredError, InvalidCredentialsError
 from prado.i18n import t
 from prado.notifications.desktop import DesktopNotifier, is_headless_environment
+from prado.onboarding.wizard import prompt_folder_picker_gui
+from prado.state import StateDatabase
 from prado.ui.dialogs import open_folder, open_url, prompt_login_gui
 from prado.ui.icon import create_tray_icon
-from prado.ui.server import PradoControlCenterAPI, PradoUIServer
+from prado.ui.server import PradoControlCenterAPI, PradoUIServer, parse_deadlines_from_ics
 
 
 def _dispatch_ui_thread(fn: Callable[[], None], is_main_loop_running: bool = False) -> None:
@@ -59,7 +62,7 @@ def _dispatch_ui_thread(fn: Callable[[], None], is_main_loop_running: bool = Fal
 
 class PradoTrayApp:
     """
-    Unified Desktop Application & System Tray controller for PradoOS.
+    Unified System Tray / Menu Bar controller + Compact Setup Card for PradoOS.
     """
 
     def __init__(self, cfg: Optional[PradoConfig] = None) -> None:
@@ -76,7 +79,7 @@ class PradoTrayApp:
         self.icon: Optional[pystray.Icon] = None
         self.notifier = DesktopNotifier(app_name="PradoOS")
 
-        # Shared Control Center API & Local Loopback Server
+        # Shared API & Local Loopback Server for the compact Setup / 2FA window
         self.api = PradoControlCenterAPI(cfg=self.cfg, on_status_change=self._on_api_status_change)
         self.server: Optional[PradoUIServer] = None
         self.window: Optional[Any] = None
@@ -86,6 +89,12 @@ class PradoTrayApp:
         self.status = mapped
         if last_sync:
             self.last_sync_time = last_sync
+        if new_status == "mfa_required" and self.window is not None:
+            try:
+                self.window.show()
+                self.window.restore()
+            except Exception:
+                pass
         self._refresh_tray_ui()
 
     def _refresh_tray_ui(self) -> None:
@@ -95,6 +104,7 @@ class PradoTrayApp:
         def _do_update() -> None:
             if self.icon:
                 self.icon.icon = create_tray_icon(self.status)
+                self.icon.menu = self._build_menu()
                 self.icon.update_menu()
 
         _dispatch_ui_thread(_do_update, is_main_loop_running=self._main_loop_active)
@@ -117,10 +127,144 @@ class PradoTrayApp:
         return t("tray_last_sync", lang, time="--:--")
 
     # -------------------------------------------------------------------------
-    # Menu Construction
+    # Hierarchical Submenu Builders (Courses, Deadlines, Mail, Language)
+    # -------------------------------------------------------------------------
+    def _build_courses_submenu(self, lang: str) -> tuple[str, pystray.Menu]:
+        course_items: List[Any] = []
+        courses_found = 0
+        try:
+            state_db = StateDatabase()
+            courses = state_db.list_all_courses()
+            for c in courses:
+                courses_found += 1
+                label = f"📂 {c.fullname[:44]}"
+
+                def _make_open_course(cname: str, sname: str) -> Callable[..., None]:
+                    def _cb(icon: Any = None, item: Any = None) -> None:
+                        for cand in (cname, sname):
+                            if cand and (self.cfg.courses_root / cand).exists():
+                                open_folder(self.cfg.courses_root / cand)
+                                return
+                        open_folder(self.cfg.courses_root)
+
+                    return _cb
+
+                course_items.append(pystray.MenuItem(label, _make_open_course(c.fullname, c.shortname or "")))
+        except Exception:
+            pass
+
+        if not course_items and self.cfg.courses_root.exists():
+            try:
+                for sub in sorted(self.cfg.courses_root.iterdir()):
+                    if sub.is_dir() and not sub.name.startswith("."):
+                        courses_found += 1
+
+                        def _make_open_dir(p: Path) -> Callable[..., None]:
+                            return lambda icon=None, item=None: open_folder(p)
+
+                        course_items.append(pystray.MenuItem(f"📂 {sub.name[:44]}", _make_open_dir(sub)))
+            except Exception:
+                pass
+
+        if not course_items:
+            course_items.append(pystray.MenuItem(t("tray_courses_empty", lang), action=None, enabled=False))
+
+        course_items.extend(
+            [
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(
+                    t("tray_preset_mirror", lang),
+                    lambda icon=None, item=None: self._set_preset("mirror"),
+                    checked=lambda item: (self.cfg.sync.preset or "mirror") == "mirror",
+                ),
+                pystray.MenuItem(
+                    t("tray_preset_smart", lang),
+                    lambda icon=None, item=None: self._set_preset("smart"),
+                    checked=lambda item: self.cfg.sync.preset == "smart",
+                ),
+                pystray.MenuItem(
+                    t("tray_change_folder", lang),
+                    self._on_pick_folder,
+                ),
+            ]
+        )
+        title = t("tray_courses_menu", lang, count=courses_found)
+        return title, pystray.Menu(*course_items)
+
+    def _build_deadlines_submenu(self, lang: str) -> tuple[str, pystray.Menu]:
+        ics_path = self.cfg.courses_root / "deadlines.ics"
+        events = parse_deadlines_from_ics(ics_path)
+        dl_items: List[Any] = []
+
+        for ev in events[:6]:
+            prefix = "🚨" if ev.get("kind") == "EXAM" else "📝"
+            days = ev.get("days_left", 0)
+            days_str = f"{days}d" if days >= 0 else "vencido"
+            lbl = f"{prefix} {ev['due_iso'][:10]} — [{ev['course'][:18]}] {ev['title'][:28]} ({days_str})"
+            dl_items.append(pystray.MenuItem(lbl, self._on_open_calendar))
+
+        if not dl_items:
+            dl_items.append(pystray.MenuItem(t("tray_deadlines_empty", lang), action=None, enabled=False))
+
+        dl_items.extend(
+            [
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(t("tray_sync_gcal", lang), self._on_sync_gcalendar),
+                pystray.MenuItem(t("tray_open_ics", lang), self._on_open_calendar),
+                pystray.MenuItem("🌐 Google Calendar Web", lambda icon=None, item=None: open_url("https://calendar.google.com")),
+            ]
+        )
+        title = t("tray_deadlines_menu", lang, count=len(events))
+        return title, pystray.Menu(*dl_items)
+
+    def _build_mail_submenu(self, lang: str) -> pystray.Menu:
+        target = f"(→ {self.cfg.mail.forward_to})" if self.cfg.mail.forward_to else ""
+        return pystray.Menu(
+            pystray.MenuItem(
+                t("tray_mail_forward_toggle", lang, target=target).strip(),
+                self._on_toggle_mail_forwarding,
+                checked=lambda item: bool(self.cfg.mail.forward_enabled),
+            ),
+            pystray.MenuItem(
+                t("tray_mail_check_now", lang),
+                self._on_check_mail_now,
+            ),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem(
+                t("tray_open_mail", lang),
+                self._on_open_mail,
+            ),
+        )
+
+    def _build_language_submenu(self) -> pystray.Menu:
+        langs = [
+            ("es", "🇪🇸 Español"),
+            ("en", "🇬🇧 English"),
+            ("it", "🇮🇹 Italiano"),
+            ("fr", "🇫🇷 Français"),
+        ]
+        items = []
+        for code, label in langs:
+
+            def _make_lang_cb(c: str) -> Callable[..., None]:
+                return lambda icon=None, item=None: self._set_language(c)
+
+            items.append(
+                pystray.MenuItem(
+                    label,
+                    _make_lang_cb(code),
+                    checked=lambda item, c=code: (self.cfg.language or "es") == c,
+                )
+            )
+        return pystray.Menu(*items)
+
+    # -------------------------------------------------------------------------
+    # Main System Tray Menu Construction
     # -------------------------------------------------------------------------
     def _build_menu(self) -> pystray.Menu:
         lang = self.cfg.language or "es"
+        courses_title, courses_menu = self._build_courses_submenu(lang)
+        deadlines_title, deadlines_menu = self._build_deadlines_submenu(lang)
 
         return pystray.Menu(
             # Header
@@ -128,30 +272,22 @@ class PradoTrayApp:
             pystray.MenuItem(lambda item: self._get_status_text(), action=None, enabled=False),
             pystray.MenuItem(lambda item: self._get_last_sync_text(), action=None, enabled=False),
             pystray.Menu.SEPARATOR,
-            # Primary Action: Open Control Center Window
-            pystray.MenuItem(
-                t("tray_open_control_center", lang),
-                self._on_open_control_center,
-                default=True,
-            ),
+            # Primary 1-Click Actions
             pystray.MenuItem(
                 t("tray_sync_now", lang),
                 self._on_sync_now,
+                default=True,
             ),
             pystray.MenuItem(
                 t("tray_open_folder", lang),
                 self._on_open_folder,
             ),
-            pystray.MenuItem(
-                t("tray_open_calendar", lang),
-                self._on_open_calendar,
-            ),
-            pystray.MenuItem(
-                t("tray_open_mail", lang),
-                self._on_open_mail,
-            ),
+            # Cascading Submenus (Courses, Deadlines, UGR Mail)
+            pystray.MenuItem(courses_title, courses_menu),
+            pystray.MenuItem(deadlines_title, deadlines_menu),
+            pystray.MenuItem(t("tray_mail_menu", lang), self._build_mail_submenu(lang)),
             pystray.Menu.SEPARATOR,
-            # Settings & Preferences
+            # Preferences & Diagnostics
             pystray.MenuItem(
                 t("tray_notifications", lang),
                 self._on_toggle_notifications,
@@ -161,6 +297,14 @@ class PradoTrayApp:
                 t("tray_auto_sync", lang),
                 self._on_toggle_auto_sync,
                 checked=lambda item: self._auto_sync_enabled,
+            ),
+            pystray.MenuItem(
+                t("tray_lang_menu", lang),
+                self._build_language_submenu(),
+            ),
+            pystray.MenuItem(
+                t("tray_doctor", lang),
+                self._on_run_doctor,
             ),
             pystray.MenuItem(
                 t("tray_settings", lang),
@@ -185,7 +329,7 @@ class PradoTrayApp:
         self.open_control_center()
 
     def open_control_center(self, section: Optional[str] = None) -> str:
-        """Ensures the local Control Center server is running and shows/opens the UI."""
+        """Shows the compact Setup & Quick-Configure card."""
         if self.server is None:
             self.server = PradoUIServer(api=self.api)
             self.server.start()
@@ -198,10 +342,6 @@ class PradoTrayApp:
             try:
                 self.window.show()
                 self.window.restore()
-                if section == "settings":
-                    self.window.evaluate_js("openOnboardingModal(true)")
-                elif section in ("dashboard", "courses", "mail", "calendar"):
-                    self.window.evaluate_js(f"switchTab('{section}')")
                 return target_url
             except Exception:
                 pass
@@ -215,27 +355,82 @@ class PradoTrayApp:
     def _on_open_folder(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         open_folder(self.cfg.courses_root)
 
-    def _on_open_calendar(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
-        cal_cfg = getattr(self.cfg, "calendar", None)
-        gcal = getattr(cal_cfg, "google_calendar", None) if cal_cfg else None
-        if gcal and getattr(gcal, "enabled", False) and getattr(gcal, "calendar_id", "auto") != "auto":
-            open_url("https://calendar.google.com")
-            return
-        if self.api.gcalendar_enabled and self.api.gcalendar_id and self.api.gcalendar_id != "auto":
-            open_url("https://calendar.google.com")
-            return
+    def _set_preset(self, preset: str) -> None:
+        if preset in ("mirror", "smart"):
+            self.cfg.sync.preset = preset
+            save_config(self.cfg)
+            self._refresh_tray_ui()
 
+    def _on_pick_folder(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        def _worker() -> None:
+            chosen = prompt_folder_picker_gui()
+            if chosen:
+                self.cfg.courses_root = chosen
+                self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
+                save_config(self.cfg)
+                self._refresh_tray_ui()
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _on_open_calendar(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         ics_path = self.cfg.courses_root / "deadlines.ics"
-        if ics_path.exists():
-            open_folder(ics_path)
-        else:
-            self.open_control_center("calendar")
+        if not ics_path.exists():
+            self.api.run_calendar_action("open_ics")
+            return
+        open_folder(ics_path)
+
+    def _on_sync_gcalendar(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        def _worker() -> None:
+            res = self.api.run_calendar_action("gcalendar")
+            if self.cfg.notifications.enabled:
+                msg = (
+                    "Entregas sincronizadas con Google Calendar."
+                    if res.get("status") == "success"
+                    else f"Google Calendar: {res.get('error')}"
+                )
+                self.notifier.notify(title="PradoOS Calendar", message=msg)
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _on_toggle_mail_forwarding(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        if not self.cfg.mail.forward_to and not self.cfg.mail.forward_enabled:
+            self.open_control_center("settings")
+            return
+        self.cfg.mail.forward_enabled = not self.cfg.mail.forward_enabled
+        save_config(self.cfg)
+        self._refresh_tray_ui()
+
+    def _on_check_mail_now(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        def _worker() -> None:
+            res = self.api.fetch_mail_inbox(refresh=True)
+            if self.cfg.notifications.enabled and res.get("status") == "success":
+                self.notifier.notify(
+                    title="PradoOS — Correo UGR",
+                    message=f"{res.get('unread', 0)} correo(s) sin leer en @correo.ugr.es.",
+                )
+
+        threading.Thread(target=_worker, daemon=True).start()
 
     def _on_open_mail(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
-        if self.server is not None:
-            self.open_control_center("mail")
-        else:
-            open_url("https://correo.ugr.es")
+        open_url("https://correo.ugr.es")
+
+    def _set_language(self, lang_code: str) -> None:
+        self.cfg.language = lang_code
+        save_config(self.cfg)
+        self.api.update_language(lang_code)
+        self._refresh_tray_ui()
+
+    def _on_run_doctor(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        def _worker() -> None:
+            res = self.api.run_doctor()
+            probes = res.get("probes", [])
+            ok_count = sum(1 for p in probes if p.get("status") == "OK")
+            self.notifier.notify(
+                title="PradoOS Doctor",
+                message=f"Diagnóstico completado: {ok_count}/{len(probes)} sondas OK.",
+            )
+
+        threading.Thread(target=_worker, daemon=True).start()
 
     def _on_toggle_notifications(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         self.cfg.notifications.enabled = not self.cfg.notifications.enabled
@@ -357,11 +552,11 @@ class PradoTrayApp:
                 self.api.start_sync()
 
     # -------------------------------------------------------------------------
-    # App Lifecycle (WebView Control Center + System Tray)
+    # App Lifecycle (System Tray + Compact Setup Card)
     # -------------------------------------------------------------------------
     def run(self, detached: bool = False, tray_only: bool = False) -> None:
         """
-        Launches the PradoOS Control Center (native WebView window + System Tray icon).
+        Launches PradoOS in the OS Menu Bar / System Tray + Compact Setup Card.
         """
         if pystray is None:
             raise RuntimeError(
@@ -373,7 +568,7 @@ class PradoTrayApp:
                 "Cannot launch PradoOS Desktop App in a headless or CI environment without a display server."
             )
 
-        # 1. Start local Control Center loopback server (127.0.0.1:<port>)
+        # 1. Start local loopback server for the compact Setup / 2FA window
         self.server = PradoUIServer(api=self.api)
         control_url = self.server.start()
 
@@ -395,16 +590,17 @@ class PradoTrayApp:
 
         self._main_loop_active = True
 
-        # 4. If native WebView is available and not tray_only, open native Control Center window
+        # 4. Open compact single-screen Setup Card (520x630px) alongside the System Tray
         if webview is not None and not tray_only:
             try:
                 self.icon.run_detached()
                 self.window = webview.create_window(
-                    title="PradoOS — Centro de Control Académico UGR",
+                    title="PradoOS — Configuración UGR",
                     url=control_url,
-                    width=1180,
-                    height=790,
-                    min_size=(920, 620),
+                    width=525,
+                    height=640,
+                    min_size=(460, 560),
+                    resizable=True,
                 )
                 try:
                     self.window.events.closing += self._on_window_closing
@@ -414,21 +610,18 @@ class PradoTrayApp:
                 self.stop()
                 return
             except Exception:
-                # Fallback if WebView backend fails to initialize: open in browser & run tray loop
                 open_url(control_url)
                 self.icon.run()
                 return
 
-        # Fallback when tray_only=True or pywebview is not installed
         if not tray_only:
             open_url(control_url)
         self.icon.run()
 
     def _on_window_closing(self) -> bool:
         """
-        When the user closes the Control Center window (red X), hide it to the
-        Menu Bar / System Tray instead of terminating the background daemon/tray,
-        unless Quit was explicitly requested.
+        When the user closes the compact Setup Card (red X), hide it to the
+        Menu Bar / System Tray instead of terminating the background daemon/tray.
         """
         if self._quitting:
             return True

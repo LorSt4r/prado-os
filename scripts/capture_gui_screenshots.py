@@ -195,24 +195,20 @@ def main() -> int:
         base_url = server.start()
 
         targets = [
-            ("gui_01_dashboard.png", f"{base_url}&view=dashboard&logs=1"),
-            ("gui_02_courses.png", f"{base_url}&view=courses"),
-            ("gui_03_mail.png", f"{base_url}&view=mail&open_msg=901"),
-            ("gui_04_calendar_doctor.png", f"{base_url}&view=calendar&run_doctor=1"),
-            ("gui_05_onboarding.png", f"{base_url}&view=onboarding"),
+            ("gui_01_dashboard.png", f"{base_url}", "600,660"),
         ]
 
         try:
-            for filename, target_url in targets:
+            for filename, target_url, win_size in targets:
                 out_path = screens_dir / filename
                 cmd = [
                     str(chrome_bin),
                     "--headless=new",
                     "--disable-gpu",
                     "--hide-scrollbars",
-                    "--window-size=1240,840",
+                    f"--window-size={win_size}",
                     "--force-device-scale-factor=2",
-                    "--virtual-time-budget=2500",
+                    "--virtual-time-budget=2000",
                     f"--screenshot={out_path}",
                     target_url,
                 ]
