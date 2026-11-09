@@ -80,6 +80,14 @@ L'agente leggerà [`BOOTSTRAP.md`](../BOOTSTRAP.md), ti parlerà in italiano e c
 
 ---
 
+## 🔒 Architettura di Sicurezza, Privacy Locale e Uso Responsabile di PRADO
+
+1. 🔒 **Privacy e Sicurezza 100% Locale (Zero Server Terzi o Telemetria):** Tutte le operazioni avvengono esclusivamente sul computer dello studente tramite HTTPS diretto verso i domini ufficiali `*.ugr.es`. Le credenziali vengono salvate solo nel portachiavi nativo di sistema (*macOS Keychain*, *Windows Credential Manager*, *Linux SecretService*) con pieno supporto al secondo fattore (**MFA**).
+2. ⚡ **Impatto Minimo sui Server PRADO (Deduplicazione `SHA-256`):** Ogni file viene scaricato una sola volta; le sincronizzazioni successive scaricano solo i file nuovi o aggiornati, con concorrenza limitata (`max_workers = 3`) e intervalli conservativi (default 4 ore).
+3. 📜 **Uso Personale e Rispetto dei Permessi Moodle:** Opera esclusivamente nei corsi in cui lo studente è regolarmente iscritto e conserva i materiali in locale per uso di studio personale.
+
+---
+
 ## 📜 Licenza
 Rilasciato sotto licenza copyleft **GNU Affero General Public License v3.0 (`AGPL-3.0`)**.  
 Creato da **Lorenzo Vasile** per la comunità universitaria dell'ETSIIT e dell'UGR.

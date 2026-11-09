@@ -62,8 +62,15 @@ printf "==> Preparing Python virtual environment at %s\n" "$VENV_DIR"
 
 if [ -x "$VENV_DIR/bin/python" ] && "$VENV_DIR/bin/python" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
     printf "==> Reusing existing Python >= 3.10 virtual environment\n"
-    "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
-    "$VENV_DIR/bin/pip" install -e "$SRC_DIR"
+    if [ -x "$VENV_DIR/bin/pip" ]; then
+        "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
+        "$VENV_DIR/bin/pip" install -e "$SRC_DIR"
+    elif command -v uv >/dev/null 2>&1; then
+        uv pip install --python "$VENV_DIR/bin/python" -e "$SRC_DIR"
+    else
+        "$VENV_DIR/bin/python" -m ensurepip --upgrade >/dev/null 2>&1 || true
+        "$VENV_DIR/bin/python" -m pip install -e "$SRC_DIR"
+    fi
 elif [ -n "$PYTHON_BIN" ]; then
     "$PYTHON_BIN" -m venv --clear "$VENV_DIR"
     "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel >/dev/null

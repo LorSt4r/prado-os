@@ -77,6 +77,24 @@ Si estudias en la Universidad de Granada, PradoOS resuelve en segundo plano todo
 
 ---
 
+### 🔒 Arquitectura de Seguridad, Privacidad Local y Uso Responsable de PRADO
+
+**PradoOS** ha sido diseñado aplicando buenas prácticas de seguridad local y respeto técnico hacia la infraestructura de **PRADO (CEPRUD)**:
+
+1. 🔒 **Privacidad y Seguridad 100 % Local (Cero Servidores Externos ni Telemetría):**
+   - Toda la ejecución ocurre íntegramente en el ordenador del estudiante. **No existe ningún servidor intermedio, nube de terceros ni recolección de telemetría.**
+   - La comunicación se realiza exclusivamente mediante conexiones HTTPS/TLS directas contra los dominios oficiales de la universidad (`*.ugr.es`: `pradogrado2526.ugr.es`, `pradoposgrado2526.ugr.es`, `prado.ugr.es`, `sts.ugr.es`, `correo.ugr.es`).
+   - Las credenciales de *Acceso Identificado* jamás se guardan en texto plano ni en archivos de configuración: se almacenan exclusivamente en el llavero criptográfico nativo del sistema operativo (**macOS Keychain**, **Windows Credential Manager** o **Linux SecretService / libsecret**), respetando íntegramente el flujo SAML oficial y el doble factor de autenticación (**MFA**).
+2. ⚡ **Carga Mínima y Protección de los Servidores de PRADO (Deduplicación Inteligente):**
+   - **Descarga única por archivo (`SHA-256` + SQLite local):** cada recurso docente se descarga una sola vez. En sincronizaciones posteriores, los archivos que ya existen localmente se omiten sin volver a descargarse, reduciendo drásticamente el consumo de ancho de banda frente a la descarga manual repetitiva desde el navegador.
+   - **Concurrencia limitada y *rate-limiting* responsable:** las descargas concurrentes están estrictamente acotadas (`max_workers = 3`) con tiempos de espera explícitos, *backoff* exponencial con *jitter* ante respuestas `HTTP 429/502/503/504`, y una periodicidad por defecto de **4 horas** en segundo plano (nunca *polling* agresivo).
+3. 📜 **Respeto a los Permisos de PRADO y Propiedad Intelectual Docente:**
+   - La herramienta opera estrictamente con los permisos de la sesión autenticada del alumno (accediendo únicamente a las asignaturas en las que está matriculado) y organiza los materiales en su carpeta local exclusivamente para uso académico y estudio personal.
+4. 🔍 **Código 100 % Abierto y Auditable (`GNU AGPLv3`):**
+   - Sin binarios cerrados ni código ofuscado; verificado mediante **727 tests automatizados** y sondas de diagnóstico transparentes (`prado doctor`).
+
+---
+
 ### 🚀 Inicio Rápido
 
 #### Opción A: Mediante Asistente de IA (Antigravity, Claude Code, Cursor, Codex)
@@ -212,6 +230,24 @@ PradoOS turns your university Moodle / PRADO UGR portal into an automated, self-
    - **No manual path typing:** auto-detects your OS-localized Desktop/Home folder and lets you press **`G`** during setup to pick your destination folder via a **native graphical window (macOS Finder, Windows File Explorer, Linux File Manager)**.
 6. 📬 **Built-in UGR Mail TUI Reader & Selective Auto-Forwarding (`prado mail`):**  
    - Connects directly to `correo.ugr.es:993` (`IMAP4_SSL`) and `correo.ugr.es:465` (`SMTP_SSL`) reusing your stored UGR credentials. Opens your full unfiltered inbox by default (like Webmail) with top-level manual filters (`[F]`) and auto-forwarding rules (`[R]`) to forward emails from specific professors or course keywords straight to your personal email (`@gmail.com`, `@icloud.com`, etc.). Preserves unread status (`BODY.PEEK[]`) during background syncs and opens a native GUI folder picker whenever you save an email attachment (`📎`).
+
+---
+
+### 🔒 Security Architecture, Local Privacy & Responsible PRADO Usage
+
+**PradoOS** is built with strict local security practices and technical care for **PRADO (CEPRUD)** infrastructure:
+
+1. 🔒 **100% Local Privacy & Security (Zero Third-Party Servers or Telemetry):**
+   - Everything runs strictly on the student's machine. **There are no intermediary servers, external clouds, or telemetry hooks.**
+   - Network traffic connects exclusively via direct HTTPS/TLS to official `*.ugr.es` endpoints (`pradogrado2526.ugr.es`, `pradoposgrado2526.ugr.es`, `prado.ugr.es`, `sts.ugr.es`, `correo.ugr.es`).
+   - *Acceso Identificado* credentials are never stored in plaintext; they are isolated inside the operating system's native cryptographic keychain (**macOS Keychain**, **Windows Credential Manager**, or **Linux SecretService / libsecret**), with full support for official UGR SAML & **MFA** verification.
+2. ⚡ **Minimal Server Load & Bandwidth Conservation (Smart Deduplication):**
+   - **Single-download guarantee (`SHA-256` + local SQLite):** each course file is downloaded only once. Subsequent syncs skip unchanged files completely, saving bandwidth for both students and CEPRUD servers compared to repeated browser downloads.
+   - **Bounded concurrency & conservative intervals:** downloads are strictly capped (`max_workers = 3`) with exponential backoff + jitter on `HTTP 429/502/503/504`, and background sync defaults to a conservative **4-hour** interval (never aggressive polling).
+3. 📜 **Strict Respect for Moodle Permissions & Faculty Intellectual Property:**
+   - Operates exclusively within the authenticated student's enrolled courses for personal academic study.
+4. 🔍 **100% Open & Auditable Code (`GNU AGPLv3`):**
+   - Fully transparent Python source code verified by **727 automated tests** and built-in health diagnostics (`prado doctor`).
 
 ---
 

@@ -116,7 +116,7 @@ function Find-WorkingPython {
     $PyLauncher = Get-Command py -ErrorAction SilentlyContinue
     if ($PyLauncher) {
         try {
-            $out = & py -3 -c "import sys; print(int(sys.version_info >= (3, 10)) + '|' + sys.executable)" 2>$null
+            $out = & py -3 -c "import sys; print(f'{int(sys.version_info >= (3, 10))}|{sys.executable}')" 2>$null
             $str = "$out".Trim()
             if ($str.StartsWith("1|")) {
                 return $str.Substring(2)
@@ -260,44 +260,44 @@ function Install-PradoOS {
     # 3. Virtual Environment Creation & Package Installation
     # -------------------------------------------------------------------------
     $VenvDir = Join-Path $SrcDir ".venv"
+    $VenvPython = Join-Path $VenvDir "Scripts\python.exe"
+    $PradoExe = Join-Path $VenvDir "Scripts\prado.exe"
     Write-Host "==> Preparing isolated Python environment at $VenvDir..." -ForegroundColor Cyan
 
-    if ($UvExe) {
-        Write-Host "==> Installing portable Python 3.12 via uv..." -ForegroundColor Cyan
-        & $UvExe python install 3.12
-        & $UvExe venv --clear $VenvDir --python 3.12
-        $VenvPython = Join-Path $VenvDir "Scripts\python.exe"
+    if ($PythonExe) {
+        Write-Host "==> Creating virtual environment using $PythonExe..." -ForegroundColor Cyan
+        & $PythonExe -m venv --clear $VenvDir
         if (Test-Path $VenvPython) {
-            Write-Host "==> Installing PradoOS and dependencies..." -ForegroundColor Cyan
-            & $UvExe pip install --python $VenvPython -e $SrcDir
-        } else {
-            Write-Host "==> uv venv did not create python.exe, falling back to system Python..." -ForegroundColor Yellow
-            $PythonExe = Find-WorkingPython
+            & $VenvPython -m pip install --upgrade pip setuptools wheel
+            & $VenvPython -m pip install -e $SrcDir
         }
     }
 
-    $PradoExe = Join-Path $VenvDir "Scripts\prado.exe"
-    if (-not (Test-Path $PradoExe) -and $PythonExe) {
-        Write-Host "==> Creating virtual environment using $PythonExe..." -ForegroundColor Cyan
-        & $PythonExe -m venv --clear $VenvDir
-        $PipExe = Join-Path $VenvDir "Scripts\pip.exe"
-        & $PipExe install --upgrade pip setuptools wheel
-        & $PipExe install -e $SrcDir
+    if (-not (Test-Path $PradoExe) -and $UvExe) {
+        Write-Host "==> Installing portable Python 3.12 via uv..." -ForegroundColor Cyan
+        & $UvExe python install 3.12
+        & $UvExe venv --clear $VenvDir --python 3.12
+        if (Test-Path $VenvPython) {
+            Write-Host "==> Installing PradoOS and dependencies..." -ForegroundColor Cyan
+            & $UvExe pip install --python $VenvPython -e $SrcDir
+        }
     }
 
     if (-not (Test-Path $PradoExe)) {
         Write-Host "ERROR: Could not complete PradoOS installation. Please check the messages above." -ForegroundColor Red
-        return
+        exit 1
     }
 
     # -------------------------------------------------------------------------
     # 4. Global PATH Registration & Windows Wrapper Shims
     # -------------------------------------------------------------------------
     $ScriptsDir = Join-Path $VenvDir "Scripts"
-    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    if ($UserPath -notlike "*$ScriptsDir*") {
-        [Environment]::SetEnvironmentVariable("Path", "$ScriptsDir;$UserPath", "User")
-    }
+    try {
+        $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+        if ($UserPath -notlike "*$ScriptsDir*") {
+            [Environment]::SetEnvironmentVariable("Path", "$ScriptsDir;$UserPath", "User")
+        }
+    } catch {}
     $env:Path = "$ScriptsDir;$env:Path"
 
     $WindowsAppsDir = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps"
@@ -334,6 +334,7 @@ function Install-PradoOS {
     } else {
         Write-Host "Next step: run 'prado onboard' to configure your courses."
     }
+    $global:LASTEXITCODE = 0
 }
 
 Install-PradoOS
