@@ -82,6 +82,7 @@ except Exception:
 
 from prado import __version__
 from prado.config import PradoConfig, load_config, save_config
+from prado.core.discovery import derive_course_slug
 from prado.exceptions import AuthenticationRequiredError, InvalidCredentialsError
 from prado.i18n import t
 from prado.notifications.desktop import DesktopNotifier, is_headless_environment
@@ -222,27 +223,89 @@ class PradoTrayApp:
     # -------------------------------------------------------------------------
     # Hierarchical Submenu Builders (Courses, Deadlines, Mail, Language)
     # -------------------------------------------------------------------------
+    def _resolve_course_folder(
+        self,
+        course_id: Optional[int] = None,
+        fullname: str = "",
+        shortname: str = "",
+        idnumber: str = "",
+        files_prefix_map: Optional[dict[int, str]] = None,
+    ) -> Optional[Path]:
+        """Resolves the actual on-disk folder inside courses_root for a PRADO course."""
+        if not self.cfg.courses_root.exists():
+            return None
+
+        candidates: List[str] = []
+        if files_prefix_map and course_id is not None:
+            pref = files_prefix_map.get(course_id)
+            if pref:
+                candidates.append(pref)
+        if fullname:
+            candidates.append(derive_course_slug(fullname, shortname, idnumber))
+            candidates.append(fullname)
+        if shortname:
+            candidates.append(shortname)
+
+        for cand in candidates:
+            clean = (cand or "").strip()
+            if not clean or clean in (".", ".."):
+                continue
+            target = self.cfg.courses_root / clean
+            if target.is_dir():
+                return target
+        return None
+
     def _build_courses_submenu(self, lang: str) -> tuple[str, pystray.Menu]:
         course_items: List[Any] = []
         courses_found = 0
         try:
             state_db = StateDatabase()
             courses = state_db.list_all_courses()
+            files_prefix_map: dict[int, str] = {}
+            try:
+                conn = state_db._get_connection()
+                for row in conn.execute("SELECT course_id, path FROM files"):
+                    cid = row["course_id"]
+                    if cid not in files_prefix_map and row["path"]:
+                        parts = Path(str(row["path"])).parts
+                        if parts and parts[0]:
+                            files_prefix_map[cid] = parts[0]
+            except Exception:
+                pass
+
             for c in courses:
                 courses_found += 1
                 label = f"📂 {c.fullname[:44]}"
 
-                def _make_open_course(cname: str, sname: str) -> Callable[..., None]:
+                def _make_open_course(
+                    cid: int,
+                    cname: str,
+                    sname: str,
+                    idnum: str,
+                ) -> Callable[..., None]:
                     def _cb(icon: Any = None, item: Any = None) -> None:
-                        for cand in (cname, sname):
-                            if cand and (self.cfg.courses_root / cand).exists():
-                                open_folder(self.cfg.courses_root / cand)
-                                return
-                        open_folder(self.cfg.courses_root)
+                        target = self._resolve_course_folder(
+                            course_id=cid,
+                            fullname=cname,
+                            shortname=sname,
+                            idnumber=idnum,
+                            files_prefix_map=files_prefix_map,
+                        )
+                        open_folder(target if target is not None else self.cfg.courses_root)
 
                     return _cb
 
-                course_items.append(pystray.MenuItem(label, _make_open_course(c.fullname, c.shortname or "")))
+                course_items.append(
+                    pystray.MenuItem(
+                        label,
+                        _make_open_course(
+                            c.course_id,
+                            c.fullname,
+                            c.shortname or "",
+                            getattr(c, "idnumber", "") or "",
+                        ),
+                    )
+                )
         except Exception:
             pass
 
@@ -303,10 +366,15 @@ class PradoTrayApp:
                 state_db = StateDatabase()
                 for c in state_db.list_all_courses():
                     if needle in (c.fullname or "").lower() or needle in (c.shortname or "").lower():
-                        for cand in (c.fullname, c.shortname or ""):
-                            if cand and (self.cfg.courses_root / cand).exists():
-                                open_folder(self.cfg.courses_root / cand)
-                                return
+                        target = self._resolve_course_folder(
+                            course_id=c.course_id,
+                            fullname=c.fullname,
+                            shortname=c.shortname or "",
+                            idnumber=getattr(c, "idnumber", "") or "",
+                        )
+                        if target is not None:
+                            open_folder(target)
+                            return
             except Exception:
                 pass
         self._on_open_calendar()
@@ -485,6 +553,8 @@ class PradoTrayApp:
             try:
                 self.window.show()
                 self.window.restore()
+                if section == "doctor" and hasattr(self.window, "evaluate_js"):
+                    self.window.evaluate_js("if (typeof openDoctorFromTray === 'function') openDoctorFromTray();")
                 return target_url
             except Exception:
                 pass
@@ -566,9 +636,11 @@ class PradoTrayApp:
         self._refresh_tray_ui()
 
     def _on_run_doctor(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        self.open_control_center("doctor")
+
         def _worker() -> None:
             lang = self.cfg.language or "es"
-            res = self.api.run_doctor()
+            res = self.api.run_doctor_diagnostics()
             probes = res.get("probes", [])
             ok_count = sum(1 for p in probes if p.get("status") == "OK")
             self.notifier.notify(

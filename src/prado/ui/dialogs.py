@@ -52,6 +52,19 @@ def open_folder(path: Path | str) -> bool:
 def open_url(url: str) -> bool:
     """Opens a URL in the student's default web browser."""
     try:
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", url])
+            return True
+        elif sys.platform in ("win32", "cygwin") or os.name == "nt":
+            if hasattr(os, "startfile"):
+                os.startfile(url)  # type: ignore[attr-defined]
+            else:
+                subprocess.Popen(["cmd", "/c", "start", "", url])
+            return True
+        xdg_bin = shutil.which("xdg-open")
+        if xdg_bin:
+            subprocess.Popen([xdg_bin, url])
+            return True
         return webbrowser.open(url)
     except Exception:
         return False

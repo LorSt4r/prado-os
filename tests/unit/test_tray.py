@@ -259,3 +259,66 @@ def test_tray_open_mail_targets_ugr_webmail(monkeypatch):
     app = PradoTrayApp()
     app._on_open_mail()
     assert opened_urls == ["https://webmailest.ugr.es"]
+
+
+def test_tray_courses_submenu_opens_slug_folder(tmp_path: Path, monkeypatch):
+    from prado.state import CourseRecord, StateDatabase
+
+    cfg_dir = tmp_path / "cfg"
+    courses_dir = tmp_path / "UGR_Courses"
+    ed_dir = courses_dir / "ED_C"
+    ed_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(cfg_dir))
+
+    db = StateDatabase()
+    db.upsert_course(
+        CourseRecord(
+            course_id=15819,
+            fullname="ESTRUCTURA DE DATOS - 2627 (Grupo C)",
+            shortname="ESTRUCTURA DE DATOS (2627)-296_11_22_2627_C",
+            is_active=1,
+        )
+    )
+
+    opened = []
+    monkeypatch.setattr("prado.ui.tray.open_folder", lambda p: opened.append(Path(p)) or True)
+    app = PradoTrayApp(cfg=PradoConfig(courses_root=courses_dir, language="it"))
+    _, courses_menu = app._build_courses_submenu("it")
+    first_item = list(courses_menu.items)[0]
+    first_item(None)
+    assert opened == [ed_dir]
+
+
+def test_tray_doctor_opens_control_center_and_runs_diagnostics(monkeypatch):
+    import time
+
+    app = PradoTrayApp()
+    opened_sections = []
+    monkeypatch.setattr(app, "open_control_center", lambda section=None: opened_sections.append(section) or "http://127.0.0.1:0/")
+
+    mock_api = MagicMock()
+    mock_api.run_doctor_diagnostics.return_value = {
+        "status": "success",
+        "probes": [{"status": "OK"}, {"status": "WARN"}],
+    }
+    app.api = mock_api
+    notifs = []
+    app.notifier = MagicMock()
+    app.notifier.notify.side_effect = lambda **kw: notifs.append(kw)
+
+    app._on_run_doctor()
+    time.sleep(0.1)
+    assert opened_sections == ["doctor"]
+    mock_api.run_doctor_diagnostics.assert_called_once()
+    assert len(notifs) == 1
+    assert "1/2" in notifs[0]["message"]
+
+
+def test_open_url_uses_native_open_on_macos(monkeypatch):
+    from prado.ui.dialogs import open_url
+
+    calls = []
+    monkeypatch.setattr("sys.platform", "darwin")
+    monkeypatch.setattr("subprocess.Popen", lambda args, **kw: calls.append(args))
+    assert open_url("https://webmailest.ugr.es") is True
+    assert calls == [["open", "https://webmailest.ugr.es"]]

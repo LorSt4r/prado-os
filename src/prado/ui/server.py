@@ -1002,6 +1002,9 @@ class PradoControlCenterAPI:
         data["verdict"] = "SYSTEM_OPERATIONAL" if report.overall_status != ProbeStatus.FAIL else "ISSUES_DETECTED"
         return data
 
+    def run_doctor(self) -> Dict[str, Any]:
+        return self.run_doctor_diagnostics()
+
 
 class PradoUIServer:
     """

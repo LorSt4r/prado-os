@@ -47,11 +47,10 @@ def test_open_folder(tmp_path: Path, monkeypatch):
 
 
 def test_open_url():
-    with patch("webbrowser.open") as mock_wb:
-        mock_wb.return_value = True
-        res = open_url("https://correo.ugr.es")
+    with patch("subprocess.Popen") as mock_popen, patch("os.startfile", create=True) as mock_startfile, patch("webbrowser.open", return_value=True) as mock_wb:
+        res = open_url("https://webmailest.ugr.es")
         assert res is True
-        mock_wb.assert_called_once_with("https://correo.ugr.es")
+        assert mock_popen.called or mock_startfile.called or mock_wb.called
 
 
 def test_prompt_login_gui_success(tmp_path: Path, monkeypatch):

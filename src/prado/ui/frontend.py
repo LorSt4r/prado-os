@@ -434,6 +434,34 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     gap: 8px;
     margin-top: 14px;
   }
+  .doctor-list {
+    max-height: 290px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 10px;
+  }
+  .doctor-row {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .doctor-pill {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .doctor-pill.ok { background: var(--green-soft); color: var(--green); }
+  .doctor-pill.warn { background: var(--amber-soft); color: var(--amber); }
+  .doctor-pill.fail { background: var(--red-soft); color: var(--red); }
   .toast {
     position: fixed;
     bottom: 16px;
@@ -642,6 +670,21 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- DOCTOR DIAGNOSTICS MODAL -->
+  <div class="modal-backdrop" id="doctorModal">
+    <div class="modal-card" style="max-width:455px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="font-size:16px; font-weight:700;" data-i18n="doctor_title">Diagnóstico del Sistema</div>
+        <span class="badge badge-neutral" id="doctorModalSummary">...</span>
+      </div>
+      <div class="doctor-list" id="doctorProbesList"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeDoctorModal()" data-i18n="doctor_close">Cerrar</button>
+        <button type="button" class="btn btn-primary" onclick="runQuickDoctor()" data-i18n="doctor_rerun">Volver a comprobar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toastBox"></div>
 
 <script>
@@ -695,6 +738,10 @@ const I18N = {
     opt_autosync_120: "Cada 2 horas",
     btn_run_doctor: "Diagnóstico",
     btn_logout: "Cerrar sesión",
+    doctor_title: "Diagnóstico del Sistema",
+    doctor_running: "Ejecutando comprobaciones del sistema...",
+    doctor_close: "Cerrar",
+    doctor_rerun: "Volver a comprobar",
     doctor_ok: "Diagnóstico correcto: {ok}/{total} comprobaciones OK.",
     doctor_warn: "Diagnóstico: {ok}/{total} OK — revisa permisos o sesión.",
     toast_logged_out: "Sesión cerrada. Introduce una cuenta UGR para volver a conectar.",
@@ -754,6 +801,10 @@ const I18N = {
     opt_autosync_120: "Every 2 hours",
     btn_run_doctor: "Diagnostics",
     btn_logout: "Log out",
+    doctor_title: "System Diagnostics",
+    doctor_running: "Running health checks...",
+    doctor_close: "Close",
+    doctor_rerun: "Run Again",
     doctor_ok: "Health check passed: {ok}/{total} probes OK.",
     doctor_warn: "Health check: {ok}/{total} OK — check permissions or session.",
     toast_logged_out: "Signed out. Enter your UGR account to reconnect.",
@@ -813,6 +864,10 @@ const I18N = {
     opt_autosync_120: "Ogni 2 ore",
     btn_run_doctor: "Diagnostica",
     btn_logout: "Disconnetti",
+    doctor_title: "Diagnostica Sistema",
+    doctor_running: "Verifica controlli in corso...",
+    doctor_close: "Chiudi",
+    doctor_rerun: "Esegui di nuovo",
     doctor_ok: "Diagnostica superata: {ok}/{total} controlli OK.",
     doctor_warn: "Diagnostica: {ok}/{total} OK — controlla permessi o sessione.",
     toast_logged_out: "Disconnesso. Inserisci un account UGR per ricollegarti.",
@@ -872,6 +927,10 @@ const I18N = {
     opt_autosync_120: "Toutes les 2 heures",
     btn_run_doctor: "Diagnostic",
     btn_logout: "Déconnexion",
+    doctor_title: "Diagnostic Système",
+    doctor_running: "Vérifications en cours...",
+    doctor_close: "Fermer",
+    doctor_rerun: "Relancer",
     doctor_ok: "Diagnostic réussi : {ok}/{total} vérifications OK.",
     doctor_warn: "Diagnostic : {ok}/{total} OK — vérifiez les permissions ou la session.",
     toast_logged_out: "Déconnecté. Saisissez un compte UGR pour vous reconnecter.",
@@ -1073,17 +1132,77 @@ async function openCoursesFolder() {
   await apiPost("/api/folder/open", {});
 }
 
+function closeDoctorModal() {
+  document.getElementById("doctorModal").classList.remove("visible");
+}
+
+function openDoctorFromTray() {
+  switchCardTab("prefs");
+  runQuickDoctor();
+}
+
 async function runQuickDoctor() {
   const dict = I18N[currentLang] || I18N.es;
   const out = document.getElementById("doctorQuickResult");
+  const modal = document.getElementById("doctorModal");
+  const listEl = document.getElementById("doctorProbesList");
+  const sumEl = document.getElementById("doctorModalSummary");
+
+  out.textContent = dict.doctor_running;
+  out.style.color = "var(--text-muted)";
+  out.style.display = "block";
+
+  if (modal && listEl && sumEl) {
+    sumEl.className = "badge badge-neutral";
+    sumEl.textContent = "...";
+    listEl.innerHTML = `<div class="helper-text" style="padding:10px 4px;">${dict.doctor_running}</div>`;
+    modal.classList.add("visible");
+  }
+
   const res = await apiGet("/api/doctor");
   if (res.status === "success") {
     const probes = res.probes || [];
-    const okCount = probes.filter(p => p.ok).length;
-    const tpl = okCount === probes.length ? dict.doctor_ok : dict.doctor_warn;
+    const okCount = probes.filter(p => (p.status || "").toUpperCase() === "OK" || p.ok === true).length;
+    const allOk = okCount === probes.length;
+    const tpl = allOk ? dict.doctor_ok : dict.doctor_warn;
     out.textContent = tpl.replace("{ok}", String(okCount)).replace("{total}", String(probes.length));
-    out.style.color = okCount === probes.length ? "var(--green)" : "var(--amber)";
+    out.style.color = allOk ? "var(--green)" : "var(--amber)";
     out.style.display = "block";
+
+    if (sumEl && listEl) {
+      sumEl.className = allOk ? "badge badge-ok" : "badge badge-error";
+      sumEl.textContent = `${okCount}/${probes.length} OK`;
+      listEl.innerHTML = "";
+      probes.forEach(p => {
+        const st = String(p.status || (p.ok ? "OK" : "FAIL")).toUpperCase();
+        const cls = st === "OK" ? "ok" : (st === "WARN" || st === "SKIP" ? "warn" : "fail");
+        const row = document.createElement("div");
+        row.className = "doctor-row";
+        const pill = document.createElement("span");
+        pill.className = `doctor-pill ${cls}`;
+        pill.textContent = st;
+        const body = document.createElement("div");
+        body.style.minWidth = "0";
+        const title = document.createElement("div");
+        title.style.fontWeight = "600";
+        title.textContent = p.name || p.probe_id || "";
+        const msg = document.createElement("div");
+        msg.className = "helper-text";
+        msg.textContent = p.message || "";
+        body.appendChild(title);
+        body.appendChild(msg);
+        if (st !== "OK" && p.remediation) {
+          const rem = document.createElement("div");
+          rem.className = "helper-text";
+          rem.style.color = "var(--accent)";
+          rem.textContent = p.remediation;
+          body.appendChild(rem);
+        }
+        row.appendChild(pill);
+        row.appendChild(body);
+        listEl.appendChild(row);
+      });
+    }
   }
 }
 
@@ -1296,6 +1415,9 @@ async function refreshState() {
 
 refreshState();
 setInterval(refreshState, 1500);
+if (window.location.hash === "#doctor") {
+  setTimeout(() => openDoctorFromTray(), 250);
+}
 </script>
 </body>
 </html>
