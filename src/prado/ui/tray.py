@@ -156,11 +156,26 @@ class PradoTrayApp:
 
         def _do_update() -> None:
             if self.icon:
-                self.icon.icon = create_tray_icon(self.status)
+                self.icon.icon = create_tray_icon(
+                    self.status, monochrome=(sys.platform == "darwin")
+                )
+                self._apply_macos_template_icon(self.icon)
                 self.icon.menu = self._build_menu()
                 self.icon.update_menu()
 
         _dispatch_ui_thread(_do_update, is_main_loop_running=self._main_loop_active)
+
+    @staticmethod
+    def _apply_macos_template_icon(icon_obj: Any) -> None:
+        """Marks the Cocoa NSImage backing `pystray.Icon` as a monochrome template image."""
+        if sys.platform != "darwin" or icon_obj is None:
+            return
+        try:
+            ns_img = getattr(icon_obj, "_icon_image", None)
+            if ns_img is not None and hasattr(ns_img, "setTemplate_"):
+                ns_img.setTemplate_(True)
+        except Exception:
+            pass
 
     # -------------------------------------------------------------------------
     # Status & Labels (i18n aware)
@@ -170,8 +185,10 @@ class PradoTrayApp:
         if self.status == "syncing":
             return t("tray_status_syncing", lang)
         elif self.status == "error":
-            return t("tray_status_error", lang)
-        return t("tray_status_idle", lang)
+            err = self.last_error or getattr(self.api, "last_error", None)
+            base = t("tray_status_error", lang)
+            return f"{base}: {str(err)[:36]}" if err else base
+        return f"{t('tray_status_idle', lang)} · {self.last_sync_time or '--:--'}"
 
     def _get_last_sync_text(self) -> str:
         lang = self.cfg.language or "es"
@@ -344,68 +361,86 @@ class PradoTrayApp:
         return pystray.Menu(*items)
 
     # -------------------------------------------------------------------------
-    # Main System Tray Menu Construction
+    # Main System Tray Menu Construction (<= 10 top-level items per desktop HIG)
     # -------------------------------------------------------------------------
-    def _build_menu(self) -> pystray.Menu:
-        lang = self.cfg.language or "es"
-        courses_title, courses_menu = self._build_courses_submenu(lang)
-        deadlines_title, deadlines_menu = self._build_deadlines_submenu(lang)
-
+    def _build_help_submenu(self, lang: str) -> pystray.Menu:
         return pystray.Menu(
-            # Header
-            pystray.MenuItem(f"PradoOS v{__version__}", action=None, enabled=False),
-            pystray.MenuItem(lambda item: self._get_status_text(), action=None, enabled=False),
-            pystray.MenuItem(lambda item: self._get_last_sync_text(), action=None, enabled=False),
-            pystray.Menu.SEPARATOR,
-            # Primary 1-Click Actions
-            pystray.MenuItem(
-                t("tray_sync_now", lang),
-                self._on_sync_now,
-                default=True,
-            ),
-            pystray.MenuItem(
-                t("tray_open_folder", lang),
-                self._on_open_folder,
-            ),
-            # Cascading Submenus (Courses, Deadlines, UGR Mail)
-            pystray.MenuItem(courses_title, courses_menu),
-            pystray.MenuItem(deadlines_title, deadlines_menu),
-            pystray.MenuItem(t("tray_mail_menu", lang), self._build_mail_submenu(lang)),
-            pystray.Menu.SEPARATOR,
-            # Preferences & Diagnostics
-            pystray.MenuItem(
-                t("tray_notifications", lang),
-                self._on_toggle_notifications,
-                checked=lambda item: self.cfg.notifications.enabled,
-            ),
             pystray.MenuItem(
                 t("tray_auto_sync", lang),
                 self._on_toggle_auto_sync,
                 checked=lambda item: self._auto_sync_enabled,
             ),
             pystray.MenuItem(
+                t("tray_notifications", lang),
+                self._on_toggle_notifications,
+                checked=lambda item: self.cfg.notifications.enabled,
+            ),
+            pystray.MenuItem(
                 t("tray_lang_menu", lang),
                 self._build_language_submenu(),
             ),
+            pystray.Menu.SEPARATOR,
             pystray.MenuItem(
                 t("tray_doctor", lang),
                 self._on_run_doctor,
-            ),
-            pystray.MenuItem(
-                t("tray_settings", lang),
-                self._on_open_settings,
             ),
             pystray.MenuItem(
                 t("tray_github", lang),
                 self._on_open_github,
             ),
             pystray.Menu.SEPARATOR,
-            # Exit
-            pystray.MenuItem(
-                t("tray_quit", lang),
-                self._on_quit,
-            ),
+            pystray.MenuItem(f"PradoOS v{__version__}", action=None, enabled=False),
         )
+
+    def _build_menu(self) -> pystray.Menu:
+        lang = self.cfg.language or "es"
+        courses_title, courses_menu = self._build_courses_submenu(lang)
+        deadlines_title, deadlines_menu = self._build_deadlines_submenu(lang)
+
+        entries: List[Any] = [
+            pystray.MenuItem(lambda item: self._get_status_text(), action=None, enabled=False),
+        ]
+        if self.status == "error":
+            entries.append(
+                pystray.MenuItem(
+                    t("tray_error_action", lang),
+                    self._on_open_settings,
+                )
+            )
+
+        entries.extend(
+            [
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(
+                    t("tray_sync_now", lang),
+                    self._on_sync_now,
+                    default=True,
+                ),
+                pystray.MenuItem(
+                    t("tray_open_folder", lang),
+                    self._on_open_folder,
+                ),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(courses_title, courses_menu),
+                pystray.MenuItem(deadlines_title, deadlines_menu),
+                pystray.MenuItem(t("tray_mail_menu", lang), self._build_mail_submenu(lang)),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(
+                    t("tray_settings", lang),
+                    self._on_open_settings,
+                ),
+                pystray.MenuItem(
+                    t("tray_help_menu", lang),
+                    self._build_help_submenu(lang),
+                ),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(
+                    t("tray_quit", lang),
+                    self._on_quit,
+                ),
+            ]
+        )
+        return pystray.Menu(*entries)
 
     # -------------------------------------------------------------------------
     # Menu Callbacks
@@ -532,10 +567,7 @@ class PradoTrayApp:
         self._refresh_tray_ui()
 
     def _on_open_settings(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
-        if self.server is not None:
-            self.open_control_center("settings")
-        else:
-            threading.Thread(target=self._run_login_prompt, daemon=True).start()
+        self.open_control_center("settings")
 
     def _run_login_prompt(self) -> None:
         saved = prompt_login_gui(self.cfg)
@@ -662,14 +694,17 @@ class PradoTrayApp:
         self.server = PradoUIServer(api=self.api)
         control_url = self.server.start()
 
-        # 2. Initialize System Tray Icon
-        initial_icon_img = create_tray_icon("idle")
+        # 2. Initialize System Tray Icon (monochrome template on macOS HIG)
+        initial_icon_img = create_tray_icon(
+            "idle", monochrome=(sys.platform == "darwin")
+        )
         self.icon = pystray.Icon(
             name="PradoOS",
             icon=initial_icon_img,
             title="PradoOS — PRADO UGR",
             menu=self._build_menu(),
         )
+        self._apply_macos_template_icon(self.icon)
 
         # 3. Start background auto-sync timer thread
         threading.Thread(target=self._auto_sync_loop, daemon=True).start()

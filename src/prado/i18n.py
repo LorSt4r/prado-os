@@ -478,6 +478,18 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "it": "🌐 Google Calendar Web",
         "fr": "🌐 Google Calendar Web",
     },
+    "tray_help_menu": {
+        "es": "Preferencias y Ayuda",
+        "en": "Preferences & Help",
+        "it": "Preferenze e Aiuto",
+        "fr": "Préférences et Aide",
+    },
+    "tray_error_action": {
+        "es": "🔑 Revisar cuenta / Iniciar sesión…",
+        "en": "🔑 Fix account / Sign in…",
+        "it": "🔑 Verifica account / Accedi…",
+        "fr": "🔑 Vérifier compte / Connexion…",
+    },
     "tray_gcal_synced": {
         "es": "Entregas sincronizadas con Google Calendar.",
         "en": "Deadlines synced with Google Calendar.",

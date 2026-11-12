@@ -32,7 +32,8 @@ def test_tray_menu_structure_and_labels(tmp_path: Path):
     menu = app._build_menu()
 
     items = list(menu.items)
-    assert len(items) >= 12
+    non_sep_items = [it for it in items if getattr(it, "text", "- - - -") != "- - - -"]
+    assert 7 <= len(non_sep_items) <= 10
 
     # Status & Last sync texts
     assert "Al día" in app._get_status_text()
@@ -42,16 +43,45 @@ def test_tray_menu_structure_and_labels(tmp_path: Path):
     app.status = "syncing"
     assert "Sincronizando" in app._get_status_text()
 
-    # Change to error
+    # Change to error -> actionable recovery item appears and top-level count remains <= 10
     app.status = "error"
+    app.last_error = "Credenciales inválidas"
     assert "Error" in app._get_status_text()
+    assert "Credenciales inválidas" in app._get_status_text()
+    err_menu_items = list(app._build_menu().items)
+    err_non_sep = [it for it in err_menu_items if getattr(it, "text", "- - - -") != "- - - -"]
+    assert len(err_non_sep) <= 10
+    assert any("Revisar cuenta" in str(it.text) for it in err_non_sep)
 
-    # Verify cascading submenus exist (Courses, Deadlines, Mail, Language)
+    # Verify cascading submenus exist (Courses, Deadlines, Mail, Help->Language)
     submenu_titles = [str(it.text) for it in items if getattr(it, "submenu", None) is not None]
     assert any("Asignaturas" in t for t in submenu_titles)
     assert any("Entregas" in t for t in submenu_titles)
     assert any("Correo UGR" in t for t in submenu_titles)
-    assert any("Idioma" in t for t in submenu_titles)
+    assert any("Preferencias y Ayuda" in t for t in submenu_titles)
+    help_item = next(it for it in items if "Preferencias y Ayuda" in str(it.text))
+    help_subtitles = [str(sub.text) for sub in help_item.submenu.items]
+    assert any("Idioma" in t for t in help_subtitles)
+    assert any("Diagnóstico" in t for t in help_subtitles)
+
+
+def test_tray_open_settings_always_uses_setup_card(tmp_path: Path, monkeypatch):
+    cfg = PradoConfig(courses_root=tmp_path / "Courses", language="es")
+    app = PradoTrayApp(cfg=cfg)
+    app.server = None
+    called = []
+    monkeypatch.setattr(app, "open_control_center", lambda section=None: called.append(section) or "http://127.0.0.1:12345")
+    app._on_open_settings()
+    assert called == ["settings"]
+
+
+def test_monochrome_tray_icon_states():
+    for st in ("idle", "syncing", "error"):
+        img = create_tray_icon(state=st, size=44, monochrome=True)
+        assert img.size == (44, 44)
+        assert img.getpixel((0, 0))[3] == 0  # Transparent corners for HIG template
+        alpha_bytes = img.getchannel("A").tobytes()
+        assert sum(1 for a in alpha_bytes if a > 0) > 40  # Non-empty opaque silhouette
 
 
 def test_tray_menu_i18n(tmp_path: Path):

@@ -14,7 +14,9 @@ from typing import Tuple
 from PIL import Image, ImageDraw
 
 
-def create_tray_icon(state: str = "idle", size: int = 64) -> Image.Image:
+def create_tray_icon(
+    state: str = "idle", size: int = 64, monochrome: bool = False
+) -> Image.Image:
     """
     Renders a crisp, high-contrast system tray icon in memory.
 
@@ -22,9 +24,47 @@ def create_tray_icon(state: str = "idle", size: int = 64) -> Image.Image:
     - 'idle': UGR Burgundy (#B20029) badge with white graduation mortarboard.
     - 'syncing': Vibrant Amber (#F59E0B) badge with white mortarboard.
     - 'error': Warning Red (#EF4444) badge with white exclamation symbol.
+
+    When `monochrome=True` (recommended for macOS menu bar template images),
+    renders an alpha-masked black silhouette on a transparent background so
+    AppKit can automatically invert it for light/dark menu bars.
     """
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
+
+    if monochrome:
+        fg = (0, 0, 0, 255)
+        cut = (0, 0, 0, 0)
+        cx, cy = size // 2, size // 2 - max(1, size // 16)
+        if state == "error":
+            pad = max(2, size // 8)
+            d.ellipse([pad, pad, size - pad, size - pad], fill=fg)
+            w = max(2, size // 8)
+            top = size // 4 + max(1, size // 16)
+            h = size // 3 - max(1, size // 16)
+            d.rounded_rectangle([cx - w // 2, top, cx + w // 2, top + h], radius=w // 2, fill=cut)
+            dot_r = max(2, w // 2 + 1)
+            dot_cy = top + h + size // 8
+            d.ellipse([cx - dot_r, dot_cy - dot_r, cx + dot_r, dot_cy + dot_r], fill=cut)
+            return img
+
+        dw = int(size * 0.42)
+        dh = max(3, int(size * 0.20))
+        diamond = [(cx, cy - dh), (cx + dw, cy), (cx, cy + dh), (cx - dw, cy)]
+        d.polygon(diamond, fill=fg)
+        d.polygon(
+            [(cx - int(dw * 0.56), cy + max(2, size // 24)), (cx + int(dw * 0.56), cy + max(2, size // 24)), (cx, cy + dh + max(3, size // 12))],
+            fill=fg,
+        )
+        tassel_w = max(2, size // 20)
+        d.line([(cx + dw - 2, cy), (cx + dw + 1, cy + dh + max(3, size // 10))], fill=fg, width=tassel_w)
+
+        if state == "syncing":
+            br = max(3, size // 7)
+            bx, by = size - br - max(2, size // 16), size - br - max(2, size // 16)
+            d.ellipse([bx - br - 2, by - br - 2, bx + br + 2, by + br + 2], fill=cut)
+            d.ellipse([bx - br, by - br, bx + br, by + br], fill=fg)
+        return img
 
     if state == "syncing":
         bg = (245, 158, 11, 255)  # Amber
