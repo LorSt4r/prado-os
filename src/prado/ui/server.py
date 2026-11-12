@@ -253,6 +253,15 @@ class PradoControlCenterAPI:
         self._mfa_event.set()
         return {"status": "success", "code_submitted": True}
 
+    def cancel_mfa(self) -> Dict[str, Any]:
+        """Cancels a pending 2FA code wait cleanly and returns status to idle."""
+        self._mfa_code_value = None
+        self.mfa_pending = False
+        self._mfa_event.set()
+        if self.status == "mfa_required":
+            self._set_status("idle", step="", pct=0)
+        return {"status": "cancelled"}
+
     # -------------------------------------------------------------------------
     # 1. Full Application State (`GET /api/state`)
     # -------------------------------------------------------------------------
@@ -382,6 +391,8 @@ class PradoControlCenterAPI:
                 "courses_root": str(self.cfg.courses_root),
                 "preset": self.cfg.sync.preset or "mirror",
                 "semester": self.cfg.sync.semester,
+                "auto_sync": bool(getattr(self.cfg.sync, "auto_sync", False)),
+                "auto_sync_interval_minutes": int(getattr(self.cfg.sync, "auto_sync_interval_minutes", 60)),
                 "subgroups": self.cfg.sync.subgroups or {},
                 "notifications_enabled": bool(self.cfg.notifications.enabled),
                 "notifications_sound": bool(self.cfg.notifications.sound),
@@ -438,6 +449,15 @@ class PradoControlCenterAPI:
 
         if "notifications_enabled" in payload:
             self.cfg.notifications.enabled = bool(payload["notifications_enabled"])
+        if "auto_sync" in payload:
+            self.cfg.sync.auto_sync = bool(payload["auto_sync"])
+        if "auto_sync_interval_minutes" in payload:
+            try:
+                mins = int(payload["auto_sync_interval_minutes"])
+                if 15 <= mins <= 1440:
+                    self.cfg.sync.auto_sync_interval_minutes = mins
+            except (TypeError, ValueError):
+                pass
 
         raw_user = str(payload.get("username", self.cfg.username or "")).strip()
         raw_pass = str(payload.get("password", "")).strip()
@@ -1088,6 +1108,8 @@ class PradoUIServer:
                     self._send_json(server_ref.api.update_language(str(body.get("language", "es"))))
                 elif path == "/api/auth/mfa":
                     self._send_json(server_ref.api.submit_mfa_code(str(body.get("code", ""))))
+                elif path == "/api/auth/mfa/cancel":
+                    self._send_json(server_ref.api.cancel_mfa())
                 elif path == "/api/auth/logout":
                     self._send_json(server_ref.api.logout())
                 elif path == "/api/sync/start":

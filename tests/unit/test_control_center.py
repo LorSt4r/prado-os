@@ -174,6 +174,11 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
         assert "err-username" in r_html.text
         assert "err-password" in r_html.text
         assert 'autocomplete="one-time-code"' in r_html.text
+        assert "segMirror" in r_html.text
+        assert "segSmart" in r_html.text
+        assert "treePreviewBox" in r_html.text
+        assert "btnMfaCancel" in r_html.text
+        assert "connectedSummaryCard" in r_html.text
 
         # 2. GET /api/state without token -> 403 Forbidden
         r_unauth = requests.get(f"{base}/api/state", timeout=5)
@@ -215,6 +220,8 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
                 "password": "secret_password_123",
                 "courses_root": str(tmp_path / "Mis_Asignaturas"),
                 "preset": "smart",
+                "auto_sync": True,
+                "auto_sync_interval_minutes": 30,
                 "start_sync": False,
             },
             headers=headers,
@@ -224,6 +231,19 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
         ob_data = r_onboard.json()
         assert ob_data["status"] == "success"
         assert ob_data["username"] == "alumno@correo.ugr.es"
+
+        r_st_after = requests.get(f"{base}/api/state", headers=headers, timeout=5)
+        assert r_st_after.json()["config"]["auto_sync"] is True
+        assert r_st_after.json()["config"]["auto_sync_interval_minutes"] == 30
+
+        # 5b. POST /api/auth/mfa/cancel resets mfa state cleanly
+        api.mfa_pending = True
+        api.status = "mfa_required"
+        r_mfa_cancel = requests.post(f"{base}/api/auth/mfa/cancel", json={}, headers=headers, timeout=5)
+        assert r_mfa_cancel.status_code == 200
+        assert r_mfa_cancel.json()["status"] == "cancelled"
+        assert api.mfa_pending is False
+        assert api.status == "idle"
 
         # 6. GET /api/doctor returns diagnostic probe list
         r_doc = requests.get(f"{base}/api/doctor", headers=headers, timeout=30)
