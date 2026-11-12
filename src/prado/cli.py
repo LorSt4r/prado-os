@@ -1163,7 +1163,10 @@ def _handle_notify(args: argparse.Namespace, json_mode: bool) -> int:
 def _handle_app(args: argparse.Namespace, json_mode: bool) -> int:
     try:
         from prado.ui.tray import run_tray_app
-        return run_tray_app(detached=bool(getattr(args, "detached", False)))
+        detached = bool(getattr(args, "detached", False))
+        if getattr(args, "tray_only", False):
+            return run_tray_app(detached=detached, tray_only=True)
+        return run_tray_app(detached=detached)
     except Exception as exc:
         if json_mode:
             _emit_json({"status": "error", "error": str(exc)})
@@ -1334,6 +1337,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Launch native System Tray / Menu Bar app.",
     )
     p_app.add_argument("--detached", action="store_true", help="Run detached in the background.")
+    p_app.add_argument("--tray-only", action="store_true", help="Start directly in the Menu Bar / System Tray.")
     p_app.add_argument("--json", action="store_true", default=False, help="Output structured JSON.")
 
     p_gui = subparsers.add_parser(

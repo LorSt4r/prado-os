@@ -282,3 +282,62 @@ def test_control_center_caches_credential_lookup_across_state_polls(tmp_path: Pa
     st_after = api.get_full_state()
     assert st_after["auth"]["has_credentials"] is False
 
+
+def test_control_center_autostart_endpoints(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path / "cfg"))
+    (tmp_path / "cfg").mkdir(parents=True, exist_ok=True)
+    cfg = PradoConfig(username="student@correo.ugr.es", courses_root=tmp_path / "Courses")
+
+    autostart_state = {"enabled": False}
+    monkeypatch.setattr("prado.ui.server.is_autostart_enabled", lambda: autostart_state["enabled"])
+
+    def _fake_set(enabled: bool) -> bool:
+        autostart_state["enabled"] = bool(enabled)
+        return autostart_state["enabled"]
+
+    monkeypatch.setattr("prado.ui.server.set_autostart_enabled", _fake_set)
+
+    api = PradoControlCenterAPI(cfg=cfg)
+    server = PradoUIServer(api=api)
+    server.start()
+    try:
+        headers = {"X-Prado-Token": server.token}
+        base = f"http://127.0.0.1:{server.port}"
+
+        st0 = requests.get(f"{base}/api/state", headers=headers, timeout=5).json()
+        assert st0["config"]["autostart"] is False
+
+        r_tog = requests.post(
+            f"{base}/api/autostart/toggle",
+            json={"enabled": True},
+            headers=headers,
+            timeout=5,
+        )
+        assert r_tog.status_code == 200
+        assert r_tog.json() == {"status": "success", "autostart": True}
+        assert autostart_state["enabled"] is True
+
+        st1 = requests.get(f"{base}/api/state", headers=headers, timeout=5).json()
+        assert st1["config"]["autostart"] is True
+
+        r_onb = requests.post(
+            f"{base}/api/onboard",
+            json={
+                "language": "en",
+                "portal": "grado",
+                "username": "alumno",
+                "password": "secret_password_123",
+                "courses_root": str(tmp_path / "Courses"),
+                "autostart": False,
+                "start_sync": False,
+            },
+            headers=headers,
+            timeout=5,
+        )
+        assert r_onb.status_code == 200
+        assert r_onb.json()["status"] == "success"
+        assert autostart_state["enabled"] is False
+    finally:
+        server.stop()
+
+

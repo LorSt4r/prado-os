@@ -6,4 +6,4 @@ import sys
 from prado.ui.tray import run_tray_app
 
 if __name__ == "__main__":
-    sys.exit(run_tray_app())
+    sys.exit(run_tray_app(tray_only="--tray-only" in sys.argv[1:]))

@@ -198,6 +198,17 @@ def test_cli_app_and_gui_dispatch(monkeypatch):
     assert rc2 == 0
     assert called_detached == [True, False]
 
+    called_tray_only = []
+
+    def mock_run_tray_app_with_flag(detached=False, tray_only=False):
+        called_tray_only.append((detached, tray_only))
+        return 0
+
+    monkeypatch.setattr("prado.ui.tray.run_tray_app", mock_run_tray_app_with_flag)
+    rc3 = main(["app", "--tray-only"])
+    assert rc3 == 0
+    assert called_tray_only == [(False, True)]
+
 
 def test_tray_syncs_cfg_and_auto_sync_on_api_status_change(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path / "cfg"))

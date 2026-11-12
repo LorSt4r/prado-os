@@ -57,6 +57,7 @@ from prado.notifications.desktop import DesktopNotifier
 from prado.scheduler.daemon import DaemonManager
 from prado.scheduler.doctor import DoctorEngine, ProbeStatus
 from prado.state import CourseRecord, StateDatabase
+from prado.ui.autostart import is_autostart_enabled, set_autostart_enabled
 from prado.ui.dialogs import open_folder, open_url
 
 
@@ -404,6 +405,7 @@ class PradoControlCenterAPI:
                 "subgroups": self.cfg.sync.subgroups or {},
                 "notifications_enabled": bool(self.cfg.notifications.enabled),
                 "notifications_sound": bool(self.cfg.notifications.sound),
+                "autostart": is_autostart_enabled(),
                 "mail": {
                     "enabled": bool(self.cfg.mail.enabled),
                     "forward_enabled": bool(self.cfg.mail.forward_enabled),
@@ -458,6 +460,11 @@ class PradoControlCenterAPI:
 
         if "notifications_enabled" in payload:
             self.cfg.notifications.enabled = bool(payload["notifications_enabled"])
+        if "autostart" in payload:
+            try:
+                set_autostart_enabled(bool(payload["autostart"]))
+            except Exception:
+                pass
         if "auto_sync" in payload:
             self.cfg.sync.auto_sync = bool(payload["auto_sync"])
         if "auto_sync_interval_minutes" in payload:
@@ -978,6 +985,14 @@ class PradoControlCenterAPI:
         except Exception as exc:
             return {"status": "error", "error": str(exc)}
 
+    def toggle_autostart(self, enabled: bool) -> Dict[str, Any]:
+        """Enable or disable desktop Tray autostart at OS login."""
+        try:
+            active = set_autostart_enabled(bool(enabled))
+            return {"status": "success", "autostart": active}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+
     def toggle_notifications(self, enabled: bool, sound: Optional[bool] = None, test: bool = False) -> Dict[str, Any]:
         self.cfg.notifications.enabled = bool(enabled)
         if sound is not None:
@@ -1175,6 +1190,10 @@ class PradoUIServer:
                             sound=body.get("sound"),
                             test=bool(body.get("test", False)),
                         )
+                    )
+                elif path == "/api/autostart/toggle":
+                    self._send_json(
+                        server_ref.api.toggle_autostart(enabled=bool(body.get("enabled", True)))
                     )
                 else:
                     self._send_json({"status": "error", "error": f"Not found: {path}"}, status_code=404)

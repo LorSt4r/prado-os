@@ -15,10 +15,25 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import platform
+import plistlib
 import shutil
 import subprocess
 import sys
 import zipfile
+
+
+BUNDLE_IDENTIFIER = "es.ugr.pradoos"
+
+
+def _resolve_app_version(repo_root: Path) -> str:
+    src_dir = str(repo_root / "src")
+    if src_dir not in sys.path:
+        sys.path.insert(0, src_dir)
+    try:
+        from prado import __version__
+        return str(__version__).strip() or "0.2.0"
+    except Exception:
+        return "0.2.0"
 
 
 def build() -> int:
@@ -72,6 +87,7 @@ def build() -> int:
         "prado.ui.frontend",
         "prado.ui.dialogs",
         "prado.ui.icon",
+        "prado.ui.autostart",
         "prado.i18n",
         "prado.config",
         "prado.cli",
@@ -105,6 +121,7 @@ def build() -> int:
             "pystray._xorg",
         ])
 
+    app_version = _resolve_app_version(repo_root)
     cmd = [
         sys.executable,
         "-m",
@@ -115,6 +132,8 @@ def build() -> int:
         "--clean",
         f"--paths={repo_root / 'src'}",
     ]
+    if sys.platform == "darwin":
+        cmd.append(f"--osx-bundle-identifier={BUNDLE_IDENTIFIER}")
 
     for hi in hidden_imports:
         cmd.append(f"--hidden-import={hi}")
@@ -137,6 +156,19 @@ def build() -> int:
     if sys.platform == "darwin":
         app_path = dist_dir / "PradoOS.app"
         if app_path.exists():
+            plist_file = app_path / "Contents" / "Info.plist"
+            if plist_file.exists():
+                with open(plist_file, "rb") as pf:
+                    plist_data = plistlib.load(pf)
+                plist_data["CFBundleIdentifier"] = BUNDLE_IDENTIFIER
+                plist_data["CFBundleShortVersionString"] = app_version
+                plist_data["CFBundleVersion"] = app_version
+                with open(plist_file, "wb") as pf:
+                    plistlib.dump(plist_data, pf)
+                if shutil.which("codesign"):
+                    subprocess.run(["codesign", "--force", "--deep", "--sign", "-", str(app_path)], check=False)
+                print(f"  ✓ Updated Info.plist ({BUNDLE_IDENTIFIER}, v{app_version})")
+
             zip_dest = dist_dir / "PradoOS-macos.zip"
             print(f"📦 Packaging macOS release archive: {zip_dest.name}...")
             # Use ditto for preserving macOS app bundle metadata and symlinks

@@ -609,6 +609,10 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
           <input type="checkbox" id="onbNotifications" checked>
           <span data-i18n="lbl_notif_title">Notificaciones de escritorio (nuevos apuntes y entregas)</span>
         </label>
+        <label class="check-row">
+          <input type="checkbox" id="onbAutostart">
+          <span data-i18n="lbl_autostart">Abrir PradoOS al iniciar sesión</span>
+        </label>
         <div class="form-group">
           <label class="form-label" for="onbAutoSyncSelect" data-i18n="lbl_autosync_freq">Sincronización automática en segundo plano</label>
           <select class="select" id="onbAutoSyncSelect">
@@ -732,6 +736,7 @@ const I18N = {
     ph_fwd_email: "tu.correo@gmail.com",
     fwd_helper: "Se filtra el correo académico de PRADO y profesores sin reenviar spam.",
     lbl_notif_title: "Notificaciones de escritorio (nuevos apuntes y entregas)",
+    lbl_autostart: "Abrir PradoOS al iniciar sesión",
     lbl_autosync_freq: "Sincronización automática en segundo plano",
     opt_autosync_off: "Desactivada (manual desde la barra)",
     opt_autosync_30: "Cada 30 minutos",
@@ -795,6 +800,7 @@ const I18N = {
     ph_fwd_email: "your.email@gmail.com",
     fwd_helper: "Forwards academic and PRADO notices without passing spam.",
     lbl_notif_title: "Desktop notifications (new notes and deadlines)",
+    lbl_autostart: "Launch PradoOS at login",
     lbl_autosync_freq: "Background auto-sync",
     opt_autosync_off: "Off (manual sync from menu bar)",
     opt_autosync_30: "Every 30 minutes",
@@ -858,6 +864,7 @@ const I18N = {
     ph_fwd_email: "tua.email@gmail.com",
     fwd_helper: "Inoltra solo avvisi accademici e PRADO filtrando lo spam.",
     lbl_notif_title: "Notifiche desktop (nuovi appunti e scadenze)",
+    lbl_autostart: "Avvia PradoOS all'accesso",
     lbl_autosync_freq: "Sincronizzazione automatica in background",
     opt_autosync_off: "Disattivata (manuale dal menu)",
     opt_autosync_30: "Ogni 30 minuti",
@@ -921,6 +928,7 @@ const I18N = {
     ph_fwd_email: "votre.email@gmail.com",
     fwd_helper: "Transfère uniquement les messages académiques en filtrant le spam.",
     lbl_notif_title: "Notifications du bureau (nouveaux cours et échéances)",
+    lbl_autostart: "Lancer PradoOS à l'ouverture de session",
     lbl_autosync_freq: "Synchronisation automatique en arrière-plan",
     opt_autosync_off: "Désactivée (manuelle depuis la barre)",
     opt_autosync_30: "Toutes les 30 minutes",
@@ -1227,6 +1235,7 @@ async function submitCompactSetup() {
   const coursesRoot = document.getElementById("onbCoursesRoot").value.trim();
   const preset = document.getElementById("onbPreset").value;
   const notif = document.getElementById("onbNotifications").checked;
+  const autostart = document.getElementById("onbAutostart").checked;
   const autoVal = document.getElementById("onbAutoSyncSelect").value;
   const autoSync = autoVal !== "off";
   const autoMins = autoSync ? parseInt(autoVal, 10) : 60;
@@ -1248,6 +1257,7 @@ async function submitCompactSetup() {
     courses_root: coursesRoot,
     preset: preset,
     notifications_enabled: notif,
+    autostart: autostart,
     auto_sync: autoSync,
     auto_sync_interval_minutes: autoMins,
     start_sync: shouldSync
@@ -1388,6 +1398,7 @@ async function refreshState() {
       document.getElementById("onbCoursesRoot").value = st.config.courses_root || "";
       setPresetMode(st.config.preset || "mirror");
       document.getElementById("onbNotifications").checked = Boolean(st.config.notifications_enabled);
+      document.getElementById("onbAutostart").checked = Boolean(st.config.autostart);
       const autoSel = document.getElementById("onbAutoSyncSelect");
       if (autoSel) {
         if (!st.config.auto_sync) autoSel.value = "off";
