@@ -83,17 +83,49 @@ def test_tray_toggle_notifications(tmp_path: Path, monkeypatch):
     assert app.cfg.notifications.enabled is False
 
 
-def test_tray_toggle_auto_sync():
-    app = PradoTrayApp()
+def test_tray_toggle_auto_sync(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path / "cfg"))
+    cfg = PradoConfig(courses_root=tmp_path / "Courses", language="es")
+    app = PradoTrayApp(cfg=cfg)
     app.icon = MagicMock()
 
     assert not app._auto_sync_enabled
     app._on_toggle_auto_sync()
     assert app._auto_sync_enabled is True
+    assert app.cfg.sync.auto_sync is True
     app.icon.update_menu.assert_called_once()
+
+    # Verify persistence across reload
+    reloaded = PradoTrayApp()
+    assert reloaded._auto_sync_enabled is True
 
     app._on_toggle_auto_sync()
     assert not app._auto_sync_enabled
+    assert app.cfg.sync.auto_sync is False
+
+
+def test_tray_deadline_opens_matching_course_folder(tmp_path: Path, monkeypatch):
+    courses_dir = tmp_path / "Courses"
+    target_course = courses_dir / "Visión por Computador"
+    target_course.mkdir(parents=True, exist_ok=True)
+    ics = courses_dir / "deadlines.ics"
+    ics.write_text(
+        "BEGIN:VCALENDAR\r\n"
+        "BEGIN:VEVENT\r\n"
+        "SUMMARY:[Visión por Computador] Entrega P2\r\n"
+        "DTSTART:20261201T225900Z\r\n"
+        "CATEGORIES:Visión por Computador\r\n"
+        "END:VEVENT\r\n"
+        "END:VCALENDAR\r\n",
+        encoding="utf-8",
+    )
+    opened = []
+    monkeypatch.setattr("prado.ui.tray.open_folder", lambda p: opened.append(Path(p)) or True)
+    app = PradoTrayApp(cfg=PradoConfig(courses_root=courses_dir, language="es"))
+    _, dl_menu = app._build_deadlines_submenu("es")
+    first_item = list(dl_menu.items)[0]
+    first_item(None)
+    assert opened == [target_course]
 
 
 def test_tray_trigger_sync_non_blocking():

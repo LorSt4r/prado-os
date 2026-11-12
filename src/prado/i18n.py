@@ -460,6 +460,54 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "it": "Login annullato.",
         "fr": "Connexion annulée.",
     },
+    "tray_window_title": {
+        "es": "PradoOS — Configuración UGR",
+        "en": "PradoOS — UGR Setup",
+        "it": "PradoOS — Configurazione UGR",
+        "fr": "PradoOS — Configuration UGR",
+    },
+    "tray_deadline_overdue": {
+        "es": "vencido",
+        "en": "overdue",
+        "it": "scaduto",
+        "fr": "expiré",
+    },
+    "tray_open_gcal_web": {
+        "es": "🌐 Google Calendar Web",
+        "en": "🌐 Google Calendar Web",
+        "it": "🌐 Google Calendar Web",
+        "fr": "🌐 Google Calendar Web",
+    },
+    "tray_gcal_synced": {
+        "es": "Entregas sincronizadas con Google Calendar.",
+        "en": "Deadlines synced with Google Calendar.",
+        "it": "Scadenze sincronizzate con Google Calendar.",
+        "fr": "Échéances synchronisées avec Google Calendar.",
+    },
+    "tray_gcal_error": {
+        "es": "Google Calendar: {error}",
+        "en": "Google Calendar: {error}",
+        "it": "Google Calendar: {error}",
+        "fr": "Google Calendar : {error}",
+    },
+    "tray_mail_unread_title": {
+        "es": "PradoOS — Correo UGR",
+        "en": "PradoOS — UGR Mail",
+        "it": "PradoOS — Posta UGR",
+        "fr": "PradoOS — Courriel UGR",
+    },
+    "tray_mail_unread_msg": {
+        "es": "{count} correo(s) sin leer en @correo.ugr.es.",
+        "en": "{count} unread email(s) in @correo.ugr.es.",
+        "it": "{count} email non lette in @correo.ugr.es.",
+        "fr": "{count} courriel(s) non lu(s) dans @correo.ugr.es.",
+    },
+    "tray_doctor_result": {
+        "es": "Diagnóstico completado: {ok}/{total} sondas OK.",
+        "en": "Diagnostics complete: {ok}/{total} probes OK.",
+        "it": "Diagnostica completata: {ok}/{total} controlli OK.",
+        "fr": "Diagnostic terminé : {ok}/{total} sondes OK.",
+    },
 }
 
 

@@ -125,8 +125,10 @@ class PradoTrayApp:
         self._running = True
         self._quitting = False
         self._main_loop_active = False
-        self._auto_sync_enabled = False
-        self._auto_sync_interval_mins = 60
+        self._auto_sync_enabled = bool(getattr(self.cfg.sync, "auto_sync", False))
+        self._auto_sync_interval_mins = max(
+            5, int(getattr(self.cfg.sync, "auto_sync_interval_minutes", 60) or 60)
+        )
         self.icon: Optional[pystray.Icon] = None
         self.notifier = DesktopNotifier(app_name="PradoOS")
 
@@ -242,6 +244,33 @@ class PradoTrayApp:
         title = t("tray_courses_menu", lang, count=courses_found)
         return title, pystray.Menu(*course_items)
 
+    def _open_deadline_course(self, course_name: str) -> None:
+        """Opens the course folder matching a deadline, or falls back to deadlines.ics."""
+        needle = (course_name or "").strip().lower()
+        if needle and self.cfg.courses_root.exists():
+            norm_needle = needle.replace(" ", "_")
+            try:
+                for sub in sorted(self.cfg.courses_root.iterdir()):
+                    if not sub.is_dir() or sub.name.startswith("."):
+                        continue
+                    sname = sub.name.lower()
+                    if needle in sname or norm_needle in sname or sname in needle:
+                        open_folder(sub)
+                        return
+            except Exception:
+                pass
+            try:
+                state_db = StateDatabase()
+                for c in state_db.list_all_courses():
+                    if needle in (c.fullname or "").lower() or needle in (c.shortname or "").lower():
+                        for cand in (c.fullname, c.shortname or ""):
+                            if cand and (self.cfg.courses_root / cand).exists():
+                                open_folder(self.cfg.courses_root / cand)
+                                return
+            except Exception:
+                pass
+        self._on_open_calendar()
+
     def _build_deadlines_submenu(self, lang: str) -> tuple[str, pystray.Menu]:
         ics_path = self.cfg.courses_root / "deadlines.ics"
         events = parse_deadlines_from_ics(ics_path)
@@ -250,9 +279,14 @@ class PradoTrayApp:
         for ev in events[:6]:
             prefix = "🚨" if ev.get("kind") == "EXAM" else "📝"
             days = ev.get("days_left", 0)
-            days_str = f"{days}d" if days >= 0 else "vencido"
-            lbl = f"{prefix} {ev['due_iso'][:10]} — [{ev['course'][:18]}] {ev['title'][:28]} ({days_str})"
-            dl_items.append(pystray.MenuItem(lbl, self._on_open_calendar))
+            days_str = f"{days}d" if days >= 0 else t("tray_deadline_overdue", lang)
+            course_label = str(ev.get("course", ""))
+            lbl = f"{prefix} {ev['due_iso'][:10]} — [{course_label[:18]}] {ev['title'][:28]} ({days_str})"
+
+            def _make_dl_cb(cname: str) -> Callable[..., None]:
+                return lambda icon=None, item=None: self._open_deadline_course(cname)
+
+            dl_items.append(pystray.MenuItem(lbl, _make_dl_cb(course_label)))
 
         if not dl_items:
             dl_items.append(pystray.MenuItem(t("tray_deadlines_empty", lang), action=None, enabled=False))
@@ -262,7 +296,7 @@ class PradoTrayApp:
                 pystray.Menu.SEPARATOR,
                 pystray.MenuItem(t("tray_sync_gcal", lang), self._on_sync_gcalendar),
                 pystray.MenuItem(t("tray_open_ics", lang), self._on_open_calendar),
-                pystray.MenuItem("🌐 Google Calendar Web", lambda icon=None, item=None: open_url("https://calendar.google.com")),
+                pystray.MenuItem(t("tray_open_gcal_web", lang), lambda icon=None, item=None: open_url("https://calendar.google.com")),
             ]
         )
         title = t("tray_deadlines_menu", lang, count=len(events))
@@ -432,12 +466,13 @@ class PradoTrayApp:
 
     def _on_sync_gcalendar(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         def _worker() -> None:
+            lang = self.cfg.language or "es"
             res = self.api.run_calendar_action("gcalendar")
             if self.cfg.notifications.enabled:
                 msg = (
-                    "Entregas sincronizadas con Google Calendar."
+                    t("tray_gcal_synced", lang)
                     if res.get("status") == "success"
-                    else f"Google Calendar: {res.get('error')}"
+                    else t("tray_gcal_error", lang, error=str(res.get("error", "")))
                 )
                 self.notifier.notify(title="PradoOS Calendar", message=msg)
 
@@ -453,11 +488,12 @@ class PradoTrayApp:
 
     def _on_check_mail_now(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         def _worker() -> None:
+            lang = self.cfg.language or "es"
             res = self.api.fetch_mail_inbox(refresh=True)
             if self.cfg.notifications.enabled and res.get("status") == "success":
                 self.notifier.notify(
-                    title="PradoOS — Correo UGR",
-                    message=f"{res.get('unread', 0)} correo(s) sin leer en @correo.ugr.es.",
+                    title=t("tray_mail_unread_title", lang),
+                    message=t("tray_mail_unread_msg", lang, count=res.get("unread", 0)),
                 )
 
         threading.Thread(target=_worker, daemon=True).start()
@@ -473,12 +509,13 @@ class PradoTrayApp:
 
     def _on_run_doctor(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         def _worker() -> None:
+            lang = self.cfg.language or "es"
             res = self.api.run_doctor()
             probes = res.get("probes", [])
             ok_count = sum(1 for p in probes if p.get("status") == "OK")
             self.notifier.notify(
                 title="PradoOS Doctor",
-                message=f"Diagnóstico completado: {ok_count}/{len(probes)} sondas OK.",
+                message=t("tray_doctor_result", lang, ok=ok_count, total=len(probes)),
             )
 
         threading.Thread(target=_worker, daemon=True).start()
@@ -490,6 +527,8 @@ class PradoTrayApp:
 
     def _on_toggle_auto_sync(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         self._auto_sync_enabled = not self._auto_sync_enabled
+        self.cfg.sync.auto_sync = self._auto_sync_enabled
+        save_config(self.cfg)
         self._refresh_tray_ui()
 
     def _on_open_settings(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
@@ -646,7 +685,7 @@ class PradoTrayApp:
             try:
                 self.icon.run_detached()
                 self.window = webview.create_window(
-                    title="PradoOS — Configuración UGR",
+                    title=t("tray_window_title", self.cfg.language or "es"),
                     url=control_url,
                     width=525,
                     height=640,

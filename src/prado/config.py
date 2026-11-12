@@ -306,6 +306,8 @@ class SyncConfig:
     semester: Optional[int] = None
     dry_run: bool = False
     subgroups: Dict[str, str] = field(default_factory=dict)
+    auto_sync: bool = False
+    auto_sync_interval_minutes: int = 60
 
 
 @dataclass
@@ -363,7 +365,16 @@ class PradoConfig:
 
         sync_data = data.get("sync", {})
         if isinstance(sync_data, dict):
-            sync_cfg = SyncConfig(**sync_data)
+            allowed_sync_keys = {
+                "preset",
+                "semester",
+                "dry_run",
+                "subgroups",
+                "auto_sync",
+                "auto_sync_interval_minutes",
+            }
+            filtered_sync = {k: v for k, v in sync_data.items() if k in allowed_sync_keys}
+            sync_cfg = SyncConfig(**filtered_sync)
         else:
             sync_cfg = SyncConfig()
 
