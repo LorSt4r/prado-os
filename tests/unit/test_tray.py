@@ -314,6 +314,21 @@ def test_tray_doctor_opens_control_center_and_runs_diagnostics(monkeypatch):
     assert "1/2" in notifs[0]["message"]
 
 
+def test_open_control_center_doctor_avoids_cocoa_evaluate_js_deadlock():
+    app = PradoTrayApp()
+    app.server = MagicMock()
+    app.server.url = "http://127.0.0.1:1234/?token=abc"
+    app.window = MagicMock()
+    initial_seq = app.api.doctor_trigger_seq
+
+    url = app.open_control_center("doctor")
+    assert url.endswith("#doctor")
+    assert app.api.doctor_trigger_seq == initial_seq + 1
+    app.window.show.assert_called_once()
+    app.window.restore.assert_called_once()
+    app.window.evaluate_js.assert_not_called()
+
+
 def test_open_url_uses_native_open_on_macos(monkeypatch):
     from prado.ui.dialogs import open_url
 

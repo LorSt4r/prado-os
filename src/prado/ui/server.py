@@ -172,6 +172,7 @@ class PradoControlCenterAPI:
         self._daemon_cache: Optional[Dict[str, Any]] = None
         self._daemon_cache_ts: float = 0.0
         self._credentials_cache: Optional[Tuple[str, bool]] = None
+        self.doctor_trigger_seq: int = 0
 
         # In-memory cache of recently opened full emails (with attachment payloads)
         self._loaded_messages: Dict[str, Any] = {}
@@ -432,6 +433,7 @@ class PradoControlCenterAPI:
             "deadlines": deadlines,
             "recent_files": recent_files,
             "daemon": self._daemon_cache,
+            "ui": {"doctor_trigger_seq": self.doctor_trigger_seq},
         }
 
     # -------------------------------------------------------------------------

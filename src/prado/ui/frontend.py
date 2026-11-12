@@ -694,6 +694,7 @@ let appState = null;
 let formInitialized = false;
 let credsExpanded = true;
 let activeCardTab = "account";
+let lastDoctorSeq = null;
 
 const I18N = {
   es: {
@@ -1398,6 +1399,14 @@ async function refreshState() {
 
     renderStateText(st);
 
+    const docSeq = Number((st.ui && st.ui.doctor_trigger_seq) || 0);
+    if (lastDoctorSeq === null) {
+      lastDoctorSeq = docSeq;
+    } else if (docSeq > lastDoctorSeq) {
+      lastDoctorSeq = docSeq;
+      openDoctorFromTray();
+    }
+
     const mfaModal = document.getElementById("mfaModal");
     if (st.sync.mfa_pending) {
       const dict = I18N[currentLang] || I18N.es;
@@ -1415,6 +1424,7 @@ async function refreshState() {
 
 refreshState();
 setInterval(refreshState, 1500);
+window.addEventListener("focus", refreshState);
 if (window.location.hash === "#doctor") {
   setTimeout(() => openDoctorFromTray(), 250);
 }

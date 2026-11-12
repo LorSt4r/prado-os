@@ -545,6 +545,9 @@ class PradoTrayApp:
             self.server = PradoUIServer(api=self.api)
             self.server.start()
 
+        if section == "doctor":
+            self.api.doctor_trigger_seq = int(getattr(self.api, "doctor_trigger_seq", 0)) + 1
+
         target_url = self.server.url
         if section:
             target_url = f"{target_url}#{section}"
@@ -553,8 +556,6 @@ class PradoTrayApp:
             try:
                 self.window.show()
                 self.window.restore()
-                if section == "doctor" and hasattr(self.window, "evaluate_js"):
-                    self.window.evaluate_js("if (typeof openDoctorFromTray === 'function') openDoctorFromTray();")
                 return target_url
             except Exception:
                 pass
