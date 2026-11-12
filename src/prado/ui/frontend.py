@@ -606,11 +606,11 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
 
       <div class="section-box">
         <label class="check-row">
-          <input type="checkbox" id="onbNotifications" checked>
+          <input type="checkbox" id="onbNotifications" checked onchange="toggleNotificationsImmediate(this.checked)">
           <span data-i18n="lbl_notif_title">Notificaciones de escritorio (nuevos apuntes y entregas)</span>
         </label>
         <label class="check-row">
-          <input type="checkbox" id="onbAutostart">
+          <input type="checkbox" id="onbAutostart" onchange="toggleAutostartImmediate(this.checked)">
           <span data-i18n="lbl_autostart">Abrir PradoOS al iniciar sesión</span>
         </label>
         <div class="form-group">
@@ -1223,6 +1223,27 @@ async function logoutAccount() {
     toggleCredentialsEditor(true);
     showToast(dict.toast_logged_out);
     refreshState();
+  }
+}
+
+async function toggleNotificationsImmediate(enabled) {
+  const dict = I18N[currentLang] || I18N.es;
+  const res = await apiPost("/api/notifications/toggle", { enabled: Boolean(enabled) });
+  if (res.status === "success") {
+    showToast(dict.toast_prefs_saved);
+  } else {
+    showToast(res.error || dict.toast_save_error);
+  }
+}
+
+async function toggleAutostartImmediate(enabled) {
+  const dict = I18N[currentLang] || I18N.es;
+  const res = await apiPost("/api/autostart/toggle", { enabled: Boolean(enabled) });
+  if (res.status === "success") {
+    showToast(dict.toast_prefs_saved);
+  } else {
+    document.getElementById("onbAutostart").checked = !Boolean(enabled);
+    showToast(res.error || dict.toast_save_error);
   }
 }
 

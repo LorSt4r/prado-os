@@ -998,6 +998,7 @@ class PradoControlCenterAPI:
         if sound is not None:
             self.cfg.notifications.sound = bool(sound)
         save_config(self.cfg)
+        self._set_status(self.status)
 
         if test:
             self.notifier.notify(

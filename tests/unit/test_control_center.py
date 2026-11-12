@@ -179,6 +179,8 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
         assert "treePreviewBox" in r_html.text
         assert "btnMfaCancel" in r_html.text
         assert "connectedSummaryCard" in r_html.text
+        assert "toggleAutostartImmediate" in r_html.text
+        assert "toggleNotificationsImmediate" in r_html.text
 
         # 2. GET /api/state without token -> 403 Forbidden
         r_unauth = requests.get(f"{base}/api/state", timeout=5)
