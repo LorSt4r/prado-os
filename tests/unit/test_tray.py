@@ -251,3 +251,11 @@ def test_apply_macos_template_icon_wraps_assert_image(monkeypatch):
     PradoTrayApp._apply_macos_template_icon(icon_obj)
     icon_obj._assert_image()
     assert icon_obj.orig_calls == 2
+
+
+def test_tray_open_mail_targets_ugr_webmail(monkeypatch):
+    opened_urls = []
+    monkeypatch.setattr("prado.ui.tray.open_url", lambda url: opened_urls.append(url) or True)
+    app = PradoTrayApp()
+    app._on_open_mail()
+    assert opened_urls == ["https://webmail.ugr.es"]
