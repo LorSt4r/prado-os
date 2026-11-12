@@ -170,6 +170,10 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
         assert "PradoOS" in r_html.text
         assert "onboardingModal" in r_html.text
         assert "mfaModal" in r_html.text
+        assert "badge-neutral" in r_html.text
+        assert "err-username" in r_html.text
+        assert "err-password" in r_html.text
+        assert 'autocomplete="one-time-code"' in r_html.text
 
         # 2. GET /api/state without token -> 403 Forbidden
         r_unauth = requests.get(f"{base}/api/state", timeout=5)
@@ -188,6 +192,18 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
         r_lang = requests.post(f"{base}/api/language", json={"language": "it"}, headers=headers, timeout=5)
         assert r_lang.status_code == 200
         assert r_lang.json()["language"] == "it"
+
+        # 4b. POST /api/onboard missing username returns structured field error
+        r_err = requests.post(
+            f"{base}/api/onboard",
+            json={"language": "en", "username": "", "password": ""},
+            headers=headers,
+            timeout=5,
+        )
+        assert r_err.status_code == 200
+        assert r_err.json()["status"] == "error"
+        assert r_err.json()["field"] == "username"
+        assert "UGR email" in r_err.json()["error"]
 
         # 5. POST /api/onboard saves credentials and configuration (with start_sync=False)
         r_onboard = requests.post(

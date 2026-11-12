@@ -118,12 +118,17 @@ def parse_deadlines_from_ics(ics_path: Path) -> List[Dict[str, Any]]:
             course_name = title[1 : title.find("]")]
             title = title[title.find("]") + 1 :].strip()
 
+        now_date = datetime.datetime.now(datetime.timezone.utc).date()
+        due_date_val = due_dt.date()
+        days_left = (due_date_val - now_date).days
+
         kind = "EXAM" if any(k in title.lower() for k in ("examen", "test", "prueba", "parcial", "control")) else "ASSIGNMENT"
         events.append({
             "course": course_name or "PRADO UGR",
             "title": title,
             "due_iso": due_dt.strftime("%Y-%m-%d %H:%M"),
             "timestamp": due_dt.timestamp(),
+            "days_left": days_left,
             "kind": kind,
             "description": (desc_m.group(1).strip().replace(r"\n", "\n").replace(r"\,", ",") if desc_m else ""),
         })
@@ -236,7 +241,14 @@ class PradoControlCenterAPI:
         """Submits the 6-digit MFA code entered by the student in the Control Center UI."""
         clean = re.sub(r"\D", "", str(code or ""))
         if len(clean) != 6:
-            return {"status": "error", "error": "El código MFA debe tener exactamente 6 dígitos numéricos."}
+            lang = normalize_language(self.cfg.language)
+            err_map = {
+                "es": "El código MFA debe tener exactamente 6 dígitos numéricos.",
+                "en": "The MFA code must be exactly 6 numeric digits.",
+                "it": "Il codice MFA deve contenere esattamente 6 cifre numeriche.",
+                "fr": "Le code MFA doit contenir exactement 6 chiffres.",
+            }
+            return {"status": "error", "error": err_map.get(lang, err_map["es"])}
         self._mfa_code_value = clean
         self._mfa_event.set()
         return {"status": "success", "code_submitted": True}
@@ -431,7 +443,13 @@ class PradoControlCenterAPI:
         raw_pass = str(payload.get("password", "")).strip()
 
         if not raw_user:
-            return {"status": "error", "error": "Introduce tu correo institucional UGR (@correo.ugr.es)."}
+            err_user = {
+                "es": "Introduce tu correo institucional UGR (@correo.ugr.es).",
+                "en": "Enter your institutional UGR email (@correo.ugr.es).",
+                "it": "Inserisci la tua email istituzionale UGR (@correo.ugr.es).",
+                "fr": "Saisissez votre courriel institutionnel UGR (@correo.ugr.es).",
+            }
+            return {"status": "error", "field": "username", "error": err_user.get(lang, err_user["es"])}
 
         norm_user = normalize_ugr_username(raw_user, self.cfg.moodle_url) or raw_user
         self.cfg.username = norm_user
@@ -444,9 +462,18 @@ class PradoControlCenterAPI:
             try:
                 cred_store.get_sso_credentials(norm_user)
             except Exception:
-                return {"status": "error", "error": "Introduce tu contraseña de Acceso Identificado UGR."}
+                err_pass = {
+                    "es": "Introduce tu contraseña de Acceso Identificado UGR.",
+                    "en": "Enter your UGR SSO password.",
+                    "it": "Inserisci la tua password di Acceso Identificado UGR.",
+                    "fr": "Saisissez votre mot de passe Acceso Identificado UGR.",
+                }
+                return {"status": "error", "field": "password", "error": err_pass.get(lang, err_pass["es"])}
 
-        self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
+        try:
+            self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            return {"status": "error", "field": "courses_root", "error": str(exc)}
         save_config(self.cfg)
 
         # If trigger_sync is requested (default after onboarding), launch background login + sync

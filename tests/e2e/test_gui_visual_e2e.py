@@ -297,6 +297,6 @@ def test_pywebview_live_dom_and_tabs_e2e(tmp_path: Path, monkeypatch: pytest.Mon
     assert results.get("mail_active") is True
     assert results.get("mail_has_mesejo") is True
     assert results.get("calendar_active") is True
-    assert "Centro di Controllo" in results.get("title_it", "")
+    assert "Configurazione UGR" in results.get("title_it", "")
     assert "Configuración" in results.get("title_es", "")
     assert results.get("onboard_visible") is True
