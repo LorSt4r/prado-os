@@ -258,4 +258,4 @@ def test_tray_open_mail_targets_ugr_webmail(monkeypatch):
     monkeypatch.setattr("prado.ui.tray.open_url", lambda url: opened_urls.append(url) or True)
     app = PradoTrayApp()
     app._on_open_mail()
-    assert opened_urls == ["https://webmail.ugr.es"]
+    assert opened_urls == ["https://webmailest.ugr.es"]

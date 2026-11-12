@@ -557,7 +557,7 @@ class PradoTrayApp:
         threading.Thread(target=_worker, daemon=True).start()
 
     def _on_open_mail(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
-        open_url("https://webmail.ugr.es")
+        open_url("https://webmailest.ugr.es")
 
     def _set_language(self, lang_code: str) -> None:
         self.cfg.language = lang_code
