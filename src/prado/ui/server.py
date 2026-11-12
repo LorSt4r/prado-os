@@ -168,9 +168,10 @@ class PradoControlCenterAPI:
         self._mfa_event = threading.Event()
         self._mfa_code_value: Optional[str] = None
 
-        # Cached daemon status to keep /api/state fast (< 2ms)
+        # Cached daemon & credential presence checks to keep /api/state fast (< 2ms) and avoid Keychain polling
         self._daemon_cache: Optional[Dict[str, Any]] = None
         self._daemon_cache_ts: float = 0.0
+        self._credentials_cache: Optional[Tuple[str, bool]] = None
 
         # In-memory cache of recently opened full emails (with attachment payloads)
         self._loaded_messages: Dict[str, Any] = {}
@@ -275,11 +276,17 @@ class PradoControlCenterAPI:
         cred_store = CredentialStore()
         has_credentials = False
         if self.cfg.username:
-            try:
-                u, p = cred_store.get_sso_credentials(self.cfg.username)
-                has_credentials = bool(u and p)
-            except Exception:
-                has_credentials = False
+            if self._credentials_cache is not None and self._credentials_cache[0] == self.cfg.username:
+                has_credentials = self._credentials_cache[1]
+            else:
+                try:
+                    u, p = cred_store.get_sso_credentials(self.cfg.username)
+                    has_credentials = bool(u and p)
+                except Exception:
+                    has_credentials = False
+                self._credentials_cache = (self.cfg.username, has_credentials)
+        else:
+            self._credentials_cache = None
 
         sess_mgr = MoodleSessionManager(base_url=self.cfg.moodle_url)
         has_session_cookies = sess_mgr.load_session()
@@ -495,6 +502,7 @@ class PradoControlCenterAPI:
         except OSError as exc:
             return {"status": "error", "field": "courses_root", "error": str(exc)}
         save_config(self.cfg)
+        self._credentials_cache = (norm_user, True)
 
         # If trigger_sync is requested (default after onboarding), launch background login + sync
         if payload.get("start_sync", True):
@@ -514,6 +522,7 @@ class PradoControlCenterAPI:
         if self.cfg.username:
             cred_store.delete_sso_credentials(self.cfg.username)
         self.cfg.username = ""
+        self._credentials_cache = None
         save_config(self.cfg)
         sess_mgr = MoodleSessionManager(base_url=self.cfg.moodle_url)
         sess_mgr.clear_session()

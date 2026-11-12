@@ -254,3 +254,31 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
     finally:
         server.stop()
 
+
+def test_control_center_caches_credential_lookup_across_state_polls(tmp_path: Path, monkeypatch):
+    from unittest.mock import MagicMock
+
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path / "cfg"))
+    cfg = PradoConfig(username="student@correo.ugr.es", courses_root=tmp_path / "Courses")
+    (tmp_path / "cfg").mkdir(parents=True, exist_ok=True)
+    from prado.config import save_config
+    save_config(cfg)
+
+    mock_store = MagicMock()
+    mock_store.get_sso_credentials.return_value = ("student@correo.ugr.es", "pw123")
+    monkeypatch.setattr("prado.ui.server.CredentialStore", lambda *a, **kw: mock_store)
+
+    api = PradoControlCenterAPI(cfg=cfg)
+    st1 = api.get_full_state()
+    st2 = api.get_full_state()
+    st3 = api.get_full_state()
+
+    assert st1["auth"]["has_credentials"] is True
+    assert st2["auth"]["has_credentials"] is True
+    assert st3["auth"]["has_credentials"] is True
+    assert mock_store.get_sso_credentials.call_count == 1
+
+    api.logout()
+    st_after = api.get_full_state()
+    assert st_after["auth"]["has_credentials"] is False
+

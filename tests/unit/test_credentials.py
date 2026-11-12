@@ -146,3 +146,17 @@ def test_corrupted_vault_file_handling(tmp_path, monkeypatch):
     store = CredentialStore(use_env=False, preferred_backend="vault", vault_path=vault_file)
     with pytest.raises(InvalidCredentialsError):
         store.get_sso_credentials("some_user")
+
+
+def test_frozen_macos_app_prefers_vault_to_avoid_keychain_acl_prompts(tmp_path, monkeypatch):
+    monkeypatch.setattr("sys.platform", "darwin")
+    monkeypatch.setattr("sys.frozen", True, raising=False)
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path))
+
+    store = CredentialStore(use_env=False, vault_path=tmp_path / "credentials.vault")
+    assert store._is_keyring_usable() is False
+
+    # Explicit keyring override remains honored
+    forced = CredentialStore(use_env=False, preferred_backend="keyring", vault_path=tmp_path / "credentials.vault")
+    monkeypatch.setattr("keyring.get_keyring", lambda: type("_K", (), {"priority": 5})())
+    assert forced._is_keyring_usable() is True

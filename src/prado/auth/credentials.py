@@ -13,6 +13,7 @@ import base64
 import json
 import os
 import platform
+import sys
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -112,6 +113,10 @@ class CredentialStore:
     def _is_keyring_usable(self) -> bool:
         """Checks if a functional OS keyring backend is available."""
         if self.preferred_backend in ("vault", "env"):
+            return False
+        if sys.platform == "darwin" and getattr(sys, "frozen", False) and self.preferred_backend != "keyring":
+            # Ad-hoc/unsigned PyInstaller .app bundles trigger repeated macOS Keychain ACL prompts;
+            # fall back to the 0600 AES/Fernet local vault under ~/.config/prado/.
             return False
         try:
             current_keyring = keyring.get_keyring()
