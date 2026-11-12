@@ -186,21 +186,26 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   .badge-syncing { background: var(--amber-soft); color: var(--amber); }
   .badge-error { background: var(--red-soft); color: var(--red); }
 
-  /* Connected Account Card */
+  /* Unified Connected Account Card */
   .account-card {
     display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    flex-direction: column;
+    gap: 8px;
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: 11px;
     padding: 11px 13px;
   }
   .account-card.visible { display: flex; }
+  .account-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
   .account-meta { min-width: 0; }
-  .account-email { font-size: 13px; font-weight: 600; color: var(--text-main); word-break: break-all; }
-  .account-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .account-email { font-size: 13.5px; font-weight: 700; color: var(--text-main); word-break: break-all; }
+  .account-sub { font-size: 12px; color: var(--text-muted); }
   .link-btn {
     border: 1px solid var(--border);
     background: var(--bg-card);
@@ -476,28 +481,34 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
       <button type="button" class="card-tab" id="tabBtnPrefs" onclick="switchCardTab('prefs')" data-i18n="tab_prefs">Correo y Opciones</button>
     </div>
 
-    <!-- Live Status Pill -->
-    <div class="status-strip">
+    <!-- Live Status Pill (shown when unconfigured or on Preferences tab) -->
+    <div class="status-strip" id="unconfiguredStrip">
       <span id="sidebarUser" style="font-weight:600;" data-i18n="status_unconfigured">Cuenta UGR pendiente de configurar</span>
       <span class="badge badge-neutral" id="syncStatusBadge" data-i18n="badge_setup_pending">Pendiente de configurar</span>
     </div>
 
     <!-- TAB 1: ACCOUNT & FOLDER -->
     <div class="tab-panel active" id="cardTabAccount">
-      <!-- Connected Summary (shown when already onboarded) -->
+      <!-- Unified Connected Summary (replaces status-strip + credentials form when connected) -->
       <div class="account-card" id="connectedSummaryCard">
-        <div class="account-meta">
+        <div class="account-row">
           <div class="account-email" id="connectedUserText">estudiante@correo.ugr.es</div>
-          <div class="account-sub" id="connectedSubText">Grado (pradogrado) · Llavero seguro</div>
+          <span class="badge badge-idle" id="syncStatusBadgeConn">Al día</span>
         </div>
-        <button type="button" class="link-btn" id="btnToggleCreds" onclick="toggleCredentialsEditor()" data-i18n="btn_edit_creds">Cambiar contraseña</button>
+        <div class="account-row">
+          <div class="account-sub" id="connectedSubText"></div>
+          <button type="button" class="link-btn" id="btnToggleCreds" onclick="toggleCredentialsEditor(true)" data-i18n="btn_edit_creds">Cambiar contraseña</button>
+        </div>
       </div>
 
-      <!-- Editable Credentials Form -->
+      <!-- Editable Credentials Form (replaces connectedSummaryCard in-place when editing) -->
       <div class="creds-wrap" id="credentialsFieldsWrap">
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label" for="onbUsername" data-i18n="onb_email">Correo Institucional UGR</label>
+            <label class="form-label" for="onbUsername">
+              <span data-i18n="onb_email">Correo Institucional UGR</span>
+              <button type="button" class="link-btn" id="btnCancelCredsEdit" style="display:none; padding:2px 7px; font-size:11px;" onclick="toggleCredentialsEditor(false)" data-i18n="mfa_cancel_btn">Cancelar</button>
+            </label>
             <input type="email" class="input" id="onbUsername" placeholder="usuario@correo.ugr.es" data-i18n-placeholder="ph_email" oninput="clearFieldError('onbUsername')">
             <div class="field-error" id="err-username"></div>
           </div>
@@ -631,19 +642,6 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Hidden compatibility containers for programmatic API / E2E introspection -->
-  <div class="sr-only">
-    <span id="kpiCourses">0/0</span>
-    <span id="kpiFiles">0</span>
-    <span id="kpiProtected">0</span>
-    <span id="kpiDeadlines">0</span>
-    <div id="view-dashboard" class="active"></div>
-    <div id="view-courses"><div id="coursesManageList"></div></div>
-    <div id="view-mail"><div id="mailListPane"></div></div>
-    <div id="view-calendar"><div id="doctorProbesList"></div></div>
-    <select id="onbLanguage"><option value="es">es</option><option value="en">en</option><option value="it">it</option><option value="fr">fr</option></select>
-  </div>
-
   <div class="toast" id="toastBox"></div>
 
 <script>
@@ -652,6 +650,7 @@ let currentLang = "es";
 let appState = null;
 let formInitialized = false;
 let credsExpanded = true;
+let activeCardTab = "account";
 
 const I18N = {
   es: {
@@ -702,7 +701,9 @@ const I18N = {
     sync_in_progress: "Sincronizando con PRADO UGR...",
     btn_open_folder: "Abrir Carpeta",
     onb_submit: "Guardar y Sincronizar",
+    prefs_submit: "Guardar Opciones",
     toast_saved_syncing: "Configuración guardada. Sincronización iniciada...",
+    toast_prefs_saved: "Opciones guardadas correctamente.",
     toast_save_error: "Error al guardar la configuración",
     mfa_title: "Verificación en 2 Pasos (MFA UGR)",
     mfa_prompt_default: "Introduce el código de 6 dígitos enviado a tu correo @correo.ugr.es. Tu dispositivo quedará verificado por 30 días.",
@@ -759,7 +760,9 @@ const I18N = {
     sync_in_progress: "Syncing with PRADO UGR...",
     btn_open_folder: "Open Folder",
     onb_submit: "Save & Sync Now",
+    prefs_submit: "Save Preferences",
     toast_saved_syncing: "Configuration saved. Synchronization started...",
+    toast_prefs_saved: "Preferences saved.",
     toast_save_error: "Could not save configuration",
     mfa_title: "2-Step Verification (UGR MFA)",
     mfa_prompt_default: "Enter the 6-digit code sent to your @correo.ugr.es inbox. Your device will stay trusted for 30 days.",
@@ -816,7 +819,9 @@ const I18N = {
     sync_in_progress: "Sincronizzazione con PRADO UGR...",
     btn_open_folder: "Apri Cartella",
     onb_submit: "Salva e Sincronizza",
+    prefs_submit: "Salva Opzioni",
     toast_saved_syncing: "Configurazione salvata. Sincronizzazione avviata...",
+    toast_prefs_saved: "Opzioni salvate correttamente.",
     toast_save_error: "Impossibile salvare la configurazione",
     mfa_title: "Verifica in 2 Passaggi (MFA UGR)",
     mfa_prompt_default: "Inserisci il codice a 6 cifre inviato alla tua email @correo.ugr.es. Il dispositivo resterà verificato per 30 giorni.",
@@ -873,7 +878,9 @@ const I18N = {
     sync_in_progress: "Synchronisation avec PRADO UGR...",
     btn_open_folder: "Ouvrir Dossier",
     onb_submit: "Enregistrer et Synchroniser",
+    prefs_submit: "Enregistrer Options",
     toast_saved_syncing: "Configuration enregistrée. Synchronisation en cours...",
+    toast_prefs_saved: "Options enregistrées.",
     toast_save_error: "Erreur lors de l'enregistrement",
     mfa_title: "Validation en 2 Étapes (MFA UGR)",
     mfa_prompt_default: "Saisissez le code à 6 chiffres envoyé à @correo.ugr.es. Votre appareil restera approuvé pendant 30 jours.",
@@ -916,10 +923,17 @@ async function apiPost(path, body = {}) {
 
 function switchCardTab(tabName) {
   const isAccount = tabName !== "prefs";
+  activeCardTab = isAccount ? "account" : "prefs";
   document.getElementById("tabBtnAccount").classList.toggle("active", isAccount);
   document.getElementById("tabBtnPrefs").classList.toggle("active", !isAccount);
   document.getElementById("cardTabAccount").classList.toggle("active", isAccount);
   document.getElementById("cardTabPrefs").classList.toggle("active", !isAccount);
+  const dict = I18N[currentLang] || I18N.es;
+  const btnSync = document.getElementById("btnSyncNow");
+  if (btnSync) {
+    btnSync.textContent = isAccount ? dict.onb_submit : dict.prefs_submit;
+  }
+  if (appState) renderStateText(appState);
 }
 
 function togglePasswordVisibility() {
@@ -929,13 +943,18 @@ function togglePasswordVisibility() {
 
 function toggleCredentialsEditor(forceState) {
   const wrap = document.getElementById("credentialsFieldsWrap");
-  const btn = document.getElementById("btnToggleCreds");
-  const dict = I18N[currentLang] || I18N.es;
+  const connCard = document.getElementById("connectedSummaryCard");
+  const cancelBtn = document.getElementById("btnCancelCredsEdit");
+  const isConnected = Boolean(appState && (appState.is_onboarded || appState.auth.username));
   credsExpanded = typeof forceState === "boolean" ? forceState : !credsExpanded;
   wrap.classList.toggle("collapsed", !credsExpanded);
-  if (btn) {
-    btn.textContent = credsExpanded ? dict.btn_hide_creds : dict.btn_edit_creds;
+  if (connCard) {
+    connCard.classList.toggle("visible", isConnected && !credsExpanded);
   }
+  if (cancelBtn) {
+    cancelBtn.style.display = isConnected && credsExpanded ? "inline-flex" : "none";
+  }
+  if (appState) renderStateText(appState);
 }
 
 function setPresetMode(mode) {
@@ -976,8 +995,10 @@ function applyTranslations(lang) {
     const b = document.getElementById("lang-" + code);
     if (b) b.classList.toggle("active", code === currentLang);
   });
-  const btn = document.getElementById("btnToggleCreds");
-  if (btn) btn.textContent = credsExpanded ? dict.btn_hide_creds : dict.btn_edit_creds;
+  const btnSync = document.getElementById("btnSyncNow");
+  if (btnSync) {
+    btnSync.textContent = activeCardTab === "account" ? dict.onb_submit : dict.prefs_submit;
+  }
   updateTreePreview();
   if (appState) renderStateText(appState);
 }
@@ -1032,32 +1053,12 @@ async function setLanguage(lang) {
   await apiPost("/api/language", { language: lang });
 }
 
-function switchTab(tab) {
-  ["dashboard", "courses", "mail", "calendar"].forEach(t => {
-    const el = document.getElementById("view-" + t);
-    if (el) el.classList.toggle("active", t === tab);
-  });
-  if (tab === "mail") {
-    loadMailInbox(false);
-  }
-}
-
 function openOnboardingModal() {
   document.getElementById("onboardingModal").classList.add("visible");
 }
 
 function closeOnboardingModal() {
   document.getElementById("onboardingModal").classList.remove("visible");
-}
-
-async function loadMailInbox(refresh) {
-  const res = await apiGet(`/api/mail/messages?filter=all&refresh=${refresh ? "1" : "0"}`);
-  if (res.status === "success") {
-    const pane = document.getElementById("mailListPane");
-    if (pane) {
-      pane.innerHTML = (res.messages || []).map(m => `<div>${esc(m.sender)} ${esc(m.subject)}</div>`).join("");
-    }
-  }
 }
 
 async function pickFolderFor(inputId) {
@@ -1118,6 +1119,7 @@ async function submitCompactSetup() {
     forward_mode: "academic"
   });
 
+  const shouldSync = activeCardTab === "account";
   const res = await apiPost("/api/onboard", {
     language: currentLang,
     portal: portal,
@@ -1128,13 +1130,12 @@ async function submitCompactSetup() {
     notifications_enabled: notif,
     auto_sync: autoSync,
     auto_sync_interval_minutes: autoMins,
-    start_sync: true
+    start_sync: shouldSync
   });
 
   if (res.status === "success") {
-    showToast(dict.toast_saved_syncing);
+    showToast(shouldSync ? dict.toast_saved_syncing : dict.toast_prefs_saved);
     if (res.username) {
-      document.getElementById("connectedSummaryCard").classList.add("visible");
       toggleCredentialsEditor(false);
     }
     refreshState();
@@ -1185,52 +1186,69 @@ document.getElementById("mfaCodeInput").addEventListener("keydown", function (ev
 function renderStateText(st) {
   const dict = I18N[currentLang] || I18N.es;
   const isConfigured = Boolean(st.is_onboarded || st.auth.username);
+  const isConnected = isConfigured;
   document.getElementById("versionLabel").textContent = `v${st.version} · ${dict.subtitle_tray}`;
   document.getElementById("sidebarUser").textContent = st.auth.username
     ? `${st.auth.username} (${st.stats.active_courses} ${dict.courses_unit})`
     : dict.status_unconfigured;
   document.getElementById("lastSyncLabel").textContent = `${dict.last_sync_prefix} ${st.sync.last_sync_time || "--:--"}`;
 
+  const unconfigStrip = document.getElementById("unconfiguredStrip");
   const connCard = document.getElementById("connectedSummaryCard");
+  const cancelBtn = document.getElementById("btnCancelCredsEdit");
   const logoutBtn = document.getElementById("btnLogoutQuick");
-  if (isConfigured && st.auth.has_credentials) {
-    connCard.classList.add("visible");
+  if (isConnected) {
+    connCard.classList.toggle("visible", !credsExpanded);
+    if (unconfigStrip) {
+      unconfigStrip.style.display = (activeCardTab === "prefs" || credsExpanded) ? "flex" : "none";
+    }
+    if (cancelBtn) cancelBtn.style.display = credsExpanded ? "inline-flex" : "none";
     document.getElementById("connectedUserText").textContent = st.auth.username;
     const portalKey = st.auth.portal === "posgrado" ? "opt_portal_posgrado" : (st.auth.portal === "ceprud" ? "opt_portal_ceprud" : "opt_portal_grado");
-    document.getElementById("connectedSubText").textContent = `${dict[portalKey] || st.auth.portal} · ${dict.connected_keychain}`;
+    document.getElementById("connectedSubText").textContent =
+      `${st.stats.active_courses} ${dict.courses_unit} · ${dict[portalKey] || st.auth.portal} · ${dict.connected_keychain}`;
     if (logoutBtn) logoutBtn.style.display = "inline-flex";
   } else {
     connCard.classList.remove("visible");
+    if (unconfigStrip) unconfigStrip.style.display = "flex";
+    if (cancelBtn) cancelBtn.style.display = "none";
     if (logoutBtn) logoutBtn.style.display = "none";
   }
 
   const badge = document.getElementById("syncStatusBadge");
+  const badgeConn = document.getElementById("syncStatusBadgeConn");
   const progWrap = document.getElementById("syncProgressWrap");
   const progBar = document.getElementById("syncProgressBar");
   const btnSync = document.getElementById("btnSyncNow");
 
+  let bClass = "badge badge-idle";
+  let bText = `${dict.badge_idle} (${st.stats.total_files} ${dict.files_unit})`;
   if (st.sync.status === "syncing" || st.sync.status === "mfa_required") {
-    badge.className = "badge badge-syncing";
-    badge.textContent = dict.badge_syncing;
+    bClass = "badge badge-syncing";
+    bText = dict.badge_syncing;
     progWrap.classList.add("visible");
     progBar.style.width = `${st.sync.progress_pct || 15}%`;
     document.getElementById("syncStepText").textContent = st.sync.current_step || dict.sync_in_progress;
     btnSync.disabled = true;
   } else if (st.sync.status === "error") {
-    badge.className = "badge badge-error";
-    badge.textContent = dict.badge_error;
+    bClass = "badge badge-error";
+    bText = dict.badge_error;
     progWrap.classList.remove("visible");
     btnSync.disabled = false;
   } else if (!isConfigured) {
-    badge.className = "badge badge-neutral";
-    badge.textContent = dict.badge_setup_pending;
+    bClass = "badge badge-neutral";
+    bText = dict.badge_setup_pending;
     progWrap.classList.remove("visible");
     btnSync.disabled = false;
   } else {
-    badge.className = "badge badge-idle";
-    badge.textContent = `${dict.badge_idle} (${st.stats.total_files} ${dict.files_unit})`;
     progWrap.classList.remove("visible");
     btnSync.disabled = false;
+  }
+  badge.className = bClass;
+  badge.textContent = bText;
+  if (badgeConn) {
+    badgeConn.className = bClass;
+    badgeConn.textContent = bText;
   }
 }
 
@@ -1241,7 +1259,7 @@ async function refreshState() {
 
     if (!formInitialized) {
       formInitialized = true;
-      const isConnected = Boolean((st.is_onboarded || st.auth.username) && st.auth.has_credentials);
+      const isConnected = Boolean(st.is_onboarded || st.auth.username);
       credsExpanded = !isConnected;
       document.getElementById("credentialsFieldsWrap").classList.toggle("collapsed", !credsExpanded);
       applyTranslations(st.language || "es");
@@ -1260,14 +1278,6 @@ async function refreshState() {
     }
 
     renderStateText(st);
-
-    // Update hidden compatibility metrics
-    document.getElementById("kpiCourses").textContent = `${st.stats.active_courses}/${st.stats.total_courses}`;
-    document.getElementById("kpiFiles").textContent = st.stats.total_files;
-    document.getElementById("kpiProtected").textContent = st.stats.protected_files;
-    document.getElementById("kpiDeadlines").textContent = st.deadlines.length;
-    const cl = document.getElementById("coursesManageList");
-    if (cl) cl.innerHTML = (st.courses || []).map(c => `<div>${esc(c.fullname)}</div>`).join("");
 
     const mfaModal = document.getElementById("mfaModal");
     if (st.sync.mfa_pending) {

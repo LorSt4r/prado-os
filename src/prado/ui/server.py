@@ -499,17 +499,22 @@ class PradoControlCenterAPI:
         # If trigger_sync is requested (default after onboarding), launch background login + sync
         if payload.get("start_sync", True):
             self.start_sync()
+        else:
+            self._set_status(self.status)
         return {"status": "success", "username": norm_user, "courses_root": str(self.cfg.courses_root)}
 
     def update_language(self, lang_code: str) -> Dict[str, Any]:
         self.cfg.language = normalize_language(lang_code)
         save_config(self.cfg)
+        self._set_status(self.status)
         return {"status": "success", "language": self.cfg.language}
 
     def logout(self) -> Dict[str, Any]:
         cred_store = CredentialStore()
         if self.cfg.username:
             cred_store.delete_sso_credentials(self.cfg.username)
+        self.cfg.username = ""
+        save_config(self.cfg)
         sess_mgr = MoodleSessionManager(base_url=self.cfg.moodle_url)
         sess_mgr.clear_session()
         self._set_status("idle", step="", pct=0)

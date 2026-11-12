@@ -197,3 +197,57 @@ def test_cli_app_and_gui_dispatch(monkeypatch):
     rc2 = main(["gui"])
     assert rc2 == 0
     assert called_detached == [True, False]
+
+
+def test_tray_syncs_cfg_and_auto_sync_on_api_status_change(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path / "cfg"))
+    cfg = PradoConfig(courses_root=tmp_path / "Courses", language="es")
+    cfg.sync.auto_sync = False
+    app = PradoTrayApp(cfg=cfg)
+    app.icon = MagicMock()
+
+    updated_cfg = PradoConfig(courses_root=tmp_path / "Courses", language="en")
+    updated_cfg.sync.auto_sync = True
+    app.api = MagicMock()
+    app.api.cfg = updated_cfg
+
+    app._on_api_status_change("idle", "14:20")
+    assert app.cfg is updated_cfg
+    assert app._auto_sync_enabled is True
+    assert app.last_sync_time == "14:20"
+    app.icon.update_menu.assert_called()
+
+
+def test_apply_macos_template_icon_wraps_assert_image(monkeypatch):
+    nsimage = MagicMock()
+    btn = MagicMock()
+    status_item = MagicMock()
+    status_item.button.return_value = btn
+
+    class _DummyIcon:
+        def __init__(self):
+            self._icon_image = nsimage
+            self._status_item = status_item
+            self.orig_calls = 0
+
+        def _assert_image(self):
+            self.orig_calls += 1
+
+    icon_obj = _DummyIcon()
+    monkeypatch.setattr("sys.platform", "darwin")
+
+    PradoTrayApp._apply_macos_template_icon(icon_obj)
+    assert getattr(icon_obj, "_prado_template_wrapped", False) is True
+    assert nsimage.setTemplate_.call_count == 1
+    nsimage.setTemplate_.assert_called_with(True)
+    btn.setImage_.assert_called_with(nsimage)
+
+    # First pystray redraw calls wrapped _assert_image, which re-applies template flag
+    icon_obj._assert_image()
+    assert icon_obj.orig_calls == 1
+    assert nsimage.setTemplate_.call_count == 2
+
+    # Second call to _apply_macos_template_icon does not double-wrap
+    PradoTrayApp._apply_macos_template_icon(icon_obj)
+    icon_obj._assert_image()
+    assert icon_obj.orig_calls == 2

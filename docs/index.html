@@ -244,11 +244,37 @@
     }
     .copy-btn:hover { border-color: var(--accent); }
     .os-tip {
-      font-size: 12.5px;
+      font-size: 13px;
       color: var(--muted);
-      line-height: 1.45;
+      line-height: 1.5;
     }
     .os-tip b { color: var(--text); }
+    .terminal-disclosure {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      margin-top: 2px;
+    }
+    .terminal-summary {
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .terminal-summary::-webkit-details-marker { display: none; }
+    .terminal-summary::before {
+      content: "▸";
+      font-size: 11px;
+      color: var(--accent);
+      transition: transform 0.15s ease;
+    }
+    .terminal-disclosure[open] .terminal-summary::before { transform: rotate(90deg); }
+    .terminal-disclosure[open] .terminal-summary { color: var(--text); }
+    .terminal-disclosure .cmd-box { margin-top: 10px; }
 
     .preview-wrap {
       background: var(--bg-card);
@@ -388,19 +414,25 @@
             <span class="detected-pill" id="detectedOsPill" data-i18n="recommended_label">Recomendado para tu equipo</span>
           </div>
 
-          <div class="cmd-box">
-            <code id="osInstallCmd">curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | bash</code>
-            <button type="button" class="copy-btn" id="copyOsCmdBtn" onclick="copyCurrentCmd()" data-i18n="copy_btn">Copiar</button>
-          </div>
-
           <p class="os-tip" id="osSmartTip" data-i18n-html="faq_desc">
-            <b>Instalación sin avisos:</b> Ejecuta el comando superior o, si descargas el <code>.zip</code> en macOS, haz <b>clic derecho → Abrir</b> la primera vez. En Windows SmartScreen pulsa <b>Más información → Ejecutar de todas formas</b>.
+            <b>Primera apertura en 2 pasos:</b> 1. Abre el <code>.zip</code> descargado · 2. Haz <b>clic derecho → Abrir</b> una sola vez (macOS) o pulsa <b>Más información → Ejecutar de todas formas</b> (Windows).
           </p>
+
+          <details class="terminal-disclosure" id="terminalDisclosure">
+            <summary class="terminal-summary" data-i18n="terminal_toggle">¿Prefieres usar la Terminal? (Opcional)</summary>
+            <div class="cmd-box">
+              <code id="osInstallCmd">curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | bash</code>
+              <button type="button" class="copy-btn" id="copyOsCmdBtn" onclick="copyCurrentCmd()" data-i18n="copy_btn">Copiar</button>
+            </div>
+          </details>
         </div>
       </div>
 
       <div class="preview-wrap">
-        <img class="preview-img" src="assets/gui_01_dashboard.png" alt="PradoOS — Configuración UGR">
+        <picture>
+          <source srcset="assets/gui_01_dashboard_light.png" media="(prefers-color-scheme: light)">
+          <img class="preview-img" src="assets/gui_01_dashboard.png" alt="PradoOS — Configuración UGR">
+        </picture>
       </div>
     </section>
 
@@ -552,14 +584,15 @@ const TEXTS = {
     dl_linux: "Descargar para Linux (.tar.gz)",
     copy_btn: "Copiar",
     copied_btn: "Copiado",
-    tip_mac: "<b>macOS sin avisos de Gatekeeper:</b> Ejecuta este comando local para compilar el paquete sin firma Apple de pago, o abre el <code>.zip</code> con <b>clic derecho → Abrir</b>.",
-    tip_win: "<b>Windows SmartScreen:</b> Usa el instalador local con el comando superior o, tras bajar el <code>.zip</code>, pulsa <b>Más información → Ejecutar de todas formas</b>.",
+    terminal_toggle: "¿Prefieres instalar o desbloquear desde Terminal? (Opcional)",
+    tip_mac: "<b>macOS en 2 pasos:</b> 1. Descarga y abre el <code>.zip</code> · 2. La primera vez, haz <b>clic derecho sobre PradoOS → Abrir</b> para confirmar que confías en la app.",
+    tip_win: "<b>Windows en 2 pasos:</b> 1. Descomprime el <code>.zip</code> · 2. Si aparece SmartScreen, pulsa <b>Más información → Ejecutar de todas formas</b> la primera vez.",
     tip_linux: "<b>Linux Desktop:</b> Funciona en Ubuntu, Fedora, Debian y Arch con soporte para AppIndicator/System Tray y SecretService.",
-    faq_desc: "<b>Instalación sin avisos:</b> Ejecuta el comando superior o usa <b>clic derecho → Abrir</b> la primera vez.",
+    faq_desc: "<b>Primera apertura en 2 pasos:</b> 1. Abre el <code>.zip</code> descargado · 2. Haz <b>clic derecho → Abrir</b> la primera vez.",
     steps_title: "¿Cómo funciona? En 3 pasos de 30 segundos",
     steps_sub: "Funciona en segundo plano sin conocimientos técnicos previos.",
-    s1_title: "Instala y abre PradoOS",
-    s1_desc: "Descarga la app para macOS, Windows o Linux, o lanza el instalador en 1 comando.",
+    s1_title: "Descarga y abre PradoOS",
+    s1_desc: "Descarga la app para macOS, Windows o Linux y ábrela en 2 clics sin configurar nada en la terminal.",
     s2_title: "Conecta tu cuenta @correo.ugr.es",
     s2_desc: "Introduce tu correo UGR, elige tu carpeta local y verifica tu dispositivo con el código 2FA válido por 30 días.",
     s3_title: "Todo en tu Barra de Menús",
@@ -598,14 +631,15 @@ const TEXTS = {
     dl_linux: "Download for Linux (.tar.gz)",
     copy_btn: "Copy",
     copied_btn: "Copied",
-    tip_mac: "<b>macOS Gatekeeper-free install:</b> Run the 1-line local installer above, or open the downloaded <code>.zip</code> via <b>Right-click → Open</b> the first time.",
-    tip_win: "<b>Windows SmartScreen:</b> Run the PowerShell installer above or click <b>More info → Run anyway</b> when opening the portable build.",
+    terminal_toggle: "Prefer installing via Terminal? (Optional)",
+    tip_mac: "<b>macOS in 2 steps:</b> 1. Download and unzip the <code>.zip</code> · 2. On first launch, <b>Right-click PradoOS → Open</b> once to allow the unsigned student build.",
+    tip_win: "<b>Windows in 2 steps:</b> 1. Extract the <code>.zip</code> · 2. If SmartScreen appears, click <b>More info → Run anyway</b> on first launch.",
     tip_linux: "<b>Linux Desktop:</b> Works across Ubuntu, Fedora, Debian, and Arch with AppIndicator tray support and SecretService keyring.",
-    faq_desc: "<b>Notice-free setup:</b> Run the command above or use <b>Right-click → Open</b> on first launch.",
+    faq_desc: "<b>First launch in 2 steps:</b> 1. Open the downloaded <code>.zip</code> · 2. <b>Right-click → Open</b> once.",
     steps_title: "How it works in 3 quick 30-second steps",
     steps_sub: "Runs quietly in the background without technical configuration.",
-    s1_title: "Install and launch PradoOS",
-    s1_desc: "Download the native app for macOS, Windows, or Linux, or run the 1-line installer.",
+    s1_title: "Download and open PradoOS",
+    s1_desc: "Download the native app for macOS, Windows, or Linux and launch it in two clicks—no terminal needed.",
     s2_title: "Connect your @correo.ugr.es account",
     s2_desc: "Enter your UGR email, pick your notes folder, and verify once with a 30-day 2FA code.",
     s3_title: "Manage everything from your Menu Bar",
@@ -644,14 +678,15 @@ const TEXTS = {
     dl_linux: "Scarica per Linux (.tar.gz)",
     copy_btn: "Copia",
     copied_btn: "Copiato",
-    tip_mac: "<b>macOS senza blocchi Gatekeeper:</b> Esegui il comando locale qui sopra oppure apri lo <code>.zip</code> con <b>Tasto destro → Apri</b> la prima volta.",
-    tip_win: "<b>Windows SmartScreen:</b> Usa il comando PowerShell qui sopra oppure clicca <b>Ulteriori informazioni → Esegui comunque</b>.",
+    terminal_toggle: "Preferisci installare da Terminale? (Opzionale)",
+    tip_mac: "<b>macOS in 2 passaggi:</b> 1. Scarica e apri lo <code>.zip</code> · 2. Al primo avvio fai <b>Tasto destro su PradoOS → Apri</b> una sola volta.",
+    tip_win: "<b>Windows in 2 passaggi:</b> 1. Estrai lo <code>.zip</code> · 2. Se compare SmartScreen, clicca <b>Ulteriori informazioni → Esegui comunque</b>.",
     tip_linux: "<b>Linux Desktop:</b> Compatibile con Ubuntu, Fedora, Debian e Arch con supporto AppIndicator e SecretService.",
-    faq_desc: "<b>Installazione senza avvisi:</b> Usa il comando qui sopra oppure <b>Tasto destro → Apri</b> al primo avvio.",
+    faq_desc: "<b>Primo avvio in 2 passaggi:</b> 1. Apri lo <code>.zip</code> scaricato · 2. <b>Tasto destro → Apri</b> la prima volta.",
     steps_title: "Come funziona? In 3 passaggi da 30 secondi",
     steps_sub: "Lavora in background senza alcuna configurazione tecnica.",
-    s1_title: "Installa e avvia PradoOS",
-    s1_desc: "Scarica l'app per macOS, Windows o Linux oppure usa il comando rapido di installazione.",
+    s1_title: "Scarica e avvia PradoOS",
+    s1_desc: "Scarica l'app per macOS, Windows o Linux e aprila in 2 clic senza usare il terminale.",
     s2_title: "Collega il tuo account @correo.ugr.es",
     s2_desc: "Inserisci l'email UGR, scegli la cartella locale e conferma il codice 2FA valido 30 giorni.",
     s3_title: "Tutto nella Barra dei Menu",
@@ -690,14 +725,15 @@ const TEXTS = {
     dl_linux: "Télécharger pour Linux (.tar.gz)",
     copy_btn: "Copier",
     copied_btn: "Copié",
-    tip_mac: "<b>macOS sans alerte Gatekeeper :</b> Lancez la commande locale ci-dessus ou ouvrez le <code>.zip</code> avec <b>Clic droit → Ouvrir</b> la première fois.",
-    tip_win: "<b>Windows SmartScreen :</b> Exécutez la commande PowerShell ci-dessus ou cliquez sur <b>Informations complémentaires → Exécuter quand même</b>.",
+    terminal_toggle: "Préférez-vous utiliser le Terminal ? (Optionnel)",
+    tip_mac: "<b>macOS en 2 étapes :</b> 1. Téléchargez et ouvrez le <code>.zip</code> · 2. Au premier lancement, faites <b>Clic droit sur PradoOS → Ouvrir</b> une seule fois.",
+    tip_win: "<b>Windows en 2 étapes :</b> 1. Extrayez le <code>.zip</code> · 2. Si SmartScreen s'affiche, cliquez sur <b>Informations complémentaires → Exécuter quand même</b>.",
     tip_linux: "<b>Linux Desktop :</b> Compatible Ubuntu, Fedora, Debian et Arch avec AppIndicator et SecretService.",
-    faq_desc: "<b>Installation sans alerte :</b> Exécutez la commande ci-dessus ou utilisez <b>Clic droit → Ouvrir</b>.",
+    faq_desc: "<b>Premier lancement en 2 étapes :</b> 1. Ouvrez le <code>.zip</code> téléchargé · 2. <b>Clic droit → Ouvrir</b> une fois.",
     steps_title: "Comment ça marche ? 3 étapes de 30 secondes",
     steps_sub: "Fonctionne discrètement sans configuration technique.",
-    s1_title: "Installez et ouvrez PradoOS",
-    s1_desc: "Téléchargez l'application pour macOS, Windows ou Linux ou lancez l'installeur en une ligne.",
+    s1_title: "Téléchargez et ouvrez PradoOS",
+    s1_desc: "Téléchargez l'application pour macOS, Windows ou Linux et lancez-la en deux clics sans terminal.",
     s2_title: "Connectez votre compte @correo.ugr.es",
     s2_desc: "Saisissez votre courriel UGR, choisissez votre dossier local et validez le code 2FA valable 30 jours.",
     s3_title: "Tout depuis la barre des menus",

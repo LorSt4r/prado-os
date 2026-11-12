@@ -225,44 +225,45 @@ def test_pywebview_live_dom_and_tabs_e2e(tmp_path: Path, monkeypatch: pytest.Mon
 
     def run_dom_assertions():
         try:
-            # Wait for initial fetch('/api/state') to populate DOM
+            # Wait for initial fetch('/api/state') to populate the unified Connected Account card
             for _ in range(30):
                 time.sleep(0.15)
-                kpi_courses = window.evaluate_js("document.getElementById('kpiCourses').textContent")
-                if kpi_courses == "5/5":
+                sub_txt = window.evaluate_js("document.getElementById('connectedSubText').textContent")
+                if "5" in str(sub_txt):
                     break
 
-            results["kpi_courses"] = window.evaluate_js("document.getElementById('kpiCourses').textContent")
-            results["kpi_files"] = window.evaluate_js("document.getElementById('kpiFiles').textContent")
-            results["kpi_protected"] = window.evaluate_js("document.getElementById('kpiProtected').textContent")
-            results["kpi_deadlines"] = window.evaluate_js("document.getElementById('kpiDeadlines').textContent")
+            results["conn_visible"] = window.evaluate_js(
+                "document.getElementById('connectedSummaryCard').classList.contains('visible')"
+            )
+            results["unconfig_hidden_on_account"] = window.evaluate_js(
+                "document.getElementById('unconfiguredStrip').style.display === 'none'"
+            )
+            results["conn_sub"] = window.evaluate_js("document.getElementById('connectedSubText').textContent")
+            results["conn_badge"] = window.evaluate_js("document.getElementById('syncStatusBadgeConn').textContent")
 
-            # Switch to Courses tab
-            window.evaluate_js("switchTab('courses')")
-            time.sleep(0.2)
-            results["courses_active"] = window.evaluate_js(
-                "document.getElementById('view-courses').classList.contains('active')"
+            # Expand credentials editor in-place -> connectedSummaryCard hides so both never stack
+            window.evaluate_js("toggleCredentialsEditor(true)")
+            results["creds_open_hides_summary"] = window.evaluate_js(
+                "!document.getElementById('connectedSummaryCard').classList.contains('visible') && !document.getElementById('credentialsFieldsWrap').classList.contains('collapsed')"
             )
-            results["courses_html_has_ed"] = window.evaluate_js(
-                "document.getElementById('coursesManageList').innerHTML.includes('Estructura de Datos')"
-            )
+            window.evaluate_js("toggleCredentialsEditor(false)")
 
-            # Switch to Mail tab
-            window.evaluate_js("switchTab('mail')")
-            time.sleep(0.4)
-            results["mail_active"] = window.evaluate_js(
-                "document.getElementById('view-mail').classList.contains('active')"
-            )
-            results["mail_has_mesejo"] = window.evaluate_js(
-                "document.getElementById('mailListPane').innerHTML.includes('Pablo Mesejo')"
+            # Test Mirror vs Smart live tree preview
+            window.evaluate_js("setPresetMode('smart')")
+            results["tree_smart"] = window.evaluate_js(
+                "document.getElementById('treePreviewLines').textContent.includes('Teoría')"
             )
 
-            # Switch to Calendar & Doctor tab
-            window.evaluate_js("switchTab('calendar')")
-            time.sleep(0.2)
-            results["calendar_active"] = window.evaluate_js(
-                "document.getElementById('view-calendar').classList.contains('active')"
+            # Switch to Mail & Preferences tab -> footer button changes to Save Preferences
+            window.evaluate_js("switchCardTab('prefs')")
+            time.sleep(0.1)
+            results["prefs_active"] = window.evaluate_js(
+                "document.getElementById('cardTabPrefs').classList.contains('active')"
             )
+            results["prefs_btn_text"] = window.evaluate_js(
+                "document.getElementById('btnSyncNow').textContent"
+            )
+            window.evaluate_js("switchCardTab('account')")
 
             # Test 4-language i18n switching in live DOM
             window.evaluate_js("applyTranslations('it')")
@@ -275,7 +276,7 @@ def test_pywebview_live_dom_and_tabs_e2e(tmp_path: Path, monkeypatch: pytest.Mon
             )
 
             # Test Onboarding Modal open/close
-            window.evaluate_js("openOnboardingModal(true)")
+            window.evaluate_js("openOnboardingModal()")
             results["onboard_visible"] = window.evaluate_js(
                 "document.getElementById('onboardingModal').classList.contains('visible')"
             )
@@ -288,15 +289,14 @@ def test_pywebview_live_dom_and_tabs_e2e(tmp_path: Path, monkeypatch: pytest.Mon
     finally:
         server.stop()
 
-    assert results.get("kpi_courses") == "5/5"
-    assert results.get("kpi_files") == "4"
-    assert results.get("kpi_protected") == "2"
-    assert results.get("kpi_deadlines") == "3"
-    assert results.get("courses_active") is True
-    assert results.get("courses_html_has_ed") is True
-    assert results.get("mail_active") is True
-    assert results.get("mail_has_mesejo") is True
-    assert results.get("calendar_active") is True
+    assert results.get("conn_visible") is True
+    assert results.get("unconfig_hidden_on_account") is True
+    assert "5" in str(results.get("conn_sub", ""))
+    assert "4" in str(results.get("conn_badge", ""))
+    assert results.get("creds_open_hides_summary") is True
+    assert results.get("tree_smart") is True
+    assert results.get("prefs_active") is True
+    assert "Opciones" in str(results.get("prefs_btn_text", ""))
     assert "Configurazione UGR" in results.get("title_it", "")
     assert "Configuración" in results.get("title_es", "")
     assert results.get("onboard_visible") is True

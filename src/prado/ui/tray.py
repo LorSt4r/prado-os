@@ -138,6 +138,8 @@ class PradoTrayApp:
         self.window: Optional[Any] = None
 
     def _on_api_status_change(self, new_status: str, last_sync: Optional[str]) -> None:
+        self.cfg = self.api.cfg
+        self._auto_sync_enabled = bool(getattr(self.cfg.sync, "auto_sync", False))
         mapped = "syncing" if new_status in ("syncing", "mfa_required") else ("error" if new_status == "error" else "idle")
         self.status = mapped
         if last_sync:
@@ -167,13 +169,34 @@ class PradoTrayApp:
 
     @staticmethod
     def _apply_macos_template_icon(icon_obj: Any) -> None:
-        """Marks the Cocoa NSImage backing `pystray.Icon` as a monochrome template image."""
+        """
+        Marks the Cocoa NSImage backing `pystray.Icon` as a monochrome template image
+        and wraps `_assert_image` so the first frame rendered by `run_detached()` is also a template.
+        """
         if sys.platform != "darwin" or icon_obj is None:
             return
         try:
+            if not getattr(icon_obj, "_prado_template_wrapped", False):
+                orig_assert = getattr(icon_obj, "_assert_image", None)
+                if callable(orig_assert):
+                    def _wrapped_assert() -> None:
+                        orig_assert()
+                        ns_img = getattr(icon_obj, "_icon_image", None)
+                        if ns_img is not None and hasattr(ns_img, "setTemplate_"):
+                            ns_img.setTemplate_(True)
+                            st_item = getattr(icon_obj, "_status_item", None)
+                            if st_item is not None and hasattr(st_item, "button"):
+                                st_item.button().setImage_(ns_img)
+
+                    setattr(icon_obj, "_assert_image", _wrapped_assert)
+                    setattr(icon_obj, "_prado_template_wrapped", True)
+
             ns_img = getattr(icon_obj, "_icon_image", None)
             if ns_img is not None and hasattr(ns_img, "setTemplate_"):
                 ns_img.setTemplate_(True)
+                st_item = getattr(icon_obj, "_status_item", None)
+                if st_item is not None and hasattr(st_item, "button"):
+                    st_item.button().setImage_(ns_img)
         except Exception:
             pass
 
