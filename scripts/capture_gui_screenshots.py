@@ -34,6 +34,7 @@ def main() -> int:
         cfg_dir = tmp_path / "prado_cfg"
         cfg_dir.mkdir(parents=True, exist_ok=True)
         os.environ["PRADO_CONFIG_DIR"] = str(cfg_dir)
+        os.environ["PRADO_KEYRING_BACKEND"] = "vault"
 
         courses_root_sim = Path.home() / "Documents" / "Asignaturas_UGR"
         created_sim_dir = not courses_root_sim.exists()
@@ -88,11 +89,8 @@ def main() -> int:
             )
 
         sample_files = [
-            ("Visión_por_Computador/Practicas/P2/P2_DeepLearning.ipynb", 2961148, 1001, 524288, 1, 0),
-            ("Estructura_de_Datos/Practicas/Practica_Final/guion_matriculas_stl.pdf", 2961122, 1002, 348160, 0, 0),
-            ("Teoría_de_la_Información/Practicas/P3/P3_Huffman_Quijote.ipynb", 2961199, 1003, 618496, 1, 1),
-            ("Sistemas_Operativos/Modulo_2/Tema2_Llamadas_al_Sistema_POSIX.pdf", 2961123, 1004, 892928, 0, 0),
-            ("Modelos_de_Computacion/Teoria/Tema3_Gramaticas_Independientes_Contexto.pdf", 2961131, 1005, 412672, 0, 0),
+            (f"Estructura_de_Datos/Practicas/Archivo_{idx:02d}.pdf", 2961122, 1000 + idx, 348160, 1 if idx <= 2 else 0, 0)
+            for idx in range(1, 25)
         ]
         for path_str, cid, rid, sz, mod, adopt in sample_files:
             state_db.upsert_file(
@@ -164,7 +162,7 @@ def main() -> int:
 
         cfg = PradoConfig(
             courses_root=courses_root_sim,
-            username="lorenzovasile@correo.ugr.es",
+            username="estudiante@correo.ugr.es",
             language="es",
             credential_store="vault_file",
         )
@@ -173,18 +171,26 @@ def main() -> int:
         cfg.notifications.enabled = True
         cfg.mail.enabled = True
         cfg.mail.forward_enabled = True
-        cfg.mail.forward_to = "lorenzovasile@gmail.com"
+        cfg.mail.forward_to = "estudiante@gmail.com"
         cfg.mail.forward_mode = "academic"
         cfg.mail.filter_senders = ["@decsai.ugr.es", "manjavacas@ugr.es", "pmesejo@ugr.es"]
         cfg.mail.filter_keywords = ["práctica", "examen", "entrega", "nota", "convocatoria"]
         save_config(cfg, get_config_file())
 
         cred = CredentialStore()
-        cred.set_sso_credentials("lorenzovasile@correo.ugr.es", "demo_password_ugr")
+        cred.set_sso_credentials("estudiante@correo.ugr.es", "demo_password_ugr")
 
         api = PradoControlCenterAPI(cfg=cfg)
+        orig_get_full_state = api.get_full_state
+
+        def _privacy_safe_state():
+            st = orig_get_full_state()
+            st["config"]["courses_root"] = "~/Documents/Asignaturas_UGR"
+            return st
+
+        api.get_full_state = _privacy_safe_state  # type: ignore[method-assign]
         api.last_sync_time = "18:15"
-        api._append_log("🔑 Conectando a https://pradogrado2627.ugr.es como lorenzovasile@correo.ugr.es...")
+        api._append_log("🔑 Conectando a https://pradogrado2627.ugr.es como estudiante@correo.ugr.es...")
         api._append_log("✓ Sesión SAML validada mediante MFA_TOKEN (Dispositivo verificado por 30 días).")
         api._append_log("📚 5 asignaturas activas detectadas en PRADO UGR (Subgrupos C2, A3, A1, E3, B1).")
         api._append_log("🛡️ 2 archivos modificados localmente (.ipynb) protegidos contra sobrescritura (SHA-256).")
@@ -194,13 +200,17 @@ def main() -> int:
         server = PradoUIServer(api=api)
         base_url = server.start()
 
+        docs_assets_dir = repo_root / "docs" / "assets"
+        docs_assets_dir.mkdir(parents=True, exist_ok=True)
+
         targets = [
-            ("gui_01_dashboard.png", f"{base_url}", "600,660"),
+            (docs_assets_dir / "gui_01_dashboard.png", f"{base_url}&theme=dark", "525,640"),
+            (docs_assets_dir / "gui_01_dashboard_light.png", f"{base_url}&theme=light", "525,640"),
+            (screens_dir / "gui_01_dashboard.png", f"{base_url}&theme=dark", "525,640"),
         ]
 
         try:
-            for filename, target_url, win_size in targets:
-                out_path = screens_dir / filename
+            for out_path, target_url, win_size in targets:
                 cmd = [
                     str(chrome_bin),
                     "--headless=new",
@@ -213,7 +223,7 @@ def main() -> int:
                     target_url,
                 ]
                 subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                print(f"  ✓ Captured {out_path.name} ({out_path.stat().st_size // 1024} KB)")
+                print(f"  ✓ Captured {out_path.relative_to(repo_root)} ({out_path.stat().st_size // 1024} KB)")
         finally:
             server.stop()
             ics_f = courses_root_sim / "deadlines.ics"

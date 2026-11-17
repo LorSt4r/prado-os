@@ -43,7 +43,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     --radius: 12px;
   }
   @media (prefers-color-scheme: light) {
-    :root {
+    :root:not([data-theme="dark"]) {
       /* Palette 1: Academic Slate + UGR Crimson (Light mode) */
       --bg-app: #f8fafc;
       --bg-card: #ffffff;
@@ -63,28 +63,46 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
       --red-soft: rgba(220, 38, 38, 0.10);
     }
   }
+  :root[data-theme="light"] {
+    --bg-app: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-surface: #f1f5f9;
+    --bg-input: #ffffff;
+    --border: #dbe2ea;
+    --text-main: #0f172a;
+    --text-muted: #475569;
+    --accent: #c8102e;
+    --accent-hover: #9f1239;
+    --accent-soft: rgba(200, 16, 46, 0.10);
+    --green: #047857;
+    --green-soft: rgba(5, 150, 105, 0.12);
+    --amber: #b45309;
+    --amber-soft: rgba(217, 119, 6, 0.12);
+    --red: #dc2626;
+    --red-soft: rgba(220, 38, 38, 0.10);
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-    background: var(--bg-app);
+    background: var(--bg-card);
     color: var(--text-main);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     justify-content: flex-start;
-    padding: 12px;
     user-select: none;
     -webkit-font-smoothing: antialiased;
   }
   .setup-card {
     width: 100%;
-    max-width: 492px;
+    min-height: 100vh;
+    max-width: none;
     background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    border: none;
+    border-radius: 0;
     padding: 16px 20px;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -225,9 +243,9 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   .grid-2 { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 10px; }
   .form-group { display: flex; flex-direction: column; gap: 4px; }
   .form-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--text-main);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -398,12 +416,32 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     transition: width 0.25s ease;
   }
   .footer {
+    margin-top: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
     padding-top: 8px;
     border-top: 1px solid var(--border);
+  }
+  .btn:focus-visible,
+  .card-tab:focus-visible,
+  .seg-btn:focus-visible,
+  .lang-btn:focus-visible,
+  .link-btn:focus-visible,
+  .pw-toggle:focus-visible,
+  .input:focus-visible,
+  .select:focus-visible,
+  input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn:active:not(:disabled),
+  .seg-btn:active,
+  .card-tab:active,
+  .lang-btn:active,
+  .link-btn:active {
+    transform: translateY(1px) scale(0.985);
   }
 
   /* MFA 6-digit modal overlay */
@@ -596,11 +634,14 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     <!-- TAB 2: MAIL & PREFERENCES -->
     <div class="tab-panel" id="cardTabPrefs">
       <div class="section-box">
-        <label class="check-row">
-          <input type="checkbox" id="cfgFwdEnabled">
-          <span data-i18n="lbl_fwd_enable">Reenviar correos de profesores (@correo.ugr.es) a mi correo personal:</span>
-        </label>
-        <input type="email" class="input" id="cfgFwdTo" placeholder="tu.correo@gmail.com" data-i18n-placeholder="ph_fwd_email">
+        <div class="row" style="justify-content:space-between; align-items:flex-start;">
+          <label class="check-row" style="flex:1;">
+            <input type="checkbox" id="cfgFwdEnabled" onchange="markMailUnsaved(true)">
+            <span data-i18n="lbl_fwd_enable">Reenviar correos de profesores (@correo.ugr.es) a mi correo personal:</span>
+          </label>
+          <span class="badge badge-syncing" id="mailUnsavedBadge" style="display:none; font-size:11px; padding:2px 8px;" data-i18n="badge_unsaved">Cambios sin guardar</span>
+        </div>
+        <input type="email" class="input" id="cfgFwdTo" placeholder="tu.correo@gmail.com" data-i18n-placeholder="ph_fwd_email" oninput="markMailUnsaved(true)">
         <div class="helper-text" data-i18n="fwd_helper">Se filtra el correo académico de PRADO/profesores sin reenviar spam.</div>
       </div>
 
@@ -615,7 +656,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
         </label>
         <div class="form-group">
           <label class="form-label" for="onbAutoSyncSelect" data-i18n="lbl_autosync_freq">Sincronización automática en segundo plano</label>
-          <select class="select" id="onbAutoSyncSelect">
+          <select class="select" id="onbAutoSyncSelect" onchange="toggleAutoSyncImmediate(this.value)">
             <option value="off" data-i18n="opt_autosync_off">Desactivada (solo manual desde la barra)</option>
             <option value="30" data-i18n="opt_autosync_30">Cada 30 minutos</option>
             <option value="60" data-i18n="opt_autosync_60">Cada 1 hora (Recomendado)</option>
@@ -733,6 +774,7 @@ const I18N = {
     tree_mirror_desc: "Mantiene las carpetas exactas creadas en PRADO.",
     tree_smart_desc: "Organiza automáticamente en Teoría, Prácticas y General.",
     lbl_fwd_enable: "Reenviar correos de profesores (@correo.ugr.es) a mi correo personal:",
+    badge_unsaved: "Cambios sin guardar",
     ph_fwd_email: "tu.correo@gmail.com",
     fwd_helper: "Se filtra el correo académico de PRADO y profesores sin reenviar spam.",
     lbl_notif_title: "Notificaciones de escritorio (nuevos apuntes y entregas)",
@@ -797,6 +839,7 @@ const I18N = {
     tree_mirror_desc: "Keeps the exact section layout from PRADO.",
     tree_smart_desc: "Auto-sorts files into clean Theory and Labs folders.",
     lbl_fwd_enable: "Auto-forward professor emails (@correo.ugr.es) to my personal inbox:",
+    badge_unsaved: "Unsaved changes",
     ph_fwd_email: "your.email@gmail.com",
     fwd_helper: "Forwards academic and PRADO notices without passing spam.",
     lbl_notif_title: "Desktop notifications (new notes and deadlines)",
@@ -861,6 +904,7 @@ const I18N = {
     tree_mirror_desc: "Mantiene la struttura esatta creata su PRADO.",
     tree_smart_desc: "Separa automaticamente in Teoria, Pratiche e Generale.",
     lbl_fwd_enable: "Inoltra le email dei docenti (@correo.ugr.es) alla mia email:",
+    badge_unsaved: "Modifiche non salvate",
     ph_fwd_email: "tua.email@gmail.com",
     fwd_helper: "Inoltra solo avvisi accademici e PRADO filtrando lo spam.",
     lbl_notif_title: "Notifiche desktop (nuovi appunti e scadenze)",
@@ -925,6 +969,7 @@ const I18N = {
     tree_mirror_desc: "Conserve la structure exacte de PRADO.",
     tree_smart_desc: "Classe automatiquement en Théorie, TP et Général.",
     lbl_fwd_enable: "Rediriger les courriels des professeurs (@correo.ugr.es) vers mon courriel :",
+    badge_unsaved: "Modifications non enregistrées",
     ph_fwd_email: "votre.email@gmail.com",
     fwd_helper: "Transfère uniquement les messages académiques en filtrant le spam.",
     lbl_notif_title: "Notifications du bureau (nouveaux cours et échéances)",
@@ -1247,6 +1292,28 @@ async function toggleAutostartImmediate(enabled) {
   }
 }
 
+async function toggleAutoSyncImmediate(val) {
+  const dict = I18N[currentLang] || I18N.es;
+  const enabled = val !== "off";
+  const interval_minutes = enabled ? parseInt(val, 10) : 60;
+  const res = await apiPost("/api/autosync/toggle", {
+    enabled: enabled,
+    interval_minutes: interval_minutes
+  });
+  if (res.status === "success") {
+    showToast(dict.toast_prefs_saved);
+  } else {
+    showToast(res.error || dict.toast_save_error);
+  }
+}
+
+function markMailUnsaved(dirty) {
+  const badge = document.getElementById("mailUnsavedBadge");
+  if (badge) {
+    badge.style.display = dirty ? "inline-flex" : "none";
+  }
+}
+
 async function submitCompactSetup() {
   clearAllErrors();
   const dict = I18N[currentLang] || I18N.es;
@@ -1268,6 +1335,7 @@ async function submitCompactSetup() {
     forward_to: fwdTo,
     forward_mode: "academic"
   });
+  markMailUnsaved(false);
 
   const shouldSync = activeCardTab === "account";
   const res = await apiPost("/api/onboard", {
@@ -1285,6 +1353,7 @@ async function submitCompactSetup() {
   });
 
   if (res.status === "success") {
+    markMailUnsaved(false);
     showToast(shouldSync ? dict.toast_saved_syncing : dict.toast_prefs_saved);
     if (res.username) {
       toggleCredentialsEditor(false);
@@ -1351,7 +1420,7 @@ function renderStateText(st) {
   if (isConnected) {
     connCard.classList.toggle("visible", !credsExpanded);
     if (unconfigStrip) {
-      unconfigStrip.style.display = (activeCardTab === "prefs" || credsExpanded) ? "flex" : "none";
+      unconfigStrip.style.display = "none";
     }
     if (cancelBtn) cancelBtn.style.display = credsExpanded ? "inline-flex" : "none";
     document.getElementById("connectedUserText").textContent = st.auth.username;
@@ -1361,7 +1430,9 @@ function renderStateText(st) {
     if (logoutBtn) logoutBtn.style.display = "inline-flex";
   } else {
     connCard.classList.remove("visible");
-    if (unconfigStrip) unconfigStrip.style.display = "flex";
+    if (unconfigStrip) {
+      unconfigStrip.style.display = activeCardTab === "account" ? "flex" : "none";
+    }
     if (cancelBtn) cancelBtn.style.display = "none";
     if (logoutBtn) logoutBtn.style.display = "none";
   }
@@ -1454,6 +1525,10 @@ async function refreshState() {
   } catch (e) {}
 }
 
+const _qsTheme = new URLSearchParams(window.location.search).get("theme");
+if (_qsTheme === "light" || _qsTheme === "dark") {
+  document.documentElement.setAttribute("data-theme", _qsTheme);
+}
 refreshState();
 setInterval(refreshState, 1500);
 window.addEventListener("focus", refreshState);

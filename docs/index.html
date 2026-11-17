@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PradoOS — Tus Asignaturas y Entregas de PRADO UGR Siempre al Día</title>
-  <meta name="description" content="Descarga PradoOS gratis para macOS, Windows y Linux. Sincroniza automáticamente tus apuntes de PRADO UGR, recibe tus entregas en el calendario y reenvía correos de profesores.">
+  <meta name="description" content="Descarga PradoOS gratis para macOS, Windows y Linux. Sincroniza tus apuntes de PRADO UGR, consulta tus entregas en el calendario y filtra correos de profesores.">
+  <meta name="theme-color" content="#0f1117">
+  <meta property="og:title" content="PradoOS — Tus Asignaturas y Entregas de PRADO UGR Siempre al Día">
+  <meta property="og:description" content="Sincroniza tus apuntes de PRADO UGR en macOS, Windows y Linux con protección SHA-256, calendario de entregas y filtrado de correo institucional.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/gui_01_dashboard.png">
+  <meta name="twitter:card" content="summary_large_image">
   <style>
     :root {
       /* Palette 1: Academic Slate + UGR Crimson (Dark default, matching Setup Card) */
@@ -14,6 +20,7 @@
       --bg-elevated: #1f2430;
       --border: #2b3140;
       --text: #f1f4f9;
+      --text-body: #dce3ee;
       --muted: #9aa3b2;
       --accent: #e11d48;
       --accent-hover: #be123c;
@@ -22,6 +29,7 @@
       --green: #34d399;
       --green-soft: rgba(16, 185, 129, 0.14);
       --amber: #fbbf24;
+      --amber-soft: rgba(251, 191, 36, 0.14);
       --hero-glow: rgba(225, 29, 72, 0.12);
     }
     @media (prefers-color-scheme: light) {
@@ -33,6 +41,7 @@
         --bg-elevated: #e2e8f0;
         --border: #dbe2ea;
         --text: #0f172a;
+        --text-body: #1e293b;
         --muted: #475569;
         --accent: #c8102e;
         --accent-hover: #9f1239;
@@ -41,6 +50,7 @@
         --green: #047857;
         --green-soft: rgba(5, 150, 105, 0.11);
         --amber: #b45309;
+        --amber-soft: rgba(180, 83, 9, 0.11);
         --hero-glow: rgba(200, 16, 46, 0.06);
       }
     }
@@ -60,14 +70,51 @@
     a { color: inherit; text-decoration: none; }
     .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
+    /* Accessibility Skip Link & Focus Ring */
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 24px;
+      z-index: 100;
+      background: var(--accent);
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .skip-link:focus,
+    .skip-link:focus-visible {
+      top: 14px;
+    }
+    a:focus-visible,
+    button:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Active button press micro-interaction */
+    .btn-download-main:active,
+    .btn-releases-ghost:active,
+    .lang-btn:active,
+    .os-tab:active,
+    .copy-btn:active,
+    .preset-btn:active,
+    .gh-link:active {
+      transform: translateY(1px) scale(0.985);
+    }
+
     /* Navbar */
+    .site-header {
+      border-bottom: 1px solid var(--border);
+    }
     .navbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       padding: 18px 0;
-      border-bottom: 1px solid var(--border);
     }
     .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 18px; }
     .brand-icon {
@@ -84,8 +131,9 @@
       padding: 3px; border-radius: 9px; border: 1px solid var(--border);
     }
     .lang-btn {
-      padding: 5px 9px; font-size: 12px; font-weight: 600; border-radius: 6px;
+      padding: 6px 10px; font-size: 12.5px; font-weight: 600; border-radius: 6px;
       border: none; background: transparent; color: var(--muted); cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.09s ease;
     }
     .lang-btn:hover { color: var(--text); }
     .lang-btn.active { background: var(--accent); color: #ffffff; }
@@ -93,24 +141,46 @@
       padding: 7px 13px; border-radius: 9px; font-size: 13px; font-weight: 600;
       background: var(--bg-card); border: 1px solid var(--border);
       display: inline-flex; align-items: center; gap: 7px;
-      transition: border-color 0.15s ease;
+      transition: border-color 0.15s ease, transform 0.09s ease;
     }
     .gh-link:hover { border-color: var(--muted); }
 
-    /* Hero */
+    /* Hero & data-enter Entrance Animation */
     .hero {
-      padding: 52px 0 44px;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 64px 24px 72px;
       display: grid;
       grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
-      gap: 40px;
+      gap: 44px;
       align-items: start;
     }
     .hero > * { min-width: 0; }
+    @keyframes heroEnterUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes heroVisualSettle {
+      from { opacity: 0; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .hero[data-enter] .hero-copy > * {
+      animation: heroEnterUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .hero[data-enter] .hero-copy > *:nth-child(1) { animation-delay: 0.02s; }
+    .hero[data-enter] .hero-copy > *:nth-child(2) { animation-delay: 0.08s; }
+    .hero[data-enter] .hero-copy > *:nth-child(3) { animation-delay: 0.14s; }
+    .hero[data-enter] .hero-copy > *:nth-child(4) { animation-delay: 0.20s; }
+    .hero[data-enter] .hero-copy > *:nth-child(5) { animation-delay: 0.26s; }
+    .hero[data-enter] .hero-visual {
+      animation: heroVisualSettle 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+    }
+
     .pill-badge {
       display: inline-flex; align-items: center; gap: 7px;
       padding: 5px 12px; border-radius: 999px;
       background: var(--accent-soft); border: 1px solid var(--accent-border);
-      color: var(--accent); font-size: 12.5px; font-weight: 600; margin-bottom: 16px;
+      color: var(--accent); font-size: 13px; font-weight: 600; margin-bottom: 16px;
     }
     h1 {
       font-size: clamp(30px, 4.1vw, 45px);
@@ -121,16 +191,17 @@
     }
     .hero-sub {
       font-size: 16.5px;
-      color: var(--muted);
+      color: var(--text-body);
       margin-bottom: 24px;
       max-width: 560px;
+      line-height: 1.55;
     }
     .cta-row {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
     .btn-download-main {
       display: inline-flex;
@@ -142,7 +213,7 @@
       border-radius: 11px;
       font-size: 15.5px;
       font-weight: 700;
-      transition: background 0.15s ease, transform 0.15s ease;
+      transition: background 0.15s ease, transform 0.12s ease;
     }
     .btn-download-main:hover { background: var(--accent-hover); transform: translateY(-1px); }
     .btn-releases-ghost {
@@ -151,20 +222,21 @@
       gap: 7px;
       padding: 12px 16px;
       border-radius: 11px;
-      font-size: 14px;
+      font-size: 14.5px;
       font-weight: 600;
       background: var(--bg-card);
       border: 1px solid var(--border);
       color: var(--text);
+      transition: border-color 0.15s ease, transform 0.12s ease;
     }
     .btn-releases-ghost:hover { border-color: var(--muted); }
 
-    /* Zero-Gatekeeper OS Install Panel (Tailscale / Obsidian / VS Code inspired) */
+    /* Flattened 2-level OS Install Panel (No 3-level nested borders) */
     .os-panel {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 14px 16px;
+      padding: 16px 18px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -175,91 +247,55 @@
       justify-content: space-between;
       gap: 8px;
       flex-wrap: wrap;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
     }
     .os-tabs {
       display: inline-flex;
-      gap: 4px;
-      background: var(--bg-surface);
-      padding: 3px;
-      border-radius: 9px;
-      border: 1px solid var(--border);
+      gap: 6px;
     }
     .os-tab {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 11px;
-      border-radius: 6px;
-      border: 1px solid transparent;
+      padding: 6px 12px;
+      border-radius: 7px;
+      border: none;
       background: transparent;
       color: var(--muted);
-      font-size: 12.5px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.09s ease;
     }
+    .os-tab:hover { color: var(--text); }
     .os-tab.active {
-      background: var(--bg-card);
-      color: var(--text);
-      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
     }
     .detected-pill {
       font-size: 12px;
       font-weight: 600;
       color: var(--green);
       background: var(--green-soft);
-      padding: 3px 9px;
+      padding: 4px 10px;
       border-radius: 999px;
     }
-    .cmd-box {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 9px 11px;
-      min-width: 0;
-      max-width: 100%;
-    }
-    .cmd-box code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 12px;
-      color: var(--text);
-      overflow-x: auto;
-      white-space: nowrap;
-      min-width: 0;
-      flex: 1;
-    }
-    .copy-btn {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 5px 10px;
-      border-radius: 7px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .copy-btn:hover { border-color: var(--accent); }
     .os-tip {
-      font-size: 13px;
-      color: var(--muted);
+      font-size: 14px;
+      color: var(--text-body);
       line-height: 1.5;
     }
     .os-tip b { color: var(--text); }
     .terminal-disclosure {
-      border-top: 1px solid var(--border);
-      padding-top: 10px;
-      margin-top: 2px;
+      padding-top: 4px;
     }
     .terminal-summary {
       list-style: none;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--muted);
       cursor: pointer;
@@ -274,123 +310,380 @@
     }
     .terminal-disclosure[open] .terminal-summary::before { transform: rotate(90deg); }
     .terminal-disclosure[open] .terminal-summary { color: var(--text); }
-    .terminal-disclosure .cmd-box { margin-top: 10px; }
-
-    .preview-wrap {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 12px;
-      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.24);
+    .cmd-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--bg-surface);
+      border-radius: 9px;
+      padding: 9px 12px;
+      margin-top: 10px;
+      min-width: 0;
+      max-width: 100%;
     }
-    .preview-img { width: 100%; height: auto; border-radius: 11px; display: block; }
+    .cmd-box code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.5px;
+      color: var(--text);
+      overflow-x: auto;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1;
+    }
+    .copy-btn {
+      background: var(--bg-elevated);
+      border: none;
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.09s ease;
+    }
+    .copy-btn:hover { background: var(--accent); color: #ffffff; }
 
-    /* Sections */
-    .section { padding: 48px 0; border-top: 1px solid var(--border); }
-    .section-title { font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 8px; letter-spacing: -0.02em; }
-    .section-sub { text-align: center; color: var(--muted); font-size: 15px; margin-bottom: 30px; max-width: 640px; margin-left: auto; margin-right: auto; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    /* Hero Screenshot — Direct clean border and shadow without double wrapper frame */
+    .hero-visual {
+      display: block;
+    }
+    .preview-img {
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.24);
+      display: block;
+    }
 
+    /* Full-width alternating sections with generous vertical rhythm */
+    .section {
+      padding: 96px 0;
+      background-color: var(--bg);
+    }
+    .section--surface {
+      background-color: var(--bg-surface);
+    }
+    .section-title {
+      font-size: clamp(24px, 2.8vw, 32px);
+      font-weight: 700;
+      text-align: left;
+      margin-left: 0;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .section-sub {
+      text-align: left;
+      color: var(--muted);
+      font-size: 16px;
+      margin-left: 0;
+      margin-right: 0;
+      margin-bottom: 44px;
+      max-width: 640px;
+      line-height: 1.55;
+    }
+
+    /* Section 1: 3-Column Horizontal Numbered Steps Flow (.steps-grid / .step-item) */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+    .step-item {
+      border-top: 2px solid var(--border);
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .step-num {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+    }
+    .step-item h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .step-item p {
+      font-size: 16px;
+      color: var(--text-body);
+      line-height: 1.55;
+    }
+
+    /* Section 2: 2x2 Bento Feature Grid with real HTML UI fragments (card > .ui-panel > .ui-frag) */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 22px;
-    }
-    .step-num {
-      width: 30px; height: 30px; border-radius: 8px;
-      background: var(--accent-soft); color: var(--accent);
-      font-weight: 700; font-size: 14px;
-      display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
-    }
-    .card-icon {
-      width: 34px; height: 34px; border-radius: 9px;
-      background: var(--accent-soft); color: var(--accent);
-      display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
-    }
-    .card-icon.green { background: var(--green-soft); color: var(--green); }
-    .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-    .card p { font-size: 14px; color: var(--muted); line-height: 1.5; }
-
-    /* Privacy & Trust Section */
-    .privacy-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .privacy-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 13px;
-      padding: 18px 20px;
+      border-radius: 16px;
+      padding: 28px;
       display: flex;
-      gap: 14px;
-      align-items: flex-start;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 22px;
     }
-    .privacy-badge {
-      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
-      background: var(--green-soft); color: var(--green);
-      display: flex; align-items: center; justify-content: center;
+    .card-head {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    .privacy-item h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-    .privacy-item p { font-size: 13.5px; color: var(--muted); }
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .card p {
+      font-size: 15.5px;
+      color: var(--text-body);
+      line-height: 1.55;
+    }
 
-    footer {
+    /* Card > .ui-panel > .ui-frag (max 2 levels) */
+    .ui-panel {
+      background: var(--bg-surface);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .ui-frag {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.5px;
+    }
+    .ui-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .ui-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .ui-row:first-child {
+      padding-top: 0;
+    }
+    .ui-name {
+      color: var(--text);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ui-badge {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .ui-badge--green {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+    .ui-badge--amber {
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+    .ui-badge--accent {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .ui-badge--muted {
+      background: var(--bg-elevated);
+      color: var(--muted);
+    }
+
+    /* Interactive Preset Toggle in Card 2 */
+    .preset-switch {
+      display: inline-flex;
+      gap: 4px;
+      background: var(--bg-surface);
+      padding: 3px;
+      border-radius: 8px;
+    }
+    .preset-btn {
+      padding: 5px 11px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.09s ease;
+    }
+    .preset-btn:hover { color: var(--text); }
+    .preset-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    .ui-tree-view[hidden] {
+      display: none;
+    }
+
+    /* Section 3: Technical Spec Rows (.rows / .row-item) on --bg-surface */
+    .rows {
       border-top: 1px solid var(--border);
-      padding: 28px 0 40px;
+      display: flex;
+      flex-direction: column;
+    }
+    .row-item {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 28px;
+      align-items: baseline;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .row-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .row-head h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .row-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      background: var(--green-soft);
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+    .row-spec {
+      font-size: 16px;
+      color: var(--text-body);
+      line-height: 1.55;
+    }
+
+    /* Footer */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      background-color: var(--bg);
+    }
+    .footer-inner {
+      padding: 32px 0 44px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
-      font-size: 13px;
+      font-size: 13.5px;
       color: var(--muted);
     }
-    .footer-links { display: flex; gap: 16px; }
+    .footer-links { display: flex; gap: 18px; }
     .footer-links a:hover { color: var(--text); text-decoration: underline; }
 
     @media (max-width: 900px) {
-      .hero { grid-template-columns: minmax(0, 1fr); padding: 36px 0; gap: 28px; }
-      .grid-3 { grid-template-columns: minmax(0, 1fr); }
+      .hero { grid-template-columns: minmax(0, 1fr); padding: 44px 24px 56px; gap: 32px; }
+      .steps-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
     }
     @media (max-width: 720px) {
       .container { padding: 0 16px; }
+      .hero { padding: 36px 16px 48px; }
+      .section { padding: 64px 0; }
       .navbar { flex-wrap: wrap; }
-      .grid-2, .privacy-grid { grid-template-columns: minmax(0, 1fr); }
+      .grid-2 { grid-template-columns: minmax(0, 1fr); }
+      .row-item { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 20px 0; }
       .cta-row { flex-direction: column; align-items: stretch; }
-      .btn-download-main, .btn-releases-ghost { justify-content: center; }
+      .btn-download-main, .btn-releases-ghost { justify-content: center; min-height: 46px; }
+      .lang-btn,
+      .os-tab,
+      .copy-btn,
+      .preset-btn,
+      .gh-link,
+      .terminal-summary {
+        min-height: 44px;
+        min-width: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .hero[data-enter] .hero-copy > *,
+      .hero[data-enter] .hero-visual {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
     }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#main-content" data-i18n="skip_link">Saltar al contenido</a>
 
-  <div class="container">
-    <!-- Top Navbar -->
-    <nav class="navbar">
-      <div class="brand">
-        <div class="brand-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+  <!-- Top Navbar -->
+  <header class="site-header">
+    <div class="container">
+      <nav class="navbar">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          </div>
+          <span>PradoOS <span class="brand-tag">UGR</span></span>
         </div>
-        <span>PradoOS <span class="brand-tag">UGR</span></span>
-      </div>
-      <div class="nav-right">
-        <div class="lang-switch" role="group" aria-label="Language switcher">
-          <button class="lang-btn active" id="btn-es" onclick="setLang('es')">ES</button>
-          <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
-          <button class="lang-btn" id="btn-it" onclick="setLang('it')">IT</button>
-          <button class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+        <div class="nav-right">
+          <div class="lang-switch" role="group" aria-label="Language switcher">
+            <button type="button" class="lang-btn active" id="btn-es" onclick="setLang('es')">ES</button>
+            <button type="button" class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+            <button type="button" class="lang-btn" id="btn-it" onclick="setLang('it')">IT</button>
+            <button type="button" class="lang-btn" id="btn-fr" onclick="setLang('fr')">FR</button>
+          </div>
+          <a class="gh-link" href="https://github.com/LorSt4r/prado-os" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.11.78-.25.78-.55 0-.27-.01-1.16-.02-2.1-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.06.78 2.14 0 1.54-.01 2.79-.01 3.17 0 .31.21.67.79.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+            GitHub
+          </a>
         </div>
-        <a class="gh-link" href="https://github.com/LorSt4r/prado-os" target="_blank" rel="noopener">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.11.78-.25.78-.55 0-.27-.01-1.16-.02-2.1-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.06.78 2.14 0 1.54-.01 2.79-.01 3.17 0 .31.21.67.79.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
-          GitHub
-        </a>
-      </div>
-    </nav>
+      </nav>
+    </div>
+  </header>
 
+  <main id="main-content">
     <!-- Hero Section -->
-    <section class="hero">
-      <div>
-        <div class="pill-badge" data-i18n="hero_badge">Open Source · GNU AGPL-3.0 · UGR</div>
-        <h1 data-i18n="hero_title">Tus apuntes y entregas de PRADO UGR, siempre al día sin mover un dedo.</h1>
+    <section class="hero" data-enter>
+      <div class="hero-copy">
+        <div class="pill-badge" data-i18n="hero_badge">macOS · Windows · Linux · GNU AGPL-3.0 · 2FA 30 días</div>
+        <h1 data-i18n="hero_title">Tus apuntes y entregas de PRADO UGR, sincronizados en tu equipo.</h1>
         <p class="hero-sub" data-i18n="hero_sub">
-          Olvídate de entrar cada día a PRADO a descargar PDFs uno por uno o revisar cuándo vence una práctica. PradoOS vive en tu Barra de Menús o Bandeja del Sistema y lo mantiene todo sincronizado.
+          Olvídate de entrar cada día a PRADO a descargar PDFs uno por uno o revisar cuándo vence una práctica. PradoOS vive en tu Barra de Menús o Bandeja del Sistema y lo mantiene todo al día.
         </p>
 
         <div class="cta-row">
@@ -403,10 +696,10 @@
           </a>
         </div>
 
-        <!-- OS Switcher & Zero-Gatekeeper Installer Box -->
+        <!-- OS Switcher & Zero-Gatekeeper Installer Box (2-level nesting max) -->
         <div class="os-panel" id="osGuidePanel">
           <div class="os-tabs-bar">
-            <div class="os-tabs" role="tablist">
+            <div class="os-tabs" role="tablist" aria-label="Operating system selector">
               <button type="button" class="os-tab active" id="osTabMac" onclick="selectOsTab('mac')">macOS</button>
               <button type="button" class="os-tab" id="osTabWin" onclick="selectOsTab('win')">Windows</button>
               <button type="button" class="os-tab" id="osTabLinux" onclick="selectOsTab('linux')">Linux</button>
@@ -419,7 +712,7 @@
           </p>
 
           <details class="terminal-disclosure" id="terminalDisclosure">
-            <summary class="terminal-summary" data-i18n="terminal_toggle">¿Prefieres usar la Terminal? (Opcional)</summary>
+            <summary class="terminal-summary" data-i18n="terminal_toggle">Instalación opcional desde Terminal</summary>
             <div class="cmd-box">
               <code id="osInstallCmd">curl -fsSL https://raw.githubusercontent.com/LorSt4r/prado-os/main/install.sh | bash</code>
               <button type="button" class="copy-btn" id="copyOsCmdBtn" onclick="copyCurrentCmd()" data-i18n="copy_btn">Copiar</button>
@@ -428,129 +721,198 @@
         </div>
       </div>
 
-      <div class="preview-wrap">
-        <picture>
-          <source srcset="assets/gui_01_dashboard_light.png" media="(prefers-color-scheme: light)">
-          <img class="preview-img" src="assets/gui_01_dashboard.png" alt="PradoOS — Configuración UGR">
-        </picture>
+      <picture class="hero-visual">
+        <source srcset="assets/gui_01_dashboard_light.png" media="(prefers-color-scheme: light)">
+        <img class="preview-img" src="assets/gui_01_dashboard.png" alt="Ventana de configuración de PradoOS para la Universidad de Granada">
+      </picture>
+    </section>
+
+    <!-- Section 1: 3 Steps Horizontal Flow on --bg-surface -->
+    <section class="section section--surface">
+      <div class="container">
+        <h2 class="section-title" data-i18n="steps_title">Configuración inicial en 3 pasos de 30 segundos</h2>
+        <p class="section-sub" data-i18n="steps_sub">Funciona en segundo plano sin conocimientos técnicos previos.</p>
+
+        <div class="steps-grid">
+          <div class="step-item">
+            <span class="step-num">01</span>
+            <h3 data-i18n="s1_title">Descarga y abre PradoOS</h3>
+            <p data-i18n="s1_desc">Descarga la app para macOS, Windows o Linux y ábrela en 2 clics sin configurar nada en la terminal.</p>
+          </div>
+          <div class="step-item">
+            <span class="step-num">02</span>
+            <h3 data-i18n="s2_title">Conecta tu cuenta @correo.ugr.es</h3>
+            <p data-i18n="s2_desc">Introduce tu correo UGR, elige tu carpeta local y verifica tu dispositivo con el código 2FA válido por 30 días.</p>
+          </div>
+          <div class="step-item">
+            <span class="step-num">03</span>
+            <h3 data-i18n="s3_title">Todo en tu Barra de Menús</h3>
+            <p data-i18n="s3_desc">Abre asignaturas al instante, consulta fechas límite y deja que los apuntes nuevos bajen solos.</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- 3 Easy Steps -->
+    <!-- Section 2: Core Features — 2x2 Bento with Live UI Fragments on --bg -->
     <section class="section">
-      <h2 class="section-title" data-i18n="steps_title">¿Cómo funciona? En 3 pasos de 30 segundos</h2>
-      <p class="section-sub" data-i18n="steps_sub">Funciona en segundo plano sin conocimientos técnicos previos.</p>
+      <div class="container">
+        <h2 class="section-title" data-i18n="feat_title">Diseñado para el día a día universitario</h2>
+        <p class="section-sub" data-i18n="feat_sub">Sincronización local que protege tus propios archivos y entregas.</p>
 
-      <div class="grid-3">
-        <div class="card">
-          <div class="step-num">1</div>
-          <h3 data-i18n="s1_title">Instala y abre PradoOS</h3>
-          <p data-i18n="s1_desc">Descarga la app para macOS, Windows o Linux, o lanza el instalador en 1 comando.</p>
-        </div>
-        <div class="card">
-          <div class="step-num">2</div>
-          <h3 data-i18n="s2_title">Conecta tu cuenta @correo.ugr.es</h3>
-          <p data-i18n="s2_desc">Introduce tu correo UGR, elige tu carpeta local y verifica tu dispositivo con el código 2FA válido por 30 días.</p>
-        </div>
-        <div class="card">
-          <div class="step-num">3</div>
-          <h3 data-i18n="s3_title">Todo en tu Barra de Menús</h3>
-          <p data-i18n="s3_desc">Abre asignaturas al instante, consulta fechas límite y deja que los apuntes nuevos bajen solos.</p>
+        <div class="grid-2">
+          <!-- Card 1: SHA-256 Anti-Overwrite -->
+          <div class="card">
+            <div class="card-head">
+              <h3 data-i18n="f1_title">Protección anti-sobrescritura (SHA-256)</h3>
+              <p data-i18n="f1_desc">Si anotas un PDF, editas un cuaderno .ipynb o modificas un código de prácticas, PradoOS nunca pisa tu trabajo: guarda la copia actualizada del profesor al lado.</p>
+            </div>
+            <div class="ui-panel" role="img" aria-label="Vista previa de protección SHA-256 de archivos locales">
+              <div class="ui-frag">
+                <div class="ui-row">
+                  <span class="ui-name">Practica2.ipynb</span>
+                  <span class="ui-badge ui-badge--green" data-i18n="ui_f1_prot">Modificado · Protegido</span>
+                </div>
+                <div class="ui-row">
+                  <span class="ui-name">Practica2_server_20261117.ipynb</span>
+                  <span class="ui-badge ui-badge--amber" data-i18n="ui_f1_srv">Nuevo de PRADO</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Interactive Mirror vs Smart Folder Tree -->
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title-row">
+                <h3 data-i18n="f2_title">Modo Mirror o Smart a tu gusto</h3>
+                <div class="preset-switch" role="group" aria-label="Selector de modo de carpetas">
+                  <button type="button" class="preset-btn" id="presetBtnMirror" onclick="setLandingPreset('mirror')" aria-pressed="false">Mirror</button>
+                  <button type="button" class="preset-btn active" id="presetBtnSmart" onclick="setLandingPreset('smart')" aria-pressed="true">Smart</button>
+                </div>
+              </div>
+              <p data-i18n="f2_desc">Mantén exactamente las carpetas oficiales del profesor (Mirror) o clasifica automáticamente en Teoría, Prácticas y General (Smart).</p>
+            </div>
+            <div class="ui-panel">
+              <div class="ui-frag" id="presetTreeMirror" hidden>
+                <div class="ui-row">
+                  <span class="ui-name">Estructura_de_Datos/Tema_1_Introduccion/Tema1.pdf</span>
+                  <span class="ui-badge ui-badge--muted">Mirror</span>
+                </div>
+                <div class="ui-row">
+                  <span class="ui-name">Estructura_de_Datos/Bloque_Practicas/P1_STL.zip</span>
+                  <span class="ui-badge ui-badge--muted">PRADO</span>
+                </div>
+              </div>
+              <div class="ui-frag" id="presetTreeSmart">
+                <div class="ui-row">
+                  <span class="ui-name" data-i18n="ui_f2_smart_t">Estructura_de_Datos/Teoría/ · Tema1.pdf</span>
+                  <span class="ui-badge ui-badge--green">Smart</span>
+                </div>
+                <div class="ui-row">
+                  <span class="ui-name" data-i18n="ui_f2_smart_p">Prácticas/ · P1_STL.zip</span>
+                  <span class="ui-badge ui-badge--green">Auto</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Deadlines & Google Calendar Tray Fragment -->
+          <div class="card">
+            <div class="card-head">
+              <h3 data-i18n="f3_title">Entregas en Barra de Menús y Google Calendar</h3>
+              <p data-i18n="f3_desc">Visualiza los días restantes para cada práctica o examen, abre el calendario deadlines.ics o sincroniza con tu cuenta de Google Calendar.</p>
+            </div>
+            <div class="ui-panel" role="img" aria-label="Menú de entregas de PradoOS">
+              <div class="ui-frag">
+                <div class="ui-row">
+                  <span class="ui-name" data-i18n="ui_f3_item1">[ED] Entrega Práctica 2 · 2d</span>
+                  <span class="ui-badge ui-badge--accent">2d</span>
+                </div>
+                <div class="ui-row">
+                  <span class="ui-name" data-i18n="ui_f3_item2">[VC] Examen Parcial · 5d</span>
+                  <span class="ui-badge ui-badge--amber">5d</span>
+                </div>
+                <div class="ui-row">
+                  <span class="ui-name" data-i18n="ui_f3_cal">deadlines.ics · Google Calendar</span>
+                  <span class="ui-badge ui-badge--green">ICS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Selective @correo.ugr.es Forwarding -->
+          <div class="card">
+            <div class="card-head">
+              <h3 data-i18n="f4_title">Reenvío selectivo de @correo.ugr.es</h3>
+              <p data-i18n="f4_desc">Recibe únicamente los avisos académicos de PRADO y de tus profesores directamente en tu correo habitual, filtrando spam institucional.</p>
+            </div>
+            <div class="ui-panel" role="img" aria-label="Filtro de correo institucional UGR">
+              <div class="ui-frag">
+                <div class="ui-row">
+                  <span class="ui-name" data-i18n="ui_f4_mail1">[PRADO] Visión por Computador — Entrega P2</span>
+                  <span class="ui-badge ui-badge--green" data-i18n="ui_f4_fwd">→ Gmail</span>
+                </div>
+                <div class="ui-row">
+                  <span class="ui-name" data-i18n="ui_f4_mail2">Boletín Cultural UGR</span>
+                  <span class="ui-badge ui-badge--muted" data-i18n="ui_f4_flt">Filtrado</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Core Features -->
-    <section class="section">
-      <h2 class="section-title" data-i18n="feat_title">Diseñado para el día a día universitario</h2>
-      <p class="section-sub" data-i18n="feat_sub">Sincronización inteligente sin sobrescribir tus propios archivos.</p>
+    <!-- Section 3: Privacy & Security Technical Spec Rows on --bg-surface -->
+    <section class="section section--surface">
+      <div class="container">
+        <h2 class="section-title" data-i18n="sec_title">Privacidad y seguridad por diseño</h2>
+        <p class="section-sub" data-i18n="sec_sub">Tu cuenta universitaria nunca toca servidores externos ni bases de datos ajenas.</p>
 
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div class="rows">
+          <div class="row-item">
+            <div class="row-head">
+              <h3 data-i18n="sec1_title">100% local en tu Llavero del sistema</h3>
+              <span class="row-badge">Keychain · SecretService</span>
+            </div>
+            <p class="row-spec" data-i18n="sec1_desc">Las credenciales UGR se guardan exclusivamente en macOS Keychain, Windows Credential Manager o Linux SecretService.</p>
           </div>
-          <h3 data-i18n="f1_title">Protección anti-sobrescritura (SHA-256)</h3>
-          <p data-i18n="f1_desc">Si anotas un PDF, editas un cuaderno .ipynb o modificas un código de prácticas, PradoOS nunca pisa tu trabajo: guarda la copia actualizada del profesor al lado.</p>
-        </div>
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <div class="row-item">
+            <div class="row-head">
+              <h3 data-i18n="sec2_title">Cero telemetría ni servidores intermediarios</h3>
+              <span class="row-badge">TLS · *.ugr.es</span>
+            </div>
+            <p class="row-spec" data-i18n="sec2_desc">PradoOS se conecta únicamente de tu ordenador a prado.ugr.es, sts.ugr.es y correo.ugr.es usando ritmo conservador de peticiones.</p>
           </div>
-          <h3 data-i18n="f2_title">Modo Mirror o Smart a tu gusto</h3>
-          <p data-i18n="f2_desc">Mantén exactamente las carpetas oficiales del profesor (Mirror) o clasifica automáticamente en Teoría, Prácticas y General (Smart).</p>
-        </div>
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <div class="row-item">
+            <div class="row-head">
+              <h3 data-i18n="sec3_title">Carpeta de apuntes limpia</h3>
+              <span class="row-badge">~/.config/prado (0700)</span>
+            </div>
+            <p class="row-spec" data-i18n="sec3_desc">Nunca escribe cookies, tokens ni bases de datos dentro de tu carpeta de Google Drive, iCloud o OneDrive.</p>
           </div>
-          <h3 data-i18n="f3_title">Entregas en Barra de Menús y Google Calendar</h3>
-          <p data-i18n="f3_desc">Visualiza los días restantes para cada práctica o examen, abre el calendario deadlines.ics o sincroniza con tu cuenta de Google Calendar.</p>
-        </div>
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          </div>
-          <h3 data-i18n="f4_title">Reenvío selectivo de @correo.ugr.es</h3>
-          <p data-i18n="f4_desc">Recibe únicamente los avisos académicos de PRADO y de tus profesores directamente en tu correo habitual, filtrando spam institucional.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Privacy & Security Guarantees -->
-    <section class="section">
-      <h2 class="section-title" data-i18n="sec_title">Privacidad y seguridad por diseño</h2>
-      <p class="section-sub" data-i18n="sec_sub">Tu cuenta universitaria nunca toca servidores externos ni bases de datos ajenas.</p>
-
-      <div class="privacy-grid">
-        <div class="privacy-item">
-          <div class="privacy-badge" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-          <div>
-            <h3 data-i18n="sec1_title">100% local en tu Llavería del sistema</h3>
-            <p data-i18n="sec1_desc">Las credenciales UGR se guardan exclusivamente en macOS Keychain, Windows Credential Manager o Linux SecretService.</p>
-          </div>
-        </div>
-        <div class="privacy-item">
-          <div class="privacy-badge" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-          <div>
-            <h3 data-i18n="sec2_title">Cero telemetría ni servidores intermediarios</h3>
-            <p data-i18n="sec2_desc">PradoOS se conecta únicamente de tu ordenador a prado.ugr.es, sts.ugr.es y correo.ugr.es usando ritmo conservador de peticiones.</p>
-          </div>
-        </div>
-        <div class="privacy-item">
-          <div class="privacy-badge" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div>
-            <h3 data-i18n="sec3_title">Carpeta de apuntes limpia</h3>
-            <p data-i18n="sec3_desc">Nunca escribe cookies, tokens ni bases de datos dentro de tu carpeta de Google Drive, iCloud o OneDrive.</p>
-          </div>
-        </div>
-        <div class="privacy-item">
-          <div class="privacy-badge" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
-          </div>
-          <div>
-            <h3 data-i18n="sec4_title">Software libre auditable (GNU AGPL-3.0)</h3>
-            <p data-i18n="sec4_desc">Código fuente abierto para estudiantes y comunidad universitaria, con suite de pruebas automatizadas y política SECURITY.md.</p>
+          <div class="row-item">
+            <div class="row-head">
+              <h3 data-i18n="sec4_title">Software libre auditable (GNU AGPL-3.0)</h3>
+              <span class="row-badge">AGPL-3.0 · SECURITY.md</span>
+            </div>
+            <p class="row-spec" data-i18n="sec4_desc">Código fuente abierto para estudiantes y comunidad universitaria, con suite de pruebas automatizadas y política SECURITY.md.</p>
           </div>
         </div>
       </div>
     </section>
+  </main>
 
-    <footer>
-      <span data-i18n-html="footer_text">Hecho para estudiantes de la Universidad de Granada · Software Libre bajo licencia GNU AGPL-3.0</span>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-html="footer_text">PradoOS · Universidad de Granada · Software Libre bajo licencia GNU AGPL-3.0</span>
       <div class="footer-links">
         <a href="https://github.com/LorSt4r/prado-os" target="_blank" rel="noopener">GitHub</a>
         <a href="https://github.com/LorSt4r/prado-os/releases/latest" target="_blank" rel="noopener">Releases</a>
         <a href="https://github.com/LorSt4r/prado-os/blob/main/SECURITY.md" target="_blank" rel="noopener">SECURITY.md</a>
       </div>
-    </footer>
-  </div>
+    </div>
+  </footer>
 
 <script>
 const RELEASE_URLS = {
@@ -573,10 +935,11 @@ const OS_SVGS = {
 
 const TEXTS = {
   es: {
+    skip_link: "Saltar al contenido",
     page_title: "PradoOS — Tus Asignaturas y Entregas de PRADO UGR Siempre al Día",
-    hero_badge: "Open Source · GNU AGPL-3.0 · UGR",
-    hero_title: "Tus apuntes y entregas de PRADO UGR, siempre al día sin mover un dedo.",
-    hero_sub: "Olvídate de entrar cada día a PRADO a descargar PDFs uno por uno o revisar cuándo vence una práctica. PradoOS vive en tu Barra de Menús o Bandeja del Sistema y lo mantiene todo sincronizado.",
+    hero_badge: "macOS · Windows · Linux · GNU AGPL-3.0 · 2FA 30 días",
+    hero_title: "Tus apuntes y entregas de PRADO UGR, sincronizados en tu equipo.",
+    hero_sub: "Olvídate de entrar cada día a PRADO a descargar PDFs uno por uno o revisar cuándo vence una práctica. PradoOS vive en tu Barra de Menús o Bandeja del Sistema y lo mantiene todo al día.",
     all_releases: "Todas las versiones",
     recommended_label: "Recomendado para tu equipo",
     dl_mac: "Descargar para macOS (.zip)",
@@ -584,12 +947,12 @@ const TEXTS = {
     dl_linux: "Descargar para Linux (.tar.gz)",
     copy_btn: "Copiar",
     copied_btn: "Copiado",
-    terminal_toggle: "¿Prefieres instalar o desbloquear desde Terminal? (Opcional)",
+    terminal_toggle: "Instalación opcional desde Terminal",
     tip_mac: "<b>macOS en 2 pasos:</b> 1. Descarga y abre el <code>.zip</code> · 2. La primera vez, haz <b>clic derecho sobre PradoOS → Abrir</b> para confirmar que confías en la app.",
     tip_win: "<b>Windows en 2 pasos:</b> 1. Descomprime el <code>.zip</code> · 2. Si aparece SmartScreen, pulsa <b>Más información → Ejecutar de todas formas</b> la primera vez.",
     tip_linux: "<b>Linux Desktop:</b> Funciona en Ubuntu, Fedora, Debian y Arch con soporte para AppIndicator/System Tray y SecretService.",
     faq_desc: "<b>Primera apertura en 2 pasos:</b> 1. Abre el <code>.zip</code> descargado · 2. Haz <b>clic derecho → Abrir</b> la primera vez.",
-    steps_title: "¿Cómo funciona? En 3 pasos de 30 segundos",
+    steps_title: "Configuración inicial en 3 pasos de 30 segundos",
     steps_sub: "Funciona en segundo plano sin conocimientos técnicos previos.",
     s1_title: "Descarga y abre PradoOS",
     s1_desc: "Descarga la app para macOS, Windows o Linux y ábrela en 2 clics sin configurar nada en la terminal.",
@@ -598,15 +961,26 @@ const TEXTS = {
     s3_title: "Todo en tu Barra de Menús",
     s3_desc: "Abre asignaturas al instante, consulta fechas límite y deja que los apuntes nuevos bajen solos.",
     feat_title: "Diseñado para el día a día universitario",
-    feat_sub: "Sincronización inteligente sin sobrescribir tus propios archivos.",
+    feat_sub: "Sincronización local que protege tus propios archivos y entregas.",
     f1_title: "Protección anti-sobrescritura (SHA-256)",
     f1_desc: "Si anotas un PDF, editas un cuaderno .ipynb o modificas un código de prácticas, PradoOS nunca pisa tu trabajo: guarda la copia actualizada del profesor al lado.",
+    ui_f1_prot: "Modificado · Protegido",
+    ui_f1_srv: "Nuevo de PRADO",
     f2_title: "Modo Mirror o Smart a tu gusto",
     f2_desc: "Mantén exactamente las carpetas oficiales del profesor (Mirror) o clasifica automáticamente en Teoría, Prácticas y General (Smart).",
+    ui_f2_smart_t: "Estructura_de_Datos/Teoría/ · Tema1.pdf",
+    ui_f2_smart_p: "Prácticas/ · P1_STL.zip",
     f3_title: "Entregas en Barra de Menús y Google Calendar",
     f3_desc: "Visualiza los días restantes para cada práctica o examen, abre el calendario deadlines.ics o sincroniza con tu cuenta de Google Calendar.",
+    ui_f3_item1: "[ED] Entrega Práctica 2 · 2d",
+    ui_f3_item2: "[VC] Examen Parcial · 5d",
+    ui_f3_cal: "deadlines.ics · Google Calendar",
     f4_title: "Reenvío selectivo de @correo.ugr.es",
     f4_desc: "Recibe únicamente los avisos académicos de PRADO y de tus profesores directamente en tu correo habitual, filtrando spam institucional.",
+    ui_f4_mail1: "[PRADO] Visión por Computador — Entrega P2",
+    ui_f4_fwd: "→ Gmail",
+    ui_f4_mail2: "Boletín Cultural UGR",
+    ui_f4_flt: "Filtrado",
     sec_title: "Privacidad y seguridad por diseño",
     sec_sub: "Tu cuenta universitaria nunca toca servidores externos ni bases de datos ajenas.",
     sec1_title: "100% local en tu Llavero del sistema",
@@ -617,12 +991,13 @@ const TEXTS = {
     sec3_desc: "Nunca escribe cookies, tokens ni bases de datos dentro de tu carpeta de Google Drive, iCloud o OneDrive.",
     sec4_title: "Software libre auditable (GNU AGPL-3.0)",
     sec4_desc: "Código fuente abierto para estudiantes y comunidad universitaria, con suite de pruebas automatizadas y política SECURITY.md.",
-    footer_text: "Hecho para estudiantes de la Universidad de Granada · Software Libre bajo licencia GNU AGPL-3.0"
+    footer_text: "PradoOS · Universidad de Granada · Software Libre bajo licencia GNU AGPL-3.0"
   },
   en: {
+    skip_link: "Skip to content",
     page_title: "PradoOS — Your UGR PRADO Courses & Deadlines Always Up to Date",
-    hero_badge: "Open Source · GNU AGPL-3.0 · UGR",
-    hero_title: "Your UGR PRADO notes & deadlines, always synced effortlessly.",
+    hero_badge: "macOS · Windows · Linux · GNU AGPL-3.0 · 30-day 2FA",
+    hero_title: "Your UGR PRADO notes and deadlines, synced to your computer.",
     hero_sub: "Stop checking PRADO every day to download PDFs one by one or track assignment dates. PradoOS lives in your Menu Bar or System Tray and keeps everything updated automatically.",
     all_releases: "All releases",
     recommended_label: "Recommended for your OS",
@@ -631,45 +1006,57 @@ const TEXTS = {
     dl_linux: "Download for Linux (.tar.gz)",
     copy_btn: "Copy",
     copied_btn: "Copied",
-    terminal_toggle: "Prefer installing via Terminal? (Optional)",
+    terminal_toggle: "Optional install via Terminal",
     tip_mac: "<b>macOS in 2 steps:</b> 1. Download and unzip the <code>.zip</code> · 2. On first launch, <b>Right-click PradoOS → Open</b> once to allow the unsigned student build.",
     tip_win: "<b>Windows in 2 steps:</b> 1. Extract the <code>.zip</code> · 2. If SmartScreen appears, click <b>More info → Run anyway</b> on first launch.",
     tip_linux: "<b>Linux Desktop:</b> Works across Ubuntu, Fedora, Debian, and Arch with AppIndicator tray support and SecretService keyring.",
     faq_desc: "<b>First launch in 2 steps:</b> 1. Open the downloaded <code>.zip</code> · 2. <b>Right-click → Open</b> once.",
-    steps_title: "How it works in 3 quick 30-second steps",
-    steps_sub: "Runs quietly in the background without technical configuration.",
+    steps_title: "Initial setup in 3 steps of 30 seconds",
+    steps_sub: "Runs in the background on macOS, Windows, and Linux without terminal configuration.",
     s1_title: "Download and open PradoOS",
-    s1_desc: "Download the native app for macOS, Windows, or Linux and launch it in two clicks—no terminal needed.",
+    s1_desc: "Download the native app for macOS, Windows, or Linux and launch it in two clicks without terminal setup.",
     s2_title: "Connect your @correo.ugr.es account",
     s2_desc: "Enter your UGR email, pick your notes folder, and verify once with a 30-day 2FA code.",
     s3_title: "Manage everything from your Menu Bar",
     s3_desc: "Jump directly to course folders, check days left on deadlines, and let new uploads sync automatically.",
-    feat_title: "Built for real university workflows",
-    feat_sub: "Smart synchronization that respects your local work.",
+    feat_title: "Built for daily university workflows",
+    feat_sub: "Local synchronization that respects your edited files and submissions.",
     f1_title: "Zero-Overwrite Guard (SHA-256)",
     f1_desc: "Annotated PDFs, .ipynb notebooks, and lab source files are never overwritten: updated professor files save safely alongside yours.",
+    ui_f1_prot: "Modified · Protected",
+    ui_f1_srv: "New from PRADO",
     f2_title: "Mirror or Smart folder organization",
     f2_desc: "Keep PRADO's exact professor section tree (Mirror) or auto-sort downloads into clean Theory, Labs, and General folders (Smart).",
+    ui_f2_smart_t: "Estructura_de_Datos/Theory/ · Tema1.pdf",
+    ui_f2_smart_p: "Labs/ · P1_STL.zip",
     f3_title: "Menu Bar deadlines & Google Calendar",
     f3_desc: "See days left per assignment or exam, open deadlines.ics, or push events straight to Google Calendar.",
+    ui_f3_item1: "[ED] Entrega Práctica 2 · 2d",
+    ui_f3_item2: "[VC] Examen Parcial · 5d",
+    ui_f3_cal: "deadlines.ics · Google Calendar",
     f4_title: "Selective @correo.ugr.es forwarding",
     f4_desc: "Forward only academic emails from PRADO and your professors to your personal inbox without university spam.",
+    ui_f4_mail1: "[PRADO] Visión por Computador — Entrega P2",
+    ui_f4_fwd: "→ Gmail",
+    ui_f4_mail2: "Boletín Cultural UGR",
+    ui_f4_flt: "Filtered",
     sec_title: "Privacy and security by design",
     sec_sub: "Your university credentials never leave your computer or touch third-party servers.",
     sec1_title: "100% local OS Keychain / Vault",
     sec1_desc: "Your UGR password lives exclusively in macOS Keychain, Windows Credential Manager, or Linux SecretService.",
     sec2_title: "Zero telemetry or external servers",
-    sec2_desc: "Connects solely between your machine and prado.ugr.es, sts.ugr.es, and correo.ugr.es at a polite rate.",
+    sec2_desc: "Connects solely between your machine and prado.ugr.es, sts.ugr.es, and correo.ugr.es at a polite request rate.",
     sec3_title: "Clean cloud-safe courses folder",
     sec3_desc: "Cookies, SQLite databases, and secrets never enter Google Drive, iCloud, or OneDrive folders.",
     sec4_title: "Auditable Open Source (GNU AGPL-3.0)",
-    sec4_desc: "Fully inspectable code for students and UGR staff, backed by automated tests and SECURITY.md.",
-    footer_text: "Built for University of Granada students · Open Source under GNU AGPL-3.0"
+    sec4_desc: "Inspectable source code for students and UGR staff, backed by automated tests and SECURITY.md.",
+    footer_text: "PradoOS · University of Granada · Free Software under GNU AGPL-3.0"
   },
   it: {
+    skip_link: "Vai al contenuto",
     page_title: "PradoOS — Appunti e Scadenze PRADO UGR Sempre Aggiornati",
-    hero_badge: "Open Source · GNU AGPL-3.0 · UGR",
-    hero_title: "I tuoi appunti e scadenze di PRADO UGR, sempre aggiornati da soli.",
+    hero_badge: "macOS · Windows · Linux · GNU AGPL-3.0 · 2FA 30 giorni",
+    hero_title: "I tuoi appunti e scadenze di PRADO UGR, sincronizzati sul tuo computer.",
     hero_sub: "Dimentica di entrare ogni giorno su PRADO per scaricare i PDF uno alla volta o controllare le consegne. PradoOS vive nella Barra dei Menu o System Tray e sincronizza tutto automaticamente.",
     all_releases: "Tutte le versioni",
     recommended_label: "Consigliato per il tuo PC",
@@ -678,12 +1065,12 @@ const TEXTS = {
     dl_linux: "Scarica per Linux (.tar.gz)",
     copy_btn: "Copia",
     copied_btn: "Copiato",
-    terminal_toggle: "Preferisci installare da Terminale? (Opzionale)",
+    terminal_toggle: "Installazione opzionale da Terminale",
     tip_mac: "<b>macOS in 2 passaggi:</b> 1. Scarica e apri lo <code>.zip</code> · 2. Al primo avvio fai <b>Tasto destro su PradoOS → Apri</b> una sola volta.",
     tip_win: "<b>Windows in 2 passaggi:</b> 1. Estrai lo <code>.zip</code> · 2. Se compare SmartScreen, clicca <b>Ulteriori informazioni → Esegui comunque</b>.",
     tip_linux: "<b>Linux Desktop:</b> Compatibile con Ubuntu, Fedora, Debian e Arch con supporto AppIndicator e SecretService.",
     faq_desc: "<b>Primo avvio in 2 passaggi:</b> 1. Apri lo <code>.zip</code> scaricato · 2. <b>Tasto destro → Apri</b> la prima volta.",
-    steps_title: "Come funziona? In 3 passaggi da 30 secondi",
+    steps_title: "Configurazione iniziale in 3 passaggi da 30 secondi",
     steps_sub: "Lavora in background senza alcuna configurazione tecnica.",
     s1_title: "Scarica e avvia PradoOS",
     s1_desc: "Scarica l'app per macOS, Windows o Linux e aprila in 2 clic senza usare il terminale.",
@@ -695,12 +1082,23 @@ const TEXTS = {
     feat_sub: "Sincronizzazione sicura senza mai sovrascrivere il tuo lavoro.",
     f1_title: "Protezione anti-sovrascrittura (SHA-256)",
     f1_desc: "Se annoti un PDF, modifichi un notebook .ipynb o un file di laboratorio, PradoOS salva la nuova versione del docente accanto alla tua.",
+    ui_f1_prot: "Modificato · Protetto",
+    ui_f1_srv: "Nuovo da PRADO",
     f2_title: "Modalità Mirror o Smart",
     f2_desc: "Mantieni le cartelle originali di PRADO (Mirror) oppure ordina automaticamente in Teoria, Pratiche e Generale (Smart).",
+    ui_f2_smart_t: "Estructura_de_Datos/Teoría/ · Tema1.pdf",
+    ui_f2_smart_p: "Prácticas/ · P1_STL.zip",
     f3_title: "Scadenze in Barra Menu e Google Calendar",
     f3_desc: "Visualizza il conto alla rovescia per esami e consegne, apri deadlines.ics o sincronizza Google Calendar.",
+    ui_f3_item1: "[ED] Entrega Práctica 2 · 2d",
+    ui_f3_item2: "[VC] Examen Parcial · 5d",
+    ui_f3_cal: "deadlines.ics · Google Calendar",
     f4_title: "Inoltro selettivo da @correo.ugr.es",
     f4_desc: "Ricevi solo gli avvisi accademici di PRADO e dei docenti nella tua email personale, filtrando lo spam.",
+    ui_f4_mail1: "[PRADO] Visión por Computador — Entrega P2",
+    ui_f4_fwd: "→ Gmail",
+    ui_f4_mail2: "Boletín Cultural UGR",
+    ui_f4_flt: "Filtrato",
     sec_title: "Privacy e sicurezza fin dal design",
     sec_sub: "Le tue credenziali universitarie non lasciano mai il tuo dispositivo.",
     sec1_title: "100% locale nel Portachiavi di sistema",
@@ -711,12 +1109,13 @@ const TEXTS = {
     sec3_desc: "Nessun cookie, token o database SQLite dentro Google Drive, iCloud o OneDrive.",
     sec4_title: "Codice aperto verificabile (GNU AGPL-3.0)",
     sec4_desc: "Interamente ispezionabile su GitHub con test automatici e policy di sicurezza SECURITY.md.",
-    footer_text: "Creato per studenti dell'Università di Granada · Software Libero GNU AGPL-3.0"
+    footer_text: "PradoOS · Università di Granada · Software Libero GNU AGPL-3.0"
   },
   fr: {
+    skip_link: "Aller au contenu",
     page_title: "PradoOS — Vos Cours et Échéances PRADO UGR Toujours à Jour",
-    hero_badge: "Open Source · GNU AGPL-3.0 · UGR",
-    hero_title: "Vos cours et devoirs PRADO UGR, toujours synchronisés sans effort.",
+    hero_badge: "macOS · Windows · Linux · GNU AGPL-3.0 · 2FA 30 jours",
+    hero_title: "Vos cours et échéances PRADO UGR, synchronisés sur votre ordinateur.",
     hero_sub: "Plus besoin de vérifier PRADO chaque jour ou de télécharger les PDF un par un. PradoOS vit dans votre barre de menus et garde vos cours à jour en arrière-plan.",
     all_releases: "Toutes les versions",
     recommended_label: "Recommandé pour votre système",
@@ -725,13 +1124,13 @@ const TEXTS = {
     dl_linux: "Télécharger pour Linux (.tar.gz)",
     copy_btn: "Copier",
     copied_btn: "Copié",
-    terminal_toggle: "Préférez-vous utiliser le Terminal ? (Optionnel)",
+    terminal_toggle: "Installation optionnelle via Terminal",
     tip_mac: "<b>macOS en 2 étapes :</b> 1. Téléchargez et ouvrez le <code>.zip</code> · 2. Au premier lancement, faites <b>Clic droit sur PradoOS → Ouvrir</b> une seule fois.",
     tip_win: "<b>Windows en 2 étapes :</b> 1. Extrayez le <code>.zip</code> · 2. Si SmartScreen s'affiche, cliquez sur <b>Informations complémentaires → Exécuter quand même</b>.",
     tip_linux: "<b>Linux Desktop :</b> Compatible Ubuntu, Fedora, Debian et Arch avec AppIndicator et SecretService.",
     faq_desc: "<b>Premier lancement en 2 étapes :</b> 1. Ouvrez le <code>.zip</code> téléchargé · 2. <b>Clic droit → Ouvrir</b> une fois.",
-    steps_title: "Comment ça marche ? 3 étapes de 30 secondes",
-    steps_sub: "Fonctionne discrètement sans configuration technique.",
+    steps_title: "Configuration initiale en 3 étapes de 30 secondes",
+    steps_sub: "Fonctionne en arrière-plan sans configuration technique préalable.",
     s1_title: "Téléchargez et ouvrez PradoOS",
     s1_desc: "Téléchargez l'application pour macOS, Windows ou Linux et lancez-la en deux clics sans terminal.",
     s2_title: "Connectez votre compte @correo.ugr.es",
@@ -739,15 +1138,26 @@ const TEXTS = {
     s3_title: "Tout depuis la barre des menus",
     s3_desc: "Accédez aux cours en un clic, suivez les jours restants et laissez les nouveaux fichiers arriver seuls.",
     feat_title: "Conçu pour le quotidien à l'université",
-    feat_sub: "Une synchronisation qui protège votre travail personnel.",
+    feat_sub: "Synchronisation locale qui protège votre travail personnel.",
     f1_title: "Protection anti-écrasement (SHA-256)",
     f1_desc: "Si vous annotez un PDF ou modifiez un TP, PradoOS n'écrase jamais votre fichier : la mise à jour du professeur est enregistrée à côté.",
+    ui_f1_prot: "Modifié · Protégé",
+    ui_f1_srv: "Nouveau de PRADO",
     f2_title: "Organisation Mirror ou Smart",
     f2_desc: "Conservez la structure exacte de PRADO (Mirror) ou classez automatiquement en Théorie, TP et Général (Smart).",
+    ui_f2_smart_t: "Estructura_de_Datos/Théorie/ · Tema1.pdf",
+    ui_f2_smart_p: "TP/ · P1_STL.zip",
     f3_title: "Échéances en barre de menus et Google Calendar",
     f3_desc: "Consultez les jours restants avant chaque devoir, ouvrez deadlines.ics ou synchronisez Google Calendar.",
+    ui_f3_item1: "[ED] Entrega Práctica 2 · 2d",
+    ui_f3_item2: "[VC] Examen Parcial · 5d",
+    ui_f3_cal: "deadlines.ics · Google Calendar",
     f4_title: "Transfert sélectif de @correo.ugr.es",
     f4_desc: "Recevez uniquement les courriels académiques de PRADO et de vos professeurs sans spam.",
+    ui_f4_mail1: "[PRADO] Visión por Computador — Entrega P2",
+    ui_f4_fwd: "→ Gmail",
+    ui_f4_mail2: "Boletín Cultural UGR",
+    ui_f4_flt: "Filtré",
     sec_title: "Confidentialité et sécurité intégrées",
     sec_sub: "Vos identifiants universitaires ne quittent jamais votre ordinateur.",
     sec1_title: "100% local dans le Trousseau du système",
@@ -758,19 +1168,39 @@ const TEXTS = {
     sec3_desc: "Aucun cookie, jeton ou base SQLite dans vos dossiers Google Drive, iCloud ou OneDrive.",
     sec4_title: "Open source vérifiable (GNU AGPL-3.0)",
     sec4_desc: "Code ouvert sur GitHub, tests automatisés et politique SECURITY.md.",
-    footer_text: "Conçu pour les étudiants de l'Université de Grenade · Logiciel Libre GNU AGPL-3.0"
+    footer_text: "PradoOS · Université de Grenade · Logiciel Libre GNU AGPL-3.0"
   }
 };
 
 let activeLang = "es";
 let detectedOs = "mac";
 let selectedOsTab = "mac";
+let activeLandingPreset = "smart";
 
 function detectOS() {
   const ua = (navigator.userAgent || "").toLowerCase();
   if (ua.includes("win")) return "win";
   if (ua.includes("linux") && !ua.includes("android")) return "linux";
   return "mac";
+}
+
+function setLandingPreset(preset) {
+  activeLandingPreset = preset === "mirror" ? "mirror" : "smart";
+  const isMirror = activeLandingPreset === "mirror";
+  const btnMirror = document.getElementById("presetBtnMirror");
+  const btnSmart = document.getElementById("presetBtnSmart");
+  const treeMirror = document.getElementById("presetTreeMirror");
+  const treeSmart = document.getElementById("presetTreeSmart");
+  if (btnMirror && btnSmart) {
+    btnMirror.classList.toggle("active", isMirror);
+    btnSmart.classList.toggle("active", !isMirror);
+    btnMirror.setAttribute("aria-pressed", isMirror ? "true" : "false");
+    btnSmart.setAttribute("aria-pressed", !isMirror ? "true" : "false");
+  }
+  if (treeMirror && treeSmart) {
+    treeMirror.hidden = !isMirror;
+    treeSmart.hidden = isMirror;
+  }
 }
 
 function selectOsTab(os) {
@@ -845,6 +1275,7 @@ function detectInitialLang() {
 detectedOs = detectOS();
 selectedOsTab = detectedOs;
 applyLang(detectInitialLang());
+setLandingPreset(activeLandingPreset);
 </script>
 </body>
 </html>

@@ -18,6 +18,12 @@ from prado.state import CourseRecord, FileRecord, StateDatabase
 from prado.ui.server import PradoControlCenterAPI, PradoUIServer, parse_deadlines_from_ics
 
 
+@pytest.fixture(autouse=True)
+def _isolate_keyring_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PRADO_KEYRING_BACKEND", "vault")
+
+
+
 def test_parse_deadlines_from_ics(tmp_path: Path):
     ics_content = (
         "BEGIN:VCALENDAR\r\n"
@@ -181,6 +187,8 @@ def test_ui_server_loopback_http_and_token_security(tmp_path: Path, monkeypatch)
         assert "connectedSummaryCard" in r_html.text
         assert "toggleAutostartImmediate" in r_html.text
         assert "toggleNotificationsImmediate" in r_html.text
+        assert "toggleAutoSyncImmediate" in r_html.text
+        assert "mailUnsavedBadge" in r_html.text
 
         # 2. GET /api/state without token -> 403 Forbidden
         r_unauth = requests.get(f"{base}/api/state", timeout=5)
@@ -341,5 +349,51 @@ def test_control_center_autostart_endpoints(tmp_path: Path, monkeypatch):
         assert autostart_state["enabled"] is False
     finally:
         server.stop()
+
+
+def test_control_center_autosync_toggle_endpoint(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path / "cfg"))
+    (tmp_path / "cfg").mkdir(parents=True, exist_ok=True)
+    cfg = PradoConfig(username="student@correo.ugr.es", courses_root=tmp_path / "Courses")
+
+    api = PradoControlCenterAPI(cfg=cfg)
+    server = PradoUIServer(api=api)
+    server.start()
+    try:
+        headers = {"X-Prado-Token": server.token}
+        base = f"http://127.0.0.1:{server.port}"
+
+        for interval in (30, 60, 120):
+            r_en = requests.post(
+                f"{base}/api/autosync/toggle",
+                json={"enabled": True, "interval_minutes": interval},
+                headers=headers,
+                timeout=5,
+            )
+            assert r_en.status_code == 200
+            assert r_en.json() == {
+                "status": "success",
+                "auto_sync": True,
+                "auto_sync_interval_minutes": interval,
+            }
+            st = api.get_full_state()["config"]
+            assert st["auto_sync"] is True
+            assert st["auto_sync_interval_minutes"] == interval
+
+        r_off = requests.post(
+            f"{base}/api/autosync/toggle",
+            json={"enabled": False, "interval_minutes": 60},
+            headers=headers,
+            timeout=5,
+        )
+        assert r_off.status_code == 200
+        assert r_off.json()["status"] == "success"
+        assert r_off.json()["auto_sync"] is False
+        st_off = api.get_full_state()["config"]
+        assert st_off["auto_sync"] is False
+        assert st_off["auto_sync_interval_minutes"] == 60
+    finally:
+        server.stop()
+
 
 

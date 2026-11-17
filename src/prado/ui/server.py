@@ -993,6 +993,28 @@ class PradoControlCenterAPI:
         except Exception as exc:
             return {"status": "error", "error": str(exc)}
 
+    def toggle_autosync(
+        self,
+        enabled: bool,
+        interval_minutes: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Update background auto-sync preference and interval immediately."""
+        self.cfg.sync.auto_sync = bool(enabled)
+        if interval_minutes is not None:
+            try:
+                mins = int(interval_minutes)
+                if 15 <= mins <= 1440:
+                    self.cfg.sync.auto_sync_interval_minutes = mins
+            except (TypeError, ValueError):
+                pass
+        save_config(self.cfg)
+        self._set_status(self.status)
+        return {
+            "status": "success",
+            "auto_sync": bool(self.cfg.sync.auto_sync),
+            "auto_sync_interval_minutes": int(self.cfg.sync.auto_sync_interval_minutes),
+        }
+
     def toggle_notifications(self, enabled: bool, sound: Optional[bool] = None, test: bool = False) -> Dict[str, Any]:
         self.cfg.notifications.enabled = bool(enabled)
         if sound is not None:
@@ -1195,6 +1217,15 @@ class PradoUIServer:
                 elif path == "/api/autostart/toggle":
                     self._send_json(
                         server_ref.api.toggle_autostart(enabled=bool(body.get("enabled", True)))
+                    )
+                elif path == "/api/autosync/toggle":
+                    raw_en = body.get("enabled", body.get("auto_sync", True))
+                    raw_mins = body.get("interval_minutes", body.get("auto_sync_interval_minutes"))
+                    self._send_json(
+                        server_ref.api.toggle_autosync(
+                            enabled=bool(raw_en),
+                            interval_minutes=raw_mins,
+                        )
                     )
                 else:
                     self._send_json({"status": "error", "error": f"Not found: {path}"}, status_code=404)

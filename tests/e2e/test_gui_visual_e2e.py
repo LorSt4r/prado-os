@@ -30,6 +30,7 @@ def _seed_realistic_ugr_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     cfg_dir = tmp_path / "prado_config"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setenv("PRADO_CONFIG_DIR", str(cfg_dir))
+    monkeypatch.setenv("PRADO_KEYRING_BACKEND", "vault")
 
     courses_dir = tmp_path / "UGR_Courses"
     courses_dir.mkdir(parents=True, exist_ok=True)
@@ -172,13 +173,32 @@ def test_control_center_full_graphical_workflow_http(tmp_path: Path, monkeypatch
         base = f"http://127.0.0.1:{server.port}"
         headers = {"X-Prado-Token": server.token}
 
-        # 1. Verify Dashboard state payload
+        # 1. Verify HTML & Dashboard state payload
+        r_html = requests.get(f"{base}/", timeout=5)
+        assert r_html.status_code == 200
+        assert "toggleAutoSyncImmediate" in r_html.text
+        assert "mailUnsavedBadge" in r_html.text
+
         st = requests.get(f"{base}/api/state", headers=headers, timeout=5).json()
         assert st["stats"]["total_courses"] == 5
         assert st["stats"]["active_courses"] == 5
         assert st["stats"]["total_files"] == 4
         assert st["stats"]["protected_files"] == 2
         assert len(st["deadlines"]) == 3
+
+        # 1b. Verify immediate auto-sync toggle persistence
+        r_auto = requests.post(
+            f"{base}/api/autosync/toggle",
+            json={"enabled": True, "interval_minutes": 30},
+            headers=headers,
+            timeout=5,
+        ).json()
+        assert r_auto["status"] == "success"
+        assert r_auto["auto_sync"] is True
+        assert r_auto["auto_sync_interval_minutes"] == 30
+        st_auto = requests.get(f"{base}/api/state", headers=headers, timeout=5).json()
+        assert st_auto["config"]["auto_sync"] is True
+        assert st_auto["config"]["auto_sync_interval_minutes"] == 30
 
         # 2. Verify Mail Inbox & Message Reader (Section 4)
         inbox = requests.get(f"{base}/api/mail/messages?filter=all", headers=headers, timeout=5).json()
@@ -260,9 +280,18 @@ def test_pywebview_live_dom_and_tabs_e2e(tmp_path: Path, monkeypatch: pytest.Mon
             results["prefs_active"] = window.evaluate_js(
                 "document.getElementById('cardTabPrefs').classList.contains('active')"
             )
-            results["prefs_btn_text"] = window.evaluate_js(
+            results["unconfig_hidden_on_prefs"] = window.evaluate_js(
+                "document.getElementById('unconfiguredStrip').style.display === 'none'"
+            )
+            window.evaluate_js("markMailUnsaved(true)")
+            results["mail_unsaved_shown"] = window.evaluate_js(
+                "document.getElementById('mailUnsavedBadge').style.display !== 'none'"
+            )
+            window.evaluate_js("markMailUnsaved(false)")
+            results[" prefs_btn_text"] = window.evaluate_js(
                 "document.getElementById('btnSyncNow').textContent"
             )
+            results["prefs_btn_text"] = results[" prefs_btn_text"]
             window.evaluate_js("switchCardTab('account')")
 
             # Test 4-language i18n switching in live DOM
@@ -296,6 +325,8 @@ def test_pywebview_live_dom_and_tabs_e2e(tmp_path: Path, monkeypatch: pytest.Mon
     assert results.get("creds_open_hides_summary") is True
     assert results.get("tree_smart") is True
     assert results.get("prefs_active") is True
+    assert results.get("unconfig_hidden_on_prefs") is True
+    assert results.get("mail_unsaved_shown") is True
     assert "Opciones" in str(results.get("prefs_btn_text", ""))
     assert "Configurazione UGR" in results.get("title_it", "")
     assert "Configuración" in results.get("title_es", "")
