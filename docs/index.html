@@ -57,6 +57,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       background-color: var(--bg);
+      overflow-x: hidden;
+      max-width: 100%;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
@@ -177,7 +179,7 @@
     }
 
     .pill-badge {
-      display: inline-flex; align-items: center; gap: 7px;
+      display: inline-flex; align-items: center; gap: 7px; flex-wrap: wrap; max-width: 100%;
       padding: 5px 12px; border-radius: 999px;
       background: var(--accent-soft); border: 1px solid var(--accent-border);
       color: var(--accent); font-size: 13px; font-weight: 600; margin-bottom: 16px;
@@ -433,11 +435,13 @@
       flex-direction: column;
       justify-content: space-between;
       gap: 22px;
+      min-width: 0;
     }
     .card-head {
       display: flex;
       flex-direction: column;
       gap: 8px;
+      min-width: 0;
     }
     .card-title-row {
       display: flex;
@@ -463,6 +467,8 @@
       background: var(--bg-surface);
       border-radius: 12px;
       padding: 14px 16px;
+      min-width: 0;
+      max-width: 100%;
     }
     .ui-frag {
       display: flex;
@@ -470,6 +476,7 @@
       gap: 8px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 12.5px;
+      min-width: 0;
     }
     .ui-row {
       display: flex;
@@ -478,6 +485,7 @@
       gap: 10px;
       padding: 6px 0;
       border-bottom: 1px solid var(--border);
+      min-width: 0;
     }
     .ui-row:last-child {
       border-bottom: none;
@@ -492,6 +500,8 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      min-width: 0;
+      flex: 1;
     }
     .ui-badge {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
@@ -543,8 +553,10 @@
       background: var(--accent);
       color: #ffffff;
     }
+    [hidden],
+    .ui-frag[hidden],
     .ui-tree-view[hidden] {
-      display: none;
+      display: none !important;
     }
 
     /* Section 3: Technical Spec Rows (.rows / .row-item) on --bg-surface */
