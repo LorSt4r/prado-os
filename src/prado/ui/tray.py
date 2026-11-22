@@ -460,6 +460,7 @@ class PradoTrayApp:
         dl_items.extend(
             [
                 pystray.Menu.SEPARATOR,
+                pystray.MenuItem(t("tray_open_dashboard", lang), self._on_open_dashboard),
                 pystray.MenuItem(t("tray_sync_gcal", lang), self._on_sync_gcalendar),
                 pystray.MenuItem(t("tray_open_ics", lang), self._on_open_calendar),
                 pystray.MenuItem(t("tray_open_gcal_web", lang), lambda icon=None, item=None: open_url("https://calendar.google.com")),
@@ -658,6 +659,9 @@ class PradoTrayApp:
             self.api.run_calendar_action("open_ics")
             return
         open_file(ics_path)
+
+    def _on_open_dashboard(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        self.api.open_dashboard_html()
 
     def _on_sync_gcalendar(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         def _worker() -> None:

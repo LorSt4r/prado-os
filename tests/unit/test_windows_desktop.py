@@ -617,4 +617,72 @@ def test_frontend_autosync_onboarding_and_folder_helper():
     assert "sync_done_next_2_auto" in html
     assert "sync_done_next_2_manual" in html
     assert "toast_auto_subfolder" in html
+    assert "sync_done_next_3" in html
+    assert "btn_open_dashboard" in html
+    assert "openDashboardFromSyncDone" in html
     assert "const effectiveAutoSync = isConnected ? Boolean(st.config.auto_sync) : true;" in html
+
+
+def test_launch_app_diagnose_gui_handles_webview_guilib_shadowing(tmp_path: Path, monkeypatch):
+    import importlib.util
+
+    launch_path = Path(__file__).resolve().parents[2] / "packaging" / "launch_app.py"
+    spec = importlib.util.spec_from_file_location("launch_app_test", launch_path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    monkeypatch.setattr(sys, "platform", "win32")
+
+    fake_guilib = SimpleNamespace(initialize=MagicMock())
+    # Reproduces real pywebview bug: webview.__init__ defines module attribute `guilib = None`
+    fake_webview = SimpleNamespace(guilib=None)
+    monkeypatch.setitem(sys.modules, "webview", fake_webview)
+    monkeypatch.setitem(sys.modules, "webview.guilib", fake_guilib)
+    for m in (
+        "pystray",
+        "tkinter",
+        "clr",
+        "clr_loader",
+        "webview.platforms.edgechromium",
+        "webview.platforms.winforms",
+    ):
+        monkeypatch.setitem(sys.modules, m, SimpleNamespace())
+
+    diag_file = tmp_path / "diag" / "win_gui_diag.json"
+    rc = mod.run_gui_diagnostics(output_file=str(diag_file))
+    assert rc == 0
+    fake_guilib.initialize.assert_called_once()
+    report = json.loads(diag_file.read_text(encoding="utf-8"))
+    assert report["ok"] is True
+    assert report["windows_guilib_ok"] is True
+
+
+def test_open_dashboard_html_endpoint_generates_and_opens(tmp_path: Path, monkeypatch):
+    import requests
+
+    cfg_dir = tmp_path / "cfg"
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(cfg_dir))
+    opened = []
+    monkeypatch.setattr("prado.ui.server.open_file", lambda p: opened.append(Path(p)) or True)
+
+    courses_dir = tmp_path / "PRADO_UGR"
+    api = PradoControlCenterAPI(cfg=PradoConfig(courses_root=courses_dir, language="it"))
+    server = PradoUIServer(api=api)
+    server.start()
+    try:
+        resp = requests.post(
+            f"http://127.0.0.1:{server.port}/api/dashboard/open",
+            headers={"X-Prado-Token": server.token, "Content-Type": "application/json"},
+            data="{}",
+            timeout=3,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "success"
+        dash_html = courses_dir / "DASHBOARD.html"
+        assert dash_html.exists()
+        assert opened == [dash_html]
+        assert "Dashboard Accademica" in dash_html.read_text(encoding="utf-8")
+    finally:
+        server.stop()

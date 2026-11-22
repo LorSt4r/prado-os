@@ -650,11 +650,16 @@ class PradoControlCenterAPI:
                 if new_dl > 0:
                     self._append_log(f"   ✓ {new_dl} nuevo(s) archivo(s) descargado(s) en {c.shortname or c.fullname}.")
 
-            # Step 4: Exporters (Dashboard, Changelog, ICS Calendar)
+            # Step 4: Exporters (ICS Calendar, Visual HTML + Markdown Dashboard, Changelog)
             self._set_status("syncing", step=t("sync_step_export", lang), pct=86)
-            export_dashboard(courses_root=self.cfg.courses_root, summary=summary, state_db=state_db)
-            export_changelog(courses_root=self.cfg.courses_root, summary=summary)
             ics_path = export_calendar(courses_root=self.cfg.courses_root, deadlines=summary.deadlines)
+            export_dashboard(
+                courses_root=self.cfg.courses_root,
+                summary=summary,
+                state_db=state_db,
+                language=lang,
+            )
+            export_changelog(courses_root=self.cfg.courses_root, summary=summary)
             self.live_deadlines = parse_deadlines_from_ics(ics_path)
 
             # Step 5: Optional Mail Sync & Auto-Forwarding
@@ -669,6 +674,12 @@ class PradoControlCenterAPI:
                         "unread": mail_res.get("unread", 0),
                         "forwarded": mail_res.get("forwarded", 0),
                     }
+                    export_dashboard(
+                        courses_root=self.cfg.courses_root,
+                        summary=summary,
+                        state_db=state_db,
+                        language=lang,
+                    )
                     self._append_log(
                         f"📬 Correo UGR: {mail_info['fetched']} revisados ({mail_info['unread']} no leídos), "
                         f"{mail_info['forwarded']} auto-reenviados."
@@ -800,7 +811,7 @@ class PradoControlCenterAPI:
     def _normalize_picked_courses_root(chosen: Path) -> Path:
         resolved = chosen.expanduser().resolve()
         name_low = resolved.name.lower()
-        if "prado" in name_low or "ugr" in name_low or (resolved / "DASHBOARD.md").exists():
+        if "prado" in name_low or "ugr" in name_low or (resolved / "DASHBOARD.md").exists() or (resolved / "DASHBOARD.html").exists():
             return resolved
         generic_names = {
             "desktop",
@@ -859,6 +870,19 @@ class PradoControlCenterAPI:
                 target = target.parent
         ok = open_folder(target)
         return {"status": "success" if ok else "error", "path": str(target)}
+
+    def open_dashboard_html(self) -> Dict[str, Any]:
+        """Generates (if missing) and opens DASHBOARD.html in the user's default browser."""
+        dash_html = self.cfg.courses_root / "DASHBOARD.html"
+        if not dash_html.exists():
+            self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
+            export_dashboard(
+                courses_root=self.cfg.courses_root,
+                state_db=StateDatabase(),
+                language=self.cfg.language or "es",
+            )
+        ok = open_file(dash_html)
+        return {"status": "success" if ok else "error", "path": str(dash_html)}
 
     # -------------------------------------------------------------------------
     # 5. Institutional Mail (`@correo.ugr.es`) & Selective Auto-Forwarding
@@ -1242,6 +1266,8 @@ class PradoUIServer:
                     self._send_json(server_ref.api.pick_folder_native(body.get("prompt")))
                 elif path == "/api/folder/open":
                     self._send_json(server_ref.api.open_local_path(body.get("path")))
+                elif path == "/api/dashboard/open":
+                    self._send_json(server_ref.api.open_dashboard_html())
                 elif path == "/api/mail/attachment":
                     self._send_json(
                         server_ref.api.save_mail_attachment(

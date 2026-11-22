@@ -48,9 +48,8 @@ def run_gui_diagnostics(output_file: Optional[str] = None) -> int:
 
     if is_win and report["imports"].get("webview"):
         try:
-            import webview.guilib as guilib
-
-            guilib.initialize()
+            guilib_mod = importlib.import_module("webview.guilib")
+            guilib_mod.initialize()
             report["windows_guilib_ok"] = True
         except Exception as exc:
             report["windows_guilib_ok"] = False

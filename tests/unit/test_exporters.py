@@ -316,3 +316,106 @@ def test_changelog_atomic_export(tmp_path):
     assert dest.exists()
     assert dest.name == "CHANGELOG.md"
     assert not (tmp_path / ".CHANGELOG.md.tmp").exists()
+
+
+def test_dashboard_html_and_single_language_italian(tmp_path, monkeypatch):
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path / "cfg"))
+    monkeypatch.setattr(
+        "prado.mail.client.load_mail_cache",
+        lambda *a, **kw: {
+            "messages": [
+                {
+                    "uid": "1",
+                    "is_unread": True,
+                    "is_academic": True,
+                    "date_str": "2026-11-22",
+                    "sender": "Prof. <script>alert(1)</script>",
+                    "subject": "Esame parziale",
+                }
+            ]
+        },
+    )
+
+    course_dir = tmp_path / "Algebra III"
+    course_dir.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "deadlines.ics").write_text("BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n", encoding="utf-8")
+
+    now = datetime.datetime(2026, 11, 10, 10, 0, 0)
+    summary = SyncSummary(
+        deadlines=[
+            DeadlineItem(
+                id="1",
+                title="Examen <script>xss</script>",
+                course="Algebra III",
+                due_date=now + datetime.timedelta(hours=12),
+                url="javascript:alert(1)",
+            ),
+            DeadlineItem(
+                id="2",
+                title="Entrega P1",
+                course="Algebra III",
+                due_date=now + datetime.timedelta(days=4),
+                url="https://prado.ugr.es/mod/assign/view.php?id=2",
+            ),
+        ],
+        downloaded_files=[
+            DownloadedFile(path=Path("Algebra III/Tema1.pdf"), url="https://prado.ugr.es/1.pdf", sha256="aa", size_bytes=100)
+        ],
+    )
+    courses = [CourseRecord(course_id=101, fullname="Algebra III", shortname="ALG3")]
+
+    md_path = export_dashboard(
+        courses_root=tmp_path,
+        summary=summary,
+        courses=courses,
+        language="it",
+        now=now,
+    )
+    html_path = tmp_path / "DASHBOARD.html"
+
+    assert md_path.exists()
+    assert html_path.exists()
+    assert not (tmp_path / ".DASHBOARD.md.tmp").exists()
+    assert not (tmp_path / ".DASHBOARD.html.tmp").exists()
+
+    md_text = md_path.read_text(encoding="utf-8")
+    assert "Dashboard Accademica" in md_text
+    assert "Prossime Scadenze ed Esami" in md_text
+    assert "Corsi Iscritti" in md_text
+    assert "Riepilogo Ultima Sincronizzazione" in md_text
+    assert "Ultime Email Accademiche" in md_text
+    assert "DASHBOARD.html" in md_text
+    assert "deadlines.ics" in md_text
+    # Ensure zero English/Spanish leakage when language="it"
+    assert "Upcoming Deadlines" not in md_text
+    assert "Últimos Correos Académicos" not in md_text
+    assert "Recent Sync Summary" not in md_text
+
+    html_text = html_path.read_text(encoding="utf-8")
+    assert '<html lang="it">' in html_text
+    assert "Dashboard Visiva (DASHBOARD.html)" in html_text
+    assert 'href="deadlines.ics"' in html_text
+    assert 'href="Algebra%20III/"' in html_text
+    assert "https://prado.ugr.es/mod/assign/view.php?id=2" in html_text
+    assert "<script>" not in html_text
+    assert "javascript:alert(1)" not in html_text
+
+
+def test_dashboard_coherent_es_en_fr(tmp_path, monkeypatch):
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(tmp_path / "cfg"))
+    from prado.exporters.dashboard import generate_dashboard_html
+
+    now = datetime.datetime(2026, 11, 10, 10, 0, 0)
+    summary = SyncSummary()
+    expected = {
+        "es": ("Panel Académico — PradoOS", "Cómo usar esta carpeta"),
+        "en": ("Academic Dashboard — PradoOS", "How to use this folder"),
+        "fr": ("Tableau de Bord Académique — PradoOS", "Comment utiliser ce dossier"),
+    }
+    for lang, (md_heading, html_guide) in expected.items():
+        md_text = generate_dashboard_md(courses_root=tmp_path, summary=summary, language=lang, now=now)
+        html_text = generate_dashboard_html(courses_root=tmp_path, summary=summary, language=lang, now=now)
+        assert md_heading in md_text
+        assert "DASHBOARD.html" in md_text
+        assert f'<html lang="{lang}">' in html_text
+        assert html_guide in html_text

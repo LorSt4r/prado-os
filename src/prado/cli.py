@@ -764,9 +764,14 @@ def _handle_sync(args: argparse.Namespace, json_mode: bool) -> int:
             mail_info = {"status": "skipped", "reason": str(exc)}
 
     if not dry_run:
-        export_dashboard(courses_root=cfg.courses_root, summary=summary, state_db=state_db)
-        export_changelog(courses_root=cfg.courses_root, summary=summary)
         export_calendar(courses_root=cfg.courses_root, deadlines=summary.deadlines)
+        export_dashboard(
+            courses_root=cfg.courses_root,
+            summary=summary,
+            state_db=state_db,
+            language=cfg.language,
+        )
+        export_changelog(courses_root=cfg.courses_root, summary=summary)
 
     gcal_info = None
     if getattr(args, "gcalendar", False):

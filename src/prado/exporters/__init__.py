@@ -31,7 +31,9 @@ from prado.exporters.dashboard import (
     classify_deadline_type,
     escape_markdown_table_cell,
     export_dashboard,
+    export_dashboard_html,
     format_time_left,
+    generate_dashboard_html,
     generate_dashboard_md,
 )
 
@@ -48,10 +50,12 @@ __all__ = [
     "export_calendar",
     "export_changelog",
     "export_dashboard",
+    "export_dashboard_html",
     "fold_ical_line",
     "format_file_size",
     "format_time_left",
     "generate_deadlines_ics",
+    "generate_dashboard_html",
     "generate_dashboard_md",
     "generate_event_uid",
     "prepend_changelog_md",

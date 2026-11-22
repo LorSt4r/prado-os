@@ -767,12 +767,14 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
       <div class="done-list">
         <div class="done-item" data-i18n="sync_done_next_1">📂 Abre tu carpeta de asignaturas para ver tus apuntes y entregas descargados.</div>
         <div class="done-item" id="syncDoneNext2" data-i18n="sync_done_next_2">💡 Ya puedes cerrar esta ventana: PradoOS sigue activo en la bandeja del sistema (flecha ^ en Windows o barra superior en Mac), donde puedes activar la sincronización automática.</div>
+        <div class="done-item" data-i18n="sync_done_next_3">📊 En la carpeta verás DASHBOARD.html (ábrelo con doble clic para ver resumen y entregas en tu navegador) y deadlines.ics (doble clic para añadir exámenes y entregas a tu calendario).</div>
       </div>
       <label class="check-row" style="margin-top:4px;">
         <input type="checkbox" id="chkHideSyncDone">
         <span class="helper-text" style="color:var(--text-main);" data-i18n="sync_done_dont_show">No volver a mostrar este aviso</span>
       </label>
-      <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="openDashboardFromSyncDone()" data-i18n="btn_open_dashboard">📊 Abrir Panel Visual</button>
+      <div class="modal-actions" style="margin-top:8px;">
         <button type="button" class="btn btn-secondary" onclick="closeSyncDoneModal()" data-i18n="sync_done_close_btn">Cerrar</button>
         <button type="button" class="btn btn-primary" onclick="openFolderFromSyncDone()" data-i18n="btn_open_folder">Abrir Carpeta</button>
       </div>
@@ -884,6 +886,8 @@ const I18N = {
     sync_done_next_2: "💡 Puedes cerrar esta ventana: PradoOS sigue activo en la bandeja del sistema (flecha ^ en Windows o barra superior en Mac) y en la 2ª pestaña puedes activar la sincronización automática.",
     sync_done_next_2_auto: "🔄 Sincronización automática activa (cada {freq}): ya puedes cerrar esta ventana; PradoOS seguirá actualizando tus apuntes desde el icono junto al reloj (flecha ^ en Windows o barra superior en Mac).",
     sync_done_next_2_manual: "💡 Auto-sync desactivado: puedes sincronizar manualmente desde el icono junto al reloj o activarlo en Correo y Opciones.",
+    sync_done_next_3: "📊 Dentro encontrarás DASHBOARD.html (doble clic para ver tu panel de cursos y entregas en el navegador) y deadlines.ics (doble clic para añadir tus plazos al calendario).",
+    btn_open_dashboard: "📊 Abrir Panel Visual",
     sync_done_dont_show: "No volver a mostrar este aviso",
     sync_done_close_btn: "Cerrar"
   },
@@ -962,6 +966,8 @@ const I18N = {
     sync_done_next_2: "💡 You can close this window now: PradoOS keeps running in your System Tray (^ arrow on Windows or top Menu Bar on Mac), and you can turn on Auto-Sync in the second tab.",
     sync_done_next_2_auto: "🔄 Auto-sync is active (every {freq}): you can close this window now — PradoOS keeps updating your courses from the tray icon (^ arrow on Windows or Menu Bar on Mac).",
     sync_done_next_2_manual: "💡 Auto-sync is off: sync anytime from the tray icon or turn on background sync in Mail & Options.",
+    sync_done_next_3: "📊 Inside your folder you'll find DASHBOARD.html (double-click to view courses & deadlines in your browser) and deadlines.ics (double-click to import exams and assignments into your calendar).",
+    btn_open_dashboard: "📊 Open Visual Dashboard",
     sync_done_dont_show: "Don't show this notice again",
     sync_done_close_btn: "Got it"
   },
@@ -1040,6 +1046,8 @@ const I18N = {
     sync_done_next_2: "💡 Ora puoi chiudere questa finestra: PradoOS resta attivo nella System Tray (freccia ^ in basso a destra su Windows o Barra dei Menu su Mac), e nella 2ª scheda puoi attivare l'auto-sync.",
     sync_done_next_2_auto: "🔄 Sincronizzazione automatica attiva (ogni {freq}): ora puoi chiudere questa finestra, PradoOS aggiornerà da solo i tuoi corsi dall'icona vicino all'orologio (freccia ^ su Windows o Barra dei Menu su Mac).",
     sync_done_next_2_manual: "💡 Auto-sync disattivato: puoi sincronizzare manualmente dall'icona vicino all'orologio o attivarlo in Posta e Opzioni.",
+    sync_done_next_3: "📊 Nella cartella trovi DASHBOARD.html (doppio clic per vedere corsi, file e scadenze nel browser) e deadlines.ics (doppio clic per aggiungere esami e consegne al calendario).",
+    btn_open_dashboard: "📊 Apri Dashboard Visiva",
     sync_done_dont_show: "Non mostrare più questo avviso",
     sync_done_close_btn: "Ho capito"
   },
@@ -1118,6 +1126,8 @@ const I18N = {
     sync_done_next_2: "💡 Vous pouvez fermer cette fenêtre : PradoOS reste actif dans la barre d'état (flèche ^ sous Windows ou barre des menus sous Mac), où vous pouvez activer la synchro automatique.",
     sync_done_next_2_auto: "🔄 Synchro automatique active (toutes les {freq}) : vous pouvez fermer cette fenêtre — PradoOS mettra à jour vos cours depuis la barre d'état (flèche ^ sous Windows ou barre des menus sous Mac).",
     sync_done_next_2_manual: "💡 Synchro auto désactivée : synchronisez depuis la barre d'état ou activez-la dans Courriel et Options.",
+    sync_done_next_3: "📊 Vous y trouverez DASHBOARD.html (double-clic pour ouvrir vos cours et échéances dans le navigateur) et deadlines.ics (double-clic pour les importer dans votre calendrier).",
+    btn_open_dashboard: "📊 Ouvrir Tableau de Bord",
     sync_done_dont_show: "Ne plus afficher cet avis",
     sync_done_close_btn: "Compris"
   }
@@ -1686,6 +1696,11 @@ function closeSyncDoneModal() {
 async function openFolderFromSyncDone() {
   closeSyncDoneModal();
   await openCoursesFolder();
+}
+
+async function openDashboardFromSyncDone() {
+  closeSyncDoneModal();
+  await apiPost("/api/dashboard/open", {});
 }
 
 async function refreshState() {

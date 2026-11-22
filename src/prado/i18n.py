@@ -472,6 +472,12 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "it": "scaduto",
         "fr": "expiré",
     },
+    "tray_open_dashboard": {
+        "es": "📊 Abrir Panel Visual (DASHBOARD.html)",
+        "en": "📊 Open Visual Dashboard (DASHBOARD.html)",
+        "it": "📊 Apri Dashboard Visiva (DASHBOARD.html)",
+        "fr": "📊 Ouvrir le Tableau de Bord (DASHBOARD.html)",
+    },
     "tray_open_gcal_web": {
         "es": "🌐 Google Calendar Web",
         "en": "🌐 Google Calendar Web",
@@ -539,10 +545,10 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "fr": "Recherche de vos cours sur PRADO...",
     },
     "sync_step_export": {
-        "es": "Actualizando DASHBOARD.md y calendario de entregas...",
-        "en": "Updating DASHBOARD.md and deadlines calendar...",
-        "it": "Aggiornamento DASHBOARD.md e calendario scadenze...",
-        "fr": "Mise à jour du tableau de bord et du calendrier...",
+        "es": "Actualizando DASHBOARD.html y calendario de entregas...",
+        "en": "Updating DASHBOARD.html and deadlines calendar...",
+        "it": "Aggiornamento DASHBOARD.html e calendario scadenze...",
+        "fr": "Mise à jour de DASHBOARD.html et du calendrier...",
     },
     "sync_step_mail": {
         "es": "Comprobando buzón @correo.ugr.es...",
