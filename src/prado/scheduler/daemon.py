@@ -414,6 +414,13 @@ class CrontabBackend(BaseDaemonBackend):
         )
 
 
+def _win_subprocess_kwargs() -> Dict[str, Any]:
+    """Suppresses transient console windows when invoking schtasks.exe from a GUI app on Windows."""
+    if os.name == "nt":
+        return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)}
+    return {}
+
+
 class SchtasksBackend(BaseDaemonBackend):
     """Windows Task Scheduler backend using schtasks.exe."""
 
@@ -452,12 +459,12 @@ class SchtasksBackend(BaseDaemonBackend):
             str(modifier),
             "/f",
         ]
-        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace", **_win_subprocess_kwargs())
         return res.returncode == 0
 
     def uninstall(self) -> bool:
         args = ["schtasks.exe", "/delete", "/tn", self.TASK_NAME, "/f"]
-        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace", **_win_subprocess_kwargs())
         if res.returncode == 0:
             return True
         stderr_lower = (res.stderr or "").lower()
@@ -467,12 +474,12 @@ class SchtasksBackend(BaseDaemonBackend):
 
     def start(self) -> bool:
         args = ["schtasks.exe", "/run", "/tn", self.TASK_NAME]
-        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace", **_win_subprocess_kwargs())
         return res.returncode == 0
 
     def stop(self) -> bool:
         args = ["schtasks.exe", "/end", "/tn", self.TASK_NAME]
-        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace", **_win_subprocess_kwargs())
         if res.returncode == 0:
             return True
         stderr_lower = (res.stderr or "").lower()
@@ -482,7 +489,7 @@ class SchtasksBackend(BaseDaemonBackend):
 
     def status(self) -> DaemonStatus:
         args = ["schtasks.exe", "/query", "/tn", self.TASK_NAME, "/fo", "CSV", "/v"]
-        res = subprocess.run(args, capture_output=True, text=True, errors="replace")
+        res = subprocess.run(args, capture_output=True, text=True, errors="replace", **_win_subprocess_kwargs())
         installed = res.returncode == 0
         active = False
         last_run = None

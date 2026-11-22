@@ -164,18 +164,24 @@ def prompt_folder_picker_gui(prompt: str = "Selecciona dónde guardar la carpeta
         safe_prompt = prompt.replace("'", "''")
         ps_cmd = (
             "Add-Type -AssemblyName System.Windows.Forms; "
+            "$owner = New-Object System.Windows.Forms.Form; "
+            "$owner.TopMost = $true; "
+            "$owner.StartPosition = 'CenterScreen'; "
             "$f = New-Object System.Windows.Forms.FolderBrowserDialog; "
             f"$f.Description = '{safe_prompt}'; "
             "$f.ShowNewFolderButton = $true; "
-            "if ($f.ShowDialog() -eq 'OK') { [Console]::Out.WriteLine($f.SelectedPath) }"
+            "try { $f.UseDescriptionForTitle = $true } catch {}; "
+            "if ($f.ShowDialog($owner) -eq 'OK') { [Console]::Out.WriteLine($f.SelectedPath) }; "
+            "$owner.Dispose()"
         )
         try:
             proc = subprocess.run(
-                ["powershell", "-NoProfile", "-STA", "-Command", ps_cmd],
+                ["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-STA", "-Command", ps_cmd],
                 capture_output=True,
                 text=True,
                 timeout=120,
                 check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
             )
             if proc.returncode == 0 and proc.stdout.strip():
                 return Path(proc.stdout.strip().splitlines()[-1].strip())

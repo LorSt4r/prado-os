@@ -156,16 +156,36 @@ end run"""
         env["PRADO_NOTIFY_BODY"] = clean_body
         env["PRADO_NOTIFY_TIMEOUT"] = str(safe_timeout)
         ps_script = (
-            "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; "
+            "try { "
+            "$t = [System.Security.SecurityElement]::Escape($env:PRADO_NOTIFY_TITLE); "
+            "$b = [System.Security.SecurityElement]::Escape($env:PRADO_NOTIFY_BODY); "
+            "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; "
+            "[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null; "
+            "$xml = New-Object Windows.Data.Xml.Dom.XmlDocument; "
+            "$xml.LoadXml(\"<toast><visual><binding template='ToastText02'><text id='1'>$t</text><text id='2'>$b</text></binding></visual></toast>\"); "
+            "$toast = [Windows.UI.Notifications.ToastNotification]::new($xml); "
+            "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('PradoOS').Show($toast); "
+            "exit 0 "
+            "} catch { "
+            "Add-Type -AssemblyName System.Windows.Forms; "
             "$notify = New-Object System.Windows.Forms.NotifyIcon; "
             "$notify.Icon = [System.Drawing.SystemIcons]::Information; "
             "$notify.BalloonTipTitle = $env:PRADO_NOTIFY_TITLE; "
             "$notify.BalloonTipText = $env:PRADO_NOTIFY_BODY; "
             "$notify.Visible = $True; "
             "$notify.ShowBalloonTip([int]$env:PRADO_NOTIFY_TIMEOUT); "
-            "Start-Sleep -Milliseconds 300; "
-            "$notify.Dispose()"
+            "Start-Sleep -Milliseconds 3500; "
+            "$notify.Dispose() "
+            "}"
         )
         cmd = [ps_cmd, "-NoProfile", "-NonInteractive", "-Command", ps_script]
-        res = subprocess.run(cmd, env=env, check=False, timeout=7.0, capture_output=True)
+        run_kwargs: dict[str, object] = {
+            "env": env,
+            "check": False,
+            "timeout": 10.0,
+            "capture_output": True,
+        }
+        if os.name == "nt":
+            run_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+        res = subprocess.run(cmd, **run_kwargs)  # type: ignore[arg-type]
         return res.returncode == 0

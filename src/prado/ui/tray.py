@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import os
 from pathlib import Path
 import sys
 import threading
@@ -88,8 +89,9 @@ from prado.i18n import t
 from prado.notifications.desktop import DesktopNotifier, is_headless_environment
 from prado.onboarding.wizard import prompt_folder_picker_gui
 from prado.state import StateDatabase
-from prado.ui.dialogs import open_folder, open_url, prompt_login_gui
+from prado.ui.dialogs import open_file, open_folder, open_url, prompt_login_gui
 from prado.ui.icon import create_tray_icon
+from prado.ui.instance import SingleInstanceGuard
 from prado.ui.server import PradoControlCenterAPI, PradoUIServer, parse_deadlines_from_ics
 
 
@@ -133,10 +135,40 @@ class PradoTrayApp:
         self.icon: Optional[pystray.Icon] = None
         self.notifier = DesktopNotifier(app_name="PradoOS")
 
+        self._instance_guard = SingleInstanceGuard()
+
         # Shared API & Local Loopback Server for the compact Setup / 2FA window
-        self.api = PradoControlCenterAPI(cfg=self.cfg, on_status_change=self._on_api_status_change)
+        self.api = PradoControlCenterAPI(
+            cfg=self.cfg,
+            on_status_change=self._on_api_status_change,
+            on_show_window=self._show_existing_window,
+            folder_picker_callback=self._pick_folder_webview,
+        )
         self.server: Optional[PradoUIServer] = None
         self.window: Optional[Any] = None
+
+    def _pick_folder_webview(self, prompt: str) -> Optional[Path]:
+        """Uses pywebview's native IFileDialog on Windows when Setup Card is open, else OS picker."""
+        is_windows = sys.platform in ("win32", "cygwin") or os.name == "nt"
+        if is_windows and self.window is not None and webview is not None:
+            folder_dialog_type = getattr(
+                getattr(webview, "FileDialog", None),
+                "FOLDER",
+                getattr(webview, "FOLDER_DIALOG", 20),
+            )
+            res = self.window.create_file_dialog(
+                folder_dialog_type,
+                directory=str(self.cfg.courses_root),
+            )
+            if isinstance(res, (list, tuple)) and res:
+                return Path(str(res[0]))
+            if isinstance(res, str) and res.strip():
+                return Path(res.strip())
+            return None
+        return prompt_folder_picker_gui(prompt)
+
+    def _show_existing_window(self) -> None:
+        self.open_control_center("settings")
 
     def _on_api_status_change(self, new_status: str, last_sync: Optional[str]) -> None:
         self.cfg = self.api.cfg
@@ -146,11 +178,12 @@ class PradoTrayApp:
         if last_sync:
             self.last_sync_time = last_sync
         if new_status == "mfa_required" and self.window is not None:
-            try:
-                self.window.show()
-                self.window.restore()
-            except Exception:
-                pass
+            def _show_mfa_win() -> None:
+                if self.window is not None:
+                    self.window.show()
+                    self.window.restore()
+
+            _dispatch_ui_thread(_show_mfa_win, is_main_loop_running=self._main_loop_active)
         self._refresh_tray_ui()
 
     def _refresh_tray_ui(self) -> None:
@@ -485,6 +518,7 @@ class PradoTrayApp:
 
     def _build_menu(self) -> pystray.Menu:
         lang = self.cfg.language or "es"
+        is_windows = sys.platform in ("win32", "cygwin") or os.name == "nt"
         courses_title, courses_menu = self._build_courses_submenu(lang)
         deadlines_title, deadlines_menu = self._build_deadlines_submenu(lang)
 
@@ -505,7 +539,7 @@ class PradoTrayApp:
                 pystray.MenuItem(
                     t("tray_sync_now", lang),
                     self._on_sync_now,
-                    default=True,
+                    default=not is_windows,
                 ),
                 pystray.MenuItem(
                     t("tray_open_folder", lang),
@@ -519,6 +553,7 @@ class PradoTrayApp:
                 pystray.MenuItem(
                     t("tray_settings", lang),
                     self._on_open_settings,
+                    default=is_windows,
                 ),
                 pystray.MenuItem(
                     t("tray_help_menu", lang),
@@ -554,8 +589,12 @@ class PradoTrayApp:
 
         if self.window is not None:
             try:
-                self.window.show()
-                self.window.restore()
+                def _show_win() -> None:
+                    if self.window is not None:
+                        self.window.show()
+                        self.window.restore()
+
+                _dispatch_ui_thread(_show_win, is_main_loop_running=self._main_loop_active)
                 return target_url
             except Exception:
                 pass
@@ -577,7 +616,7 @@ class PradoTrayApp:
 
     def _on_pick_folder(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         def _worker() -> None:
-            chosen = prompt_folder_picker_gui()
+            chosen = self._pick_folder_webview("Selecciona dónde guardar la carpeta de PRADO")
             if chosen:
                 self.cfg.courses_root = chosen
                 self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
@@ -591,7 +630,7 @@ class PradoTrayApp:
         if not ics_path.exists():
             self.api.run_calendar_action("open_ics")
             return
-        open_folder(ics_path)
+        open_file(ics_path)
 
     def _on_sync_gcalendar(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         def _worker() -> None:
@@ -786,9 +825,13 @@ class PradoTrayApp:
                 "pystray is not installed. Install with 'pip install pystray pillow' to run the GUI app."
             )
 
+        if not detached and self._instance_guard.try_activate_existing():
+            return
+
         # 1. Start local loopback server for the compact Setup / 2FA window
         self.server = PradoUIServer(api=self.api)
         control_url = self.server.start()
+        self._instance_guard.register(self.server.port, self.server.token)
 
         # 2. Initialize System Tray Icon (monochrome template on macOS HIG)
         initial_icon_img = create_tray_icon(
@@ -811,8 +854,8 @@ class PradoTrayApp:
 
         self._main_loop_active = True
 
-        # 4. Open compact single-screen Setup Card (520x630px) alongside the System Tray
-        if webview is not None and not tray_only:
+        # 4. Open compact single-screen Setup Card (525x640px) alongside the System Tray
+        if webview is not None:
             try:
                 self.icon.run_detached()
                 self.window = webview.create_window(
@@ -822,6 +865,7 @@ class PradoTrayApp:
                     height=640,
                     min_size=(460, 560),
                     resizable=True,
+                    hidden=bool(tray_only),
                 )
                 try:
                     self.window.events.closing += self._on_window_closing
@@ -831,7 +875,8 @@ class PradoTrayApp:
                 self.stop()
                 return
             except Exception:
-                open_url(control_url)
+                if not tray_only:
+                    open_url(control_url)
                 self.icon.run()
                 return
 
@@ -859,6 +904,7 @@ class PradoTrayApp:
         self._quitting = True
         self._running = False
         self._main_loop_active = False
+        self._instance_guard.release()
         if self.window is not None:
             try:
                 self.window.destroy()

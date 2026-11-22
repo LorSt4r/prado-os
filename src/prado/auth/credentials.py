@@ -337,12 +337,13 @@ def prompt_gui_input(
                     "[Microsoft.VisualBasic.Interaction]::InputBox($env:PRADO_GUI_PROMPT, $env:PRADO_GUI_TITLE, $env:PRADO_GUI_DEFAULT)"
                 )
             proc = subprocess.run(
-                ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_script],
+                ["powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", ps_script],
                 env=env,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
                 check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
             )
             if proc.returncode == 0:
                 val = proc.stdout.strip()

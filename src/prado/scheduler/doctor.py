@@ -195,6 +195,7 @@ class DoctorEngine:
         minor = version_tuple[1]
         micro = version_tuple[2]
         version_str = f"{major}.{minor}.{micro}"
+        is_frozen = bool(getattr(sys, "frozen", False))
         is_virtualenv = (
             (sys.prefix != sys.base_prefix)
             or ("VIRTUAL_ENV" in os.environ)
@@ -205,6 +206,7 @@ class DoctorEngine:
         details = {
             "python_version": version_str,
             "executable": sys.executable,
+            "is_frozen": is_frozen,
             "is_virtualenv": is_virtualenv,
             "virtualenv_path": venv_path,
             "platform": platform.platform(),
@@ -219,6 +221,15 @@ class DoctorEngine:
                 message=f"Python >= 3.10 required (found {version_str})",
                 details=details,
                 remediation="Upgrade your Python interpreter to version 3.10 or higher.",
+            )
+
+        if is_frozen:
+            return ProbeResult(
+                probe_id="python_env",
+                name="Python Environment",
+                status=ProbeStatus.OK,
+                message=f"PradoOS Desktop Bundle (Python {version_str})",
+                details=details,
             )
 
         if not is_virtualenv:
@@ -250,13 +261,19 @@ class DoctorEngine:
         }
 
         if not cfg_path.exists():
+            is_frozen = bool(getattr(sys, "frozen", False))
+            remediation = (
+                "Open PradoOS Settings to configure your @correo.ugr.es account."
+                if is_frozen
+                else "Run 'prado onboard' to generate your personalized config.yaml."
+            )
             return ProbeResult(
                 probe_id="config_validity",
                 name="Config Validity & Permissions",
                 status=ProbeStatus.WARN,
                 message="Config file not yet created; default configuration in effect",
                 details=details,
-                remediation="Run 'prado onboard' to generate your personalized config.yaml.",
+                remediation=remediation,
             )
 
         try:
@@ -378,13 +395,19 @@ class DoctorEngine:
         details["sso_configured"] = has_sso
 
         if not has_sso:
+            is_frozen = bool(getattr(sys, "frozen", False))
+            remediation = (
+                "Open PradoOS Settings to save your @correo.ugr.es credentials."
+                if is_frozen
+                else "Run 'prado auth' to configure your institutional UGR credentials."
+            )
             return ProbeResult(
                 probe_id="credentials_store",
                 name="Credentials Store",
                 status=ProbeStatus.WARN,
                 message="No SSO credentials found in Keyring or Vault",
                 details=details,
-                remediation="Run 'prado auth' to configure your institutional UGR credentials.",
+                remediation=remediation,
             )
 
         store_desc = "Keyring" if keyring_usable else "Encrypted Vault (0600)"
@@ -544,6 +567,24 @@ class DoctorEngine:
                 remediation="Run 'prado daemon start' to enable background synchronization.",
             )
         else:
+            if bool(getattr(self.config.sync, "auto_sync", False)):
+                interval_mins = int(getattr(self.config.sync, "auto_sync_interval_minutes", 60) or 60)
+                return ProbeResult(
+                    probe_id="daemon_status",
+                    name="Background Sync Daemon",
+                    status=ProbeStatus.OK,
+                    message=f"Desktop Auto-Sync active (every {interval_mins} min)",
+                    details=details,
+                )
+            if getattr(sys, "frozen", False):
+                return ProbeResult(
+                    probe_id="daemon_status",
+                    name="Background Sync Daemon",
+                    status=ProbeStatus.WARN,
+                    message="Auto-Sync is disabled",
+                    details=details,
+                    remediation="Enable Auto-Sync and Launch at Login in PradoOS Settings.",
+                )
             return ProbeResult(
                 probe_id="daemon_status",
                 name="Background Sync Daemon",

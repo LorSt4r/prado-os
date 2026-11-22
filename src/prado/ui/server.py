@@ -58,7 +58,7 @@ from prado.scheduler.daemon import DaemonManager
 from prado.scheduler.doctor import DoctorEngine, ProbeStatus
 from prado.state import CourseRecord, StateDatabase
 from prado.ui.autostart import is_autostart_enabled, set_autostart_enabled
-from prado.ui.dialogs import open_folder, open_url
+from prado.ui.dialogs import open_file, open_folder, open_url
 
 
 def _get_portal_presets() -> Dict[str, str]:
@@ -148,9 +148,13 @@ class PradoControlCenterAPI:
         self,
         cfg: Optional[PradoConfig] = None,
         on_status_change: Optional[Callable[[str, Optional[str]], None]] = None,
+        on_show_window: Optional[Callable[[], None]] = None,
+        folder_picker_callback: Optional[Callable[[str], Optional[Path]]] = None,
     ) -> None:
         self.cfg: PradoConfig = cfg or load_config()
         self.on_status_change = on_status_change
+        self.on_show_window = on_show_window
+        self.folder_picker_callback = folder_picker_callback
 
         # Sync state & real-time progress tracking
         self._sync_lock = threading.Lock()
@@ -783,8 +787,23 @@ class PradoControlCenterAPI:
         self._append_log("💾 Configuración de asignaturas y carpetas guardada.")
         return {"status": "success", "courses_root": str(self.cfg.courses_root), "preset": self.cfg.sync.preset}
 
+    def show_window(self) -> Dict[str, Any]:
+        if callable(self.on_show_window):
+            try:
+                self.on_show_window()
+            except Exception:
+                pass
+        return {"status": "shown"}
+
     def pick_folder_native(self, prompt: Optional[str] = None) -> Dict[str, Any]:
-        chosen = prompt_folder_picker_gui(prompt or "Selecciona la carpeta para tus apuntes de PRADO UGR")
+        dialog_prompt = prompt or "Selecciona la carpeta para tus apuntes de PRADO UGR"
+        if callable(self.folder_picker_callback):
+            try:
+                chosen = self.folder_picker_callback(dialog_prompt)
+            except Exception:
+                chosen = prompt_folder_picker_gui(dialog_prompt)
+        else:
+            chosen = prompt_folder_picker_gui(dialog_prompt)
         if chosen:
             return {"status": "success", "path": str(chosen)}
         return {"status": "cancelled"}
@@ -931,7 +950,7 @@ class PradoControlCenterAPI:
             ics_path = self.cfg.courses_root / "deadlines.ics"
             if not ics_path.exists():
                 export_calendar(courses_root=self.cfg.courses_root, deadlines=[])
-            open_folder(ics_path)
+            open_file(ics_path)
             return {"status": "success", "path": str(ics_path)}
 
         if action == "open_web":
@@ -1227,6 +1246,8 @@ class PradoUIServer:
                             interval_minutes=raw_mins,
                         )
                     )
+                elif path == "/api/window/show":
+                    self._send_json(server_ref.api.show_window())
                 else:
                     self._send_json({"status": "error", "error": f"Not found: {path}"}, status_code=404)
 

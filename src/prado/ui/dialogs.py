@@ -49,6 +49,38 @@ def open_folder(path: Path | str) -> bool:
     return False
 
 
+def open_file(path: Path | str) -> bool:
+    """
+    Opens an existing file using the OS default application (Calendar/ICS viewer, etc.)
+    without attempting to create a directory at the file path.
+    """
+    target = Path(path).expanduser().resolve()
+    if not target.exists():
+        return False
+
+    try:
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", str(target)])
+            return True
+        elif sys.platform in ("win32", "cygwin") or os.name == "nt":
+            if hasattr(os, "startfile"):
+                os.startfile(str(target))  # type: ignore[attr-defined]
+            else:
+                popen_kwargs: dict[str, object] = {}
+                if os.name == "nt":
+                    popen_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                subprocess.Popen(["cmd", "/c", "start", "", str(target)], **popen_kwargs)  # type: ignore[arg-type]
+            return True
+        else:
+            xdg_bin = shutil.which("xdg-open")
+            if xdg_bin:
+                subprocess.Popen([xdg_bin, str(target)])
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def open_url(url: str) -> bool:
     """Opens a URL in the student's default web browser."""
     try:
@@ -59,7 +91,10 @@ def open_url(url: str) -> bool:
             if hasattr(os, "startfile"):
                 os.startfile(url)  # type: ignore[attr-defined]
             else:
-                subprocess.Popen(["cmd", "/c", "start", "", url])
+                popen_kwargs: dict[str, object] = {}
+                if os.name == "nt":
+                    popen_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+                subprocess.Popen(["cmd", "/c", "start", "", url], **popen_kwargs)  # type: ignore[arg-type]
             return True
         xdg_bin = shutil.which("xdg-open")
         if xdg_bin:
