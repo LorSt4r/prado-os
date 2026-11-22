@@ -509,7 +509,9 @@ def test_single_instance_os_lock_windows_mutex_and_proxy_bypass(tmp_path: Path, 
 
     monkeypatch.setattr(urllib.request, "build_opener", real_build_opener)
 
-    # 2. POSIX flock mutual exclusion
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX fcntl flock lock only")
+def test_single_instance_posix_flock_mutual_exclusion(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.setattr(os, "name", "posix")
     g1 = SingleInstanceGuard(instance_file=tmp_path / "posix_inst.json")
