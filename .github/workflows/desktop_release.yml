@@ -2,6 +2,7 @@ name: Build Desktop Releases
 
 on:
   push:
+    branches: [ feat/desktop-tray ]
     tags:
       - 'v*'
   release:
@@ -60,6 +61,16 @@ jobs:
         shell: bash
         run: |
           uv run python scripts/build_desktop.py
+
+      - name: Verify Windows Bundle & WebView2Loader.dll
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/PradoOS/PradoOS.exe")) { throw "Missing dist/PradoOS/PradoOS.exe" }
+          if (-not (Test-Path "dist/PradoOS-windows.zip")) { throw "Missing dist/PradoOS-windows.zip" }
+          $wv = Get-ChildItem -Path "dist/PradoOS" -Filter "WebView2Loader.dll" -Recurse
+          if (-not $wv) { throw "Missing WebView2Loader.dll in dist/PradoOS" }
+          Write-Host "Verified Windows bundle and WebView2Loader.dll: $($wv.FullName)"
 
       - name: Package Linux release archive
         if: runner.os == 'Linux'

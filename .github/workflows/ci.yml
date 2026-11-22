@@ -2,9 +2,9 @@ name: Cross-Platform CI (Linux, macOS, Windows)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feat/desktop-tray ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, feat/desktop-tray ]
   workflow_dispatch:
 
 env:
