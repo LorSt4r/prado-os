@@ -12,6 +12,7 @@ Follows the Dropbox / Tailscale / Google Drive Desktop architecture:
 from __future__ import annotations
 
 import argparse
+import atexit
 import datetime
 import os
 from pathlib import Path
@@ -148,6 +149,7 @@ class PradoTrayApp:
         self._running = True
         self._quitting = False
         self._main_loop_active = False
+        self._stopped = False
         self._auto_sync_enabled = bool(getattr(self.cfg.sync, "auto_sync", False))
         self._auto_sync_interval_mins = max(
             5, int(getattr(self.cfg.sync, "auto_sync_interval_minutes", 60) or 60)
@@ -193,6 +195,9 @@ class PradoTrayApp:
     def _on_api_status_change(self, new_status: str, last_sync: Optional[str]) -> None:
         self.cfg = self.api.cfg
         self._auto_sync_enabled = bool(getattr(self.cfg.sync, "auto_sync", False))
+        self._auto_sync_interval_mins = max(
+            5, int(getattr(self.cfg.sync, "auto_sync_interval_minutes", 60) or 60)
+        )
         mapped = "syncing" if new_status in ("syncing", "mfa_required") else ("error" if new_status == "error" else "idle")
         self.status = mapped
         if last_sync:
@@ -639,7 +644,8 @@ class PradoTrayApp:
             lang = self.cfg.language or "es"
             chosen = self._pick_folder_webview(t("picker_choose_folder", lang))
             if chosen:
-                self.cfg.courses_root = chosen
+                normalized = self.api._normalize_picked_courses_root(chosen)
+                self.cfg.courses_root = normalized
                 self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
                 save_config(self.cfg)
                 self._refresh_tray_ui()
@@ -846,13 +852,16 @@ class PradoTrayApp:
                 "pystray is not installed. Install with 'pip install pystray pillow' to run the GUI app."
             )
 
-        if not detached and self._instance_guard.try_activate_existing():
+        if not detached and not self._instance_guard.acquire_or_activate():
             return
+
+        self._stopped = False
 
         # 1. Start local loopback server for the compact Setup / 2FA window
         self.server = PradoUIServer(api=self.api)
         control_url = self.server.start()
         self._instance_guard.register(self.server.port, self.server.token)
+        atexit.register(self.stop)
 
         # 2. Initialize System Tray Icon (monochrome template on macOS HIG)
         initial_icon_img = create_tray_icon(
@@ -875,56 +884,58 @@ class PradoTrayApp:
 
         self._main_loop_active = True
 
-        # 4. Open compact single-screen Setup Card (525x640px) alongside the System Tray
-        if webview is None and _WEBVIEW_IMPORT_ERROR is not None:
-            _log_desktop_error("import webview", _WEBVIEW_IMPORT_ERROR)
+        try:
+            # 4. Open compact single-screen Setup Card (525x670px) alongside the System Tray
+            if webview is None and _WEBVIEW_IMPORT_ERROR is not None:
+                _log_desktop_error("import webview", _WEBVIEW_IMPORT_ERROR)
 
-        if webview is not None:
-            tray_started = False
+            if webview is not None:
+                tray_started = False
 
-            def _start_tray_once() -> None:
-                nonlocal tray_started
-                if not tray_started:
-                    tray_started = True
-                    self.icon.run_detached()
+                def _start_tray_once() -> None:
+                    nonlocal tray_started
+                    if not tray_started:
+                        tray_started = True
+                        self.icon.run_detached()
 
-            is_windows = sys.platform in ("win32", "cygwin") or os.name == "nt"
-            try:
-                if not is_windows:
-                    _start_tray_once()
-                self.window = webview.create_window(
-                    title=t("tray_window_title", self.cfg.language or "es"),
-                    url=control_url,
-                    width=525,
-                    height=640,
-                    min_size=(460, 560),
-                    resizable=True,
-                    hidden=bool(tray_only),
-                )
+                is_windows = sys.platform in ("win32", "cygwin") or os.name == "nt"
                 try:
-                    self.window.events.closing += self._on_window_closing
-                except Exception:
-                    pass
-                if is_windows:
-                    webview.start(_start_tray_once)
-                else:
-                    webview.start()
-                self.stop()
-                return
-            except Exception as exc:
-                _log_desktop_error("webview.start", exc)
-                if not tray_only:
-                    open_url(control_url)
-                if not tray_started:
-                    self.icon.run()
-                else:
-                    while self._running:
-                        time.sleep(0.5)
-                return
+                    if not is_windows:
+                        _start_tray_once()
+                    self.window = webview.create_window(
+                        title=t("tray_window_title", self.cfg.language or "es"),
+                        url=control_url,
+                        width=525,
+                        height=670,
+                        min_size=(460, 560),
+                        resizable=True,
+                        hidden=bool(tray_only),
+                    )
+                    try:
+                        self.window.events.closing += self._on_window_closing
+                    except Exception:
+                        pass
+                    if is_windows:
+                        webview.start(_start_tray_once)
+                    else:
+                        webview.start()
+                    return
+                except Exception as exc:
+                    _log_desktop_error("webview.start", exc)
+                    if not tray_only:
+                        open_url(control_url)
+                    if not tray_started:
+                        self.icon.run()
+                    else:
+                        while self._running:
+                            time.sleep(0.5)
+                    return
 
-        if not tray_only:
-            open_url(control_url)
-        self.icon.run()
+            if not tray_only:
+                open_url(control_url)
+            self.icon.run()
+        finally:
+            self.stop()
 
     def _on_window_closing(self) -> bool:
         """
@@ -943,6 +954,9 @@ class PradoTrayApp:
 
     def stop(self) -> None:
         """Stops the application, shuts down the local server, and closes the tray icon."""
+        if self._stopped:
+            return
+        self._stopped = True
         self._quitting = True
         self._running = False
         self._main_loop_active = False
@@ -956,11 +970,16 @@ class PradoTrayApp:
         if self.server:
             self.server.stop()
             self.server = None
-        if self.icon:
+        if self.icon is not None:
+            try:
+                self.icon.visible = False
+            except Exception:
+                pass
             try:
                 self.icon.stop()
             except Exception:
                 pass
+            self.icon = None
 
 
 def run_tray_app(detached: bool = False, tray_only: bool = False) -> int:

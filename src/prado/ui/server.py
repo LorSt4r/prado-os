@@ -456,7 +456,7 @@ class PradoControlCenterAPI:
             self.cfg.moodle_url = str(payload["moodle_url"]).strip().rstrip("/")
 
         if payload.get("courses_root"):
-            self.cfg.courses_root = Path(str(payload["courses_root"])).expanduser().resolve()
+            self.cfg.courses_root = self._normalize_picked_courses_root(Path(str(payload["courses_root"])))
 
         preset = str(payload.get("preset", self.cfg.sync.preset or "mirror")).strip().lower()
         if preset in ("mirror", "smart"):
@@ -759,7 +759,7 @@ class PradoControlCenterAPI:
 
     def update_course_settings(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         if payload.get("courses_root"):
-            self.cfg.courses_root = Path(str(payload["courses_root"])).expanduser().resolve()
+            self.cfg.courses_root = self._normalize_picked_courses_root(Path(str(payload["courses_root"])))
             self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
 
         if payload.get("preset") in ("mirror", "smart"):
@@ -814,12 +814,16 @@ class PradoControlCenterAPI:
             "descargas",
             "scaricati",
             "téléchargements",
+            "onedrive",
+            "google drive",
+            "icloud drive",
+            "dropbox",
         }
         try:
             is_home = resolved == Path.home().resolve()
         except Exception:
             is_home = False
-        if is_home or name_low in generic_names:
+        if is_home or name_low in generic_names or name_low.startswith("onedrive"):
             return resolved / "PRADO_UGR"
         return resolved
 
@@ -834,8 +838,13 @@ class PradoControlCenterAPI:
         else:
             chosen = prompt_folder_picker_gui(dialog_prompt)
         if chosen:
+            raw_resolved = chosen.expanduser().resolve()
             normalized = self._normalize_picked_courses_root(chosen)
-            return {"status": "success", "path": str(normalized)}
+            return {
+                "status": "success",
+                "path": str(normalized),
+                "auto_subfolder": normalized != raw_resolved,
+            }
         return {"status": "cancelled"}
 
     def open_local_path(self, rel_or_abs: Optional[str] = None) -> Dict[str, Any]:

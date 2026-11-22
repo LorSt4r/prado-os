@@ -80,6 +80,8 @@ def test_desktop_notifier_windows_winrt_and_no_window(monkeypatch):
     assert "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}" in script
     assert "[System.Security.SecurityElement]::Escape" in script
     assert "Start-Sleep -Milliseconds 3500" in script
+    assert "$notify.Visible = $False" in script
+    assert "finally" in script
     assert captured["kwargs"].get("creationflags") == 0x08000000
 
 
@@ -463,3 +465,156 @@ def test_tray_logs_webview_failure_without_double_running_icon(tmp_path: Path, m
     fake_icon.run_detached.assert_called_once()
     fake_icon.run.assert_not_called()
     app.stop()
+
+
+def test_single_instance_os_lock_windows_mutex_and_proxy_bypass(tmp_path: Path, monkeypatch):
+    import ctypes
+    import urllib.request
+
+    inst_file = tmp_path / "tray_instance.json"
+    inst_file.write_text(json.dumps({"pid": 1234, "port": 54321, "token": "tok-1"}), encoding="utf-8")
+
+    # 1. Windows named Mutex (ERROR_ALREADY_EXISTS = 183) blocks duplicate without deleting file
+    monkeypatch.setattr(sys, "platform", "win32")
+    closed_handles = []
+    fake_kernel32 = SimpleNamespace(
+        CreateMutexW=MagicMock(return_value=999),
+        GetLastError=MagicMock(return_value=183),
+        CloseHandle=MagicMock(side_effect=lambda h: closed_handles.append(h)),
+    )
+    monkeypatch.setattr(ctypes, "windll", SimpleNamespace(kernel32=fake_kernel32), raising=False)
+
+    handlers_used = []
+    real_build_opener = urllib.request.build_opener
+
+    def _spy_build_opener(*handlers):
+        handlers_used.extend(handlers)
+        class _FakeOpener:
+            def open(self, req, timeout=1.0):
+                raise OSError("booting")
+        return _FakeOpener()
+
+    monkeypatch.setattr(urllib.request, "build_opener", _spy_build_opener)
+    guard_win = SingleInstanceGuard(instance_file=inst_file)
+    assert guard_win.acquire_or_activate(timeout=0.05, wait_for_ready=0.05) is False
+    assert not inst_file.exists()  # stale cleanup runs once on initial try_activate_existing
+    assert 999 in closed_handles
+    assert any(isinstance(h, urllib.request.ProxyHandler) and h.proxies == {} for h in handlers_used)
+
+    # Restore valid instance file for booting-mutex non-cleanup verification
+    inst_file.write_text(json.dumps({"pid": 1234, "port": 54321, "token": "tok-2"}), encoding="utf-8")
+    monkeypatch.setattr(guard_win, "try_activate_existing", lambda: False)
+    assert guard_win.acquire_or_activate(timeout=0.05, wait_for_ready=0.05) is False
+    assert inst_file.exists()  # Booting secondary check MUST NOT unlink active instance descriptor
+
+    monkeypatch.setattr(urllib.request, "build_opener", real_build_opener)
+
+    # 2. POSIX flock mutual exclusion
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(os, "name", "posix")
+    g1 = SingleInstanceGuard(instance_file=tmp_path / "posix_inst.json")
+    g2 = SingleInstanceGuard(instance_file=tmp_path / "posix_inst.json")
+    assert g1.acquire_lock() is True
+    assert g2.acquire_lock() is False
+    g1.release()
+    assert g2.acquire_lock() is True
+    g2.release()
+
+
+def test_tray_stop_hides_icon_syncs_interval_and_normalizes_folder(tmp_path: Path, monkeypatch):
+    cfg_dir = tmp_path / "cfg"
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(cfg_dir))
+    cfg = PradoConfig(courses_root=tmp_path / "Courses", language="it")
+    app = PradoTrayApp(cfg=cfg)
+
+    events = []
+    class _TrackedIcon:
+        def __init__(self):
+            self._visible = True
+        @property
+        def visible(self):
+            return self._visible
+        @visible.setter
+        def visible(self, val):
+            self._visible = val
+            events.append(("visible", val))
+        def stop(self):
+            events.append(("stop", True))
+
+    app.icon = _TrackedIcon()
+    app.stop()
+    app.stop()  # idempotent second call
+    assert events == [("visible", False), ("stop", True)]
+    assert app.icon is None
+
+    # Refresh interval as well as enabled flag on API status update
+    app.api.cfg.sync.auto_sync = True
+    app.api.cfg.sync.auto_sync_interval_minutes = 30
+    app._on_api_status_change("idle", "12:00")
+    assert app._auto_sync_enabled is True
+    assert app._auto_sync_interval_mins == 30
+
+    # Tray folder picker normalizes Desktop -> Desktop/PRADO_UGR
+    desktop = tmp_path / "Desktop"
+    desktop.mkdir()
+    monkeypatch.setattr(app, "_pick_folder_webview", lambda prompt: desktop)
+    monkeypatch.setattr("prado.ui.tray.threading.Thread", lambda target, daemon=True: SimpleNamespace(start=lambda: target()))
+    app._on_pick_folder()
+    assert app.cfg.courses_root == desktop.resolve() / "PRADO_UGR"
+
+
+def test_folder_normalization_onedrive_and_onboarding_save(tmp_path: Path, monkeypatch):
+    cfg_dir = tmp_path / "cfg"
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(cfg_dir))
+    monkeypatch.setenv("PRADO_KEYRING_BACKEND", "vault")
+
+    onedrive = tmp_path / "OneDrive - Personal"
+    onedrive.mkdir()
+    assert PradoControlCenterAPI._normalize_picked_courses_root(onedrive) == onedrive.resolve() / "PRADO_UGR"
+
+    desktop = tmp_path / "Desktop"
+    desktop.mkdir()
+    api = PradoControlCenterAPI(
+        cfg=PradoConfig(courses_root=tmp_path / "Init", language="it"),
+        folder_picker_callback=lambda prompt: desktop,
+    )
+    picked = api.pick_folder_native()
+    assert picked["status"] == "success"
+    assert picked["auto_subfolder"] is True
+    assert Path(picked["path"]) == desktop.resolve() / "PRADO_UGR"
+
+    custom = tmp_path / "MisApuntes"
+    custom.mkdir()
+    api2 = PradoControlCenterAPI(
+        cfg=PradoConfig(courses_root=tmp_path / "Init", language="es"),
+        folder_picker_callback=lambda prompt: custom,
+    )
+    picked2 = api2.pick_folder_native()
+    assert picked2["auto_subfolder"] is False
+
+    res = api.save_onboarding_and_login(
+        {
+            "language": "it",
+            "username": "student@correo.ugr.es",
+            "password": "secret-password",
+            "courses_root": str(desktop),
+            "auto_sync": True,
+            "auto_sync_interval_minutes": 60,
+            "start_sync": False,
+        }
+    )
+    assert res["status"] == "success"
+    assert Path(res["courses_root"]) == desktop.resolve() / "PRADO_UGR"
+
+
+def test_frontend_autosync_onboarding_and_folder_helper():
+    from prado.ui.frontend import render_control_center_html
+
+    html = render_control_center_html(token="tok-auto")
+    assert "onbAutoSyncQuick" in html
+    assert "folder_helper" in html
+    assert "lbl_onb_autosync_title" in html
+    assert "sync_done_next_2_auto" in html
+    assert "sync_done_next_2_manual" in html
+    assert "toast_auto_subfolder" in html
+    assert "const effectiveAutoSync = isConnected ? Boolean(st.config.auto_sync) : true;" in html

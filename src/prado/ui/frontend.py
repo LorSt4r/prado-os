@@ -3,7 +3,7 @@ PradoOS Compact Setup & Quick-Configure Window (Single-Screen Native Card).
 
 Designed following Maestral, Tailscale, and Obsidian desktop UI patterns:
 - Daily actions live in the OS Menu Bar / System Tray with focused submenus.
-- This compact 2-tab Setup Card (525x640px) handles account connection,
+- This compact 2-tab Setup Card (525x670px) handles account connection,
   local folder & Mirror/Smart organization, Mail forwarding, and 2FA MFA prompts.
 """
 
@@ -416,6 +416,15 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .check-row input[type="checkbox"] { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
   .helper-text { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+  .autosync-onb-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
 
   .progress-wrap {
     display: none;
@@ -637,6 +646,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
           <button type="button" class="btn btn-secondary" onclick="pickFolderFor('onbCoursesRoot')" data-i18n="btn_browse">Elegir...</button>
         </div>
         <div class="field-error" id="err-courses_root"></div>
+        <div class="helper-text" id="folderHelperText" data-i18n="folder_helper">📁 Si eliges Escritorio o Documentos, PradoOS crea automáticamente una única carpeta PRADO_UGR.</div>
       </div>
 
       <!-- Segmented Mirror / Smart + Live Tree Preview -->
@@ -654,6 +664,14 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
           <div class="tree-desc" id="treePreviewDesc"></div>
           <div id="treePreviewLines"></div>
         </div>
+      </div>
+
+      <div class="autosync-onb-box" id="onbAutoSyncQuickWrap">
+        <label class="check-row" style="font-weight:600; font-size:12.5px;">
+          <input type="checkbox" id="onbAutoSyncQuick" checked onchange="onToggleQuickAutoSync(this.checked)">
+          <span data-i18n="lbl_onb_autosync_title">Sincronización automática cada hora (en segundo plano)</span>
+        </label>
+        <div class="helper-text" data-i18n="lbl_onb_autosync_hint">Descarga nuevos apuntes y entregas solo, incluso con esta ventana cerrada (ajustable en Correo y Opciones).</div>
       </div>
     </div>
 
@@ -748,7 +766,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
       <p style="font-size:12.5px; color:var(--green); font-weight:600;" id="syncDoneSummaryText"></p>
       <div class="done-list">
         <div class="done-item" data-i18n="sync_done_next_1">📂 Abre tu carpeta de asignaturas para ver tus apuntes y entregas descargados.</div>
-        <div class="done-item" data-i18n="sync_done_next_2">💡 Ya puedes cerrar esta ventana: PradoOS sigue activo en la bandeja del sistema (flecha ^ en Windows o barra superior en Mac), donde puedes activar la sincronización automática.</div>
+        <div class="done-item" id="syncDoneNext2" data-i18n="sync_done_next_2">💡 Ya puedes cerrar esta ventana: PradoOS sigue activo en la bandeja del sistema (flecha ^ en Windows o barra superior en Mac), donde puedes activar la sincronización automática.</div>
       </div>
       <label class="check-row" style="margin-top:4px;">
         <input type="checkbox" id="chkHideSyncDone">
@@ -788,6 +806,7 @@ let activeCardTab = "account";
 let lastDoctorSeq = null;
 let lastSyncStatus = null;
 let lastSyncErrorShown = null;
+let lastNonOffAutoSyncMins = "60";
 
 const I18N = {
   es: {
@@ -817,6 +836,10 @@ const I18N = {
     privacy_inline_note: "🔒 100% local y código abierto: tu contraseña se guarda solo en el Llavero de tu equipo (o bóveda cifrada local) y solo se envía a servidores oficiales *.ugr.es. Cero servidores externos.",
     onb_folder: "Carpeta Local de Apuntes",
     btn_browse: "Elegir...",
+    folder_helper: "📁 Si eliges Escritorio o Documentos, PradoOS crea automáticamente una única carpeta PRADO_UGR.",
+    toast_auto_subfolder: "📁 Todos tus cursos se agruparán dentro de la carpeta PRADO_UGR.",
+    lbl_onb_autosync_title: "Sincronización automática cada hora (en segundo plano)",
+    lbl_onb_autosync_hint: "Descarga nuevos apuntes y entregas solo, incluso con esta ventana cerrada (ajustable en Correo y Opciones).",
     lbl_preset_mode: "Organización de Carpetas",
     seg_mirror: "Mirror (PRADO oficial)",
     seg_smart: "Smart (Teoría / Prácticas)",
@@ -859,6 +882,8 @@ const I18N = {
     sync_done_summary: "{courses} asignaturas · {files} archivos nuevos · {deadlines} entregas",
     sync_done_next_1: "📂 Abre tu carpeta de asignaturas para consultar los apuntes descargados.",
     sync_done_next_2: "💡 Puedes cerrar esta ventana: PradoOS sigue activo en la bandeja del sistema (flecha ^ en Windows o barra superior en Mac) y en la 2ª pestaña puedes activar la sincronización automática.",
+    sync_done_next_2_auto: "🔄 Sincronización automática activa (cada {freq}): ya puedes cerrar esta ventana; PradoOS seguirá actualizando tus apuntes desde el icono junto al reloj (flecha ^ en Windows o barra superior en Mac).",
+    sync_done_next_2_manual: "💡 Auto-sync desactivado: puedes sincronizar manualmente desde el icono junto al reloj o activarlo en Correo y Opciones.",
     sync_done_dont_show: "No volver a mostrar este aviso",
     sync_done_close_btn: "Cerrar"
   },
@@ -889,6 +914,10 @@ const I18N = {
     privacy_inline_note: "🔒 100% local & open source: your password stays only in your device Keychain (or local encrypted vault) and connects solely to official *.ugr.es servers. Zero external servers.",
     onb_folder: "Local Courses Folder",
     btn_browse: "Browse...",
+    folder_helper: "📁 If you pick Desktop or Documents, PradoOS automatically creates a single PRADO_UGR folder inside it.",
+    toast_auto_subfolder: "📁 All your courses will be grouped inside a single PRADO_UGR folder.",
+    lbl_onb_autosync_title: "Automatic background sync every hour",
+    lbl_onb_autosync_hint: "Downloads new slides and deadlines automatically even when this window is closed (adjustable in Mail & Options).",
     lbl_preset_mode: "Folder Organization",
     seg_mirror: "Mirror (Official PRADO)",
     seg_smart: "Smart (Theory / Labs)",
@@ -931,6 +960,8 @@ const I18N = {
     sync_done_summary: "{courses} courses · {files} new files · {deadlines} deadlines",
     sync_done_next_1: "📂 Open your courses folder to inspect your downloaded slides and assignments.",
     sync_done_next_2: "💡 You can close this window now: PradoOS keeps running in your System Tray (^ arrow on Windows or top Menu Bar on Mac), and you can turn on Auto-Sync in the second tab.",
+    sync_done_next_2_auto: "🔄 Auto-sync is active (every {freq}): you can close this window now — PradoOS keeps updating your courses from the tray icon (^ arrow on Windows or Menu Bar on Mac).",
+    sync_done_next_2_manual: "💡 Auto-sync is off: sync anytime from the tray icon or turn on background sync in Mail & Options.",
     sync_done_dont_show: "Don't show this notice again",
     sync_done_close_btn: "Got it"
   },
@@ -961,6 +992,10 @@ const I18N = {
     privacy_inline_note: "🔒 100% locale e open source: la tua password resta solo sul tuo PC (Gestore Credenziali / vault cifrato locale) e parla solo con i server ufficiali *.ugr.es. Zero server esterni.",
     onb_folder: "Cartella Locale dei Corsi",
     btn_browse: "Scegli...",
+    folder_helper: "📁 Se scegli Scrivania o Documenti, PradoOS crea automaticamente una cartella unica PRADO_UGR.",
+    toast_auto_subfolder: "📁 Tutti i tuoi corsi verranno raggruppati nella cartella unica PRADO_UGR.",
+    lbl_onb_autosync_title: "Sincronizzazione automatica ogni ora (in background)",
+    lbl_onb_autosync_hint: "Scarica da solo nuovi appunti e scadenze anche a finestra chiusa (modificabile in Posta e Opzioni).",
     lbl_preset_mode: "Organizzazione Cartelle",
     seg_mirror: "Mirror (PRADO ufficiale)",
     seg_smart: "Smart (Teoria / Pratiche)",
@@ -1003,6 +1038,8 @@ const I18N = {
     sync_done_summary: "{courses} corsi · {files} nuovi file · {deadlines} scadenze",
     sync_done_next_1: "📂 Apri la cartella dei corsi per vedere subito tutti i file e gli appunti scaricati.",
     sync_done_next_2: "💡 Ora puoi chiudere questa finestra: PradoOS resta attivo nella System Tray (freccia ^ in basso a destra su Windows o Barra dei Menu su Mac), e nella 2ª scheda puoi attivare l'auto-sync.",
+    sync_done_next_2_auto: "🔄 Sincronizzazione automatica attiva (ogni {freq}): ora puoi chiudere questa finestra, PradoOS aggiornerà da solo i tuoi corsi dall'icona vicino all'orologio (freccia ^ su Windows o Barra dei Menu su Mac).",
+    sync_done_next_2_manual: "💡 Auto-sync disattivato: puoi sincronizzare manualmente dall'icona vicino all'orologio o attivarlo in Posta e Opzioni.",
     sync_done_dont_show: "Non mostrare più questo avviso",
     sync_done_close_btn: "Ho capito"
   },
@@ -1033,6 +1070,10 @@ const I18N = {
     privacy_inline_note: "🔒 100% local et open source : votre mot de passe reste uniquement sur votre appareil (Trousseau / coffre chiffré local) et ne communique qu'avec *.ugr.es. Zéro serveur externe.",
     onb_folder: "Dossier Local des Cours",
     btn_browse: "Parcourir...",
+    folder_helper: "📁 Si vous choisissez Bureau ou Documents, PradoOS crée automatiquement un dossier unique PRADO_UGR.",
+    toast_auto_subfolder: "📁 Tous vos cours seront regroupés dans le dossier unique PRADO_UGR.",
+    lbl_onb_autosync_title: "Synchronisation automatique toutes les heures (en arrière-plan)",
+    lbl_onb_autosync_hint: "Télécharge automatiquement les nouveaux cours et devoirs même fenêtre fermée (réglable dans Courriel et Options).",
     lbl_preset_mode: "Organisation des Dossiers",
     seg_mirror: "Mirror (PRADO officiel)",
     seg_smart: "Smart (Théorie / TP)",
@@ -1075,6 +1116,8 @@ const I18N = {
     sync_done_summary: "{courses} cours · {files} nouveaux fichiers · {deadlines} échéances",
     sync_done_next_1: "📂 Ouvrez votre dossier de cours pour consulter les supports et devoirs téléchargés.",
     sync_done_next_2: "💡 Vous pouvez fermer cette fenêtre : PradoOS reste actif dans la barre d'état (flèche ^ sous Windows ou barre des menus sous Mac), où vous pouvez activer la synchro automatique.",
+    sync_done_next_2_auto: "🔄 Synchro automatique active (toutes les {freq}) : vous pouvez fermer cette fenêtre — PradoOS mettra à jour vos cours depuis la barre d'état (flèche ^ sous Windows ou barre des menus sous Mac).",
+    sync_done_next_2_manual: "💡 Synchro auto désactivée : synchronisez depuis la barre d'état ou activez-la dans Courriel et Options.",
     sync_done_dont_show: "Ne plus afficher cet avis",
     sync_done_close_btn: "Compris"
   }
@@ -1255,6 +1298,10 @@ async function pickFolderFor(inputId) {
   if (res.status === "success" && res.path) {
     document.getElementById(inputId).value = res.path;
     updateTreePreview();
+    if (res.auto_subfolder) {
+      const dict = I18N[currentLang] || I18N.es;
+      if (dict.toast_auto_subfolder) showToast(dict.toast_auto_subfolder);
+    }
   }
 }
 
@@ -1368,9 +1415,21 @@ async function toggleAutostartImmediate(enabled) {
   }
 }
 
+function onToggleQuickAutoSync(checked) {
+  const autoSel = document.getElementById("onbAutoSyncSelect");
+  const nextVal = checked ? (lastNonOffAutoSyncMins || "60") : "off";
+  if (autoSel) autoSel.value = nextVal;
+  if (appState && (appState.is_onboarded || (appState.auth && appState.auth.username))) {
+    toggleAutoSyncImmediate(nextVal);
+  }
+}
+
 async function toggleAutoSyncImmediate(val) {
   const dict = I18N[currentLang] || I18N.es;
   const enabled = val !== "off";
+  if (enabled) lastNonOffAutoSyncMins = String(val);
+  const q = document.getElementById("onbAutoSyncQuick");
+  if (q) q.checked = enabled;
   const interval_minutes = enabled ? parseInt(val, 10) : 60;
   const res = await apiPost("/api/autosync/toggle", {
     enabled: enabled,
@@ -1566,6 +1625,18 @@ function renderStateText(st) {
   }
 }
 
+function _formatAutoSyncFreq(mins, lang) {
+  const n = Number(mins) || 60;
+  if (n === 60) {
+    return lang === "en" ? "1 hour" : (lang === "it" ? "1 ora" : (lang === "fr" ? "1 heure" : "1 hora"));
+  }
+  if (n % 60 === 0) {
+    const h = n / 60;
+    return lang === "en" ? `${h} hours` : (lang === "it" ? `${h} ore` : (lang === "fr" ? `${h} heures` : `${h} horas`));
+  }
+  return `${n} min`;
+}
+
 function maybeOpenSyncDoneModal(st) {
   try {
     if (localStorage.getItem("prado_hide_sync_done") === "1") return;
@@ -1582,6 +1653,16 @@ function maybeOpenSyncDoneModal(st) {
       .replace("{courses}", String(coursesCount))
       .replace("{files}", String(filesCount))
       .replace("{deadlines}", String(deadlinesCount));
+  }
+  const next2El = document.getElementById("syncDoneNext2");
+  if (next2El) {
+    const autoOn = Boolean(st.config && st.config.auto_sync);
+    if (autoOn) {
+      const freqStr = _formatAutoSyncFreq(st.config.auto_sync_interval_minutes || 60, currentLang);
+      next2El.textContent = (dict.sync_done_next_2_auto || dict.sync_done_next_2 || "").replace("{freq}", freqStr);
+    } else {
+      next2El.textContent = dict.sync_done_next_2_manual || dict.sync_done_next_2 || "";
+    }
   }
   const chk = document.getElementById("chkHideSyncDone");
   if (chk) chk.checked = false;
@@ -1624,10 +1705,16 @@ async function refreshState() {
       setPresetMode(isConnected ? (st.config.preset || "mirror") : "mirror");
       document.getElementById("onbNotifications").checked = Boolean(st.config.notifications_enabled);
       document.getElementById("onbAutostart").checked = Boolean(st.config.autostart);
+      const effectiveAutoSync = isConnected ? Boolean(st.config.auto_sync) : true;
+      const effectiveAutoMins = isConnected ? (st.config.auto_sync_interval_minutes || 60) : 60;
+      lastNonOffAutoSyncMins = String(effectiveAutoMins);
       const autoSel = document.getElementById("onbAutoSyncSelect");
       if (autoSel) {
-        if (!st.config.auto_sync) autoSel.value = "off";
-        else autoSel.value = String(st.config.auto_sync_interval_minutes || 60);
+        autoSel.value = effectiveAutoSync ? String(effectiveAutoMins) : "off";
+      }
+      const quickAuto = document.getElementById("onbAutoSyncQuick");
+      if (quickAuto) {
+        quickAuto.checked = effectiveAutoSync;
       }
       document.getElementById("cfgFwdEnabled").checked = Boolean(st.config.mail.forward_enabled);
       document.getElementById("cfgFwdTo").value = st.config.mail.forward_to || "";
