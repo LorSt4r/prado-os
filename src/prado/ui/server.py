@@ -561,20 +561,16 @@ class PradoControlCenterAPI:
     def _sync_worker_detailed(self, course_filter: Optional[str] = None, force: bool = False) -> None:
         try:
             self.cfg = load_config()
+            lang = self.cfg.language or "es"
             self.last_error = None
-            self._set_status("syncing", step=t("sync_starting", self.cfg.language), pct=5)
+            self._set_status("syncing", step=t("sync_starting", lang), pct=5)
             self._append_log("🚀 Iniciando sincronización con PRADO UGR...")
 
             state_db = StateDatabase()
             self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
 
-            # Step 1: Adoption scan (protect local files)
-            self._set_status("syncing", step="Escaneando carpeta local y protegiendo archivos modificados...", pct=12)
-            adoption_scanner = AdoptionScanner(self.cfg.courses_root, state_db)
-            adoption_scanner.scan_local_files()
-
-            # Step 2: SAML Authentication (with live inline MFA callback + GUI fallback)
-            self._set_status("syncing", step="Autenticando sesión SSO con la Universidad de Granada...", pct=20)
+            # Step 1: SAML Authentication FIRST (surface 2FA modal or credential error immediately)
+            self._set_status("syncing", step=t("sync_step_auth", lang), pct=12)
             self._append_log(f"🔑 Conectando a {self.cfg.moodle_url} como {self.cfg.username}...")
             session = _obtain_authenticated_session(
                 cfg=self.cfg,
@@ -585,8 +581,8 @@ class PradoControlCenterAPI:
             )
             self._append_log("✓ Sesión SAML validada correctamente.")
 
-            # Step 3: Course Discovery
-            self._set_status("syncing", step="Descubriendo asignaturas matriculadas en PRADO...", pct=30)
+            # Step 2: Course Discovery
+            self._set_status("syncing", step=t("sync_step_discover", lang), pct=24)
             discovery = CourseDiscovery(session=session, base_url=self.cfg.moodle_url)
             c_filter = CourseFilter(
                 semester=self.cfg.sync.semester,
@@ -607,6 +603,11 @@ class PradoControlCenterAPI:
 
             self._append_log(f"📚 {len(courses)} asignatura(s) activa(s) detectada(s).")
 
+            # Step 3: Bounded adoption scan (protect local files)
+            self._set_status("syncing", step=t("sync_step_scan", lang), pct=32)
+            adoption_scanner = AdoptionScanner(self.cfg.courses_root, state_db)
+            adoption_scanner.scan_local_files()
+
             router = CourseRouter(self.cfg.sync)
             downloader = SafeDownloader(session=session)
             overwrite_guard = OverwriteGuard(state_db)
@@ -615,7 +616,7 @@ class PradoControlCenterAPI:
 
             total_c = max(1, len(courses))
             for idx, c in enumerate(courses, start=1):
-                pct = 30 + int((idx - 1) / total_c * 52)
+                pct = 34 + int((idx - 1) / total_c * 48)
                 self._set_status("syncing", step=f"({idx}/{len(courses)}) {c.fullname}", pct=pct)
                 self._append_log(f"🔄 [{idx}/{len(courses)}] Sincronizando: {c.fullname}...")
 
@@ -650,7 +651,7 @@ class PradoControlCenterAPI:
                     self._append_log(f"   ✓ {new_dl} nuevo(s) archivo(s) descargado(s) en {c.shortname or c.fullname}.")
 
             # Step 4: Exporters (Dashboard, Changelog, ICS Calendar)
-            self._set_status("syncing", step="Actualizando DASHBOARD.md y calendario deadlines.ics...", pct=86)
+            self._set_status("syncing", step=t("sync_step_export", lang), pct=86)
             export_dashboard(courses_root=self.cfg.courses_root, summary=summary, state_db=state_db)
             export_changelog(courses_root=self.cfg.courses_root, summary=summary)
             ics_path = export_calendar(courses_root=self.cfg.courses_root, deadlines=summary.deadlines)
@@ -659,7 +660,7 @@ class PradoControlCenterAPI:
             # Step 5: Optional Mail Sync & Auto-Forwarding
             mail_info = None
             if self.cfg.mail.enabled:
-                self._set_status("syncing", step="Comprobando buzón institucional @correo.ugr.es...", pct=92)
+                self._set_status("syncing", step=t("sync_step_mail", lang), pct=92)
                 try:
                     mail_client = UgrMailClient(config=self.cfg)
                     mail_res = mail_client.sync_and_forward(dry_run=False)
@@ -677,7 +678,7 @@ class PradoControlCenterAPI:
 
             # Step 6: Optional Google Calendar Sync
             if self.gcalendar_enabled:
-                self._set_status("syncing", step="Sincronizando entregas con Google Calendar...", pct=96)
+                self._set_status("syncing", step=t("sync_step_gcal", lang), pct=96)
                 try:
                     from prado.exporters.gcalendar import GoogleCalendarSync
 
@@ -795,8 +796,36 @@ class PradoControlCenterAPI:
                 pass
         return {"status": "shown"}
 
+    @staticmethod
+    def _normalize_picked_courses_root(chosen: Path) -> Path:
+        resolved = chosen.expanduser().resolve()
+        name_low = resolved.name.lower()
+        if "prado" in name_low or "ugr" in name_low or (resolved / "DASHBOARD.md").exists():
+            return resolved
+        generic_names = {
+            "desktop",
+            "escritorio",
+            "scrivania",
+            "bureau",
+            "documents",
+            "documentos",
+            "documenti",
+            "downloads",
+            "descargas",
+            "scaricati",
+            "téléchargements",
+        }
+        try:
+            is_home = resolved == Path.home().resolve()
+        except Exception:
+            is_home = False
+        if is_home or name_low in generic_names:
+            return resolved / "PRADO_UGR"
+        return resolved
+
     def pick_folder_native(self, prompt: Optional[str] = None) -> Dict[str, Any]:
-        dialog_prompt = prompt or "Selecciona la carpeta para tus apuntes de PRADO UGR"
+        lang = self.cfg.language or "es"
+        dialog_prompt = prompt or t("picker_choose_folder", lang)
         if callable(self.folder_picker_callback):
             try:
                 chosen = self.folder_picker_callback(dialog_prompt)
@@ -805,7 +834,8 @@ class PradoControlCenterAPI:
         else:
             chosen = prompt_folder_picker_gui(dialog_prompt)
         if chosen:
-            return {"status": "success", "path": str(chosen)}
+            normalized = self._normalize_picked_courses_root(chosen)
+            return {"status": "success", "path": str(normalized)}
         return {"status": "cancelled"}
 
     def open_local_path(self, rel_or_abs: Optional[str] = None) -> Dict[str, Any]:
@@ -899,7 +929,9 @@ class PradoControlCenterAPI:
             if dest_dir:
                 folder = Path(dest_dir).expanduser().resolve()
             else:
-                chosen = prompt_folder_picker_gui(f"Guardar adjunto: {att.filename}")
+                chosen = prompt_folder_picker_gui(
+                    t("picker_save_attachment", self.cfg.language or "es", filename=att.filename)
+                )
                 if not chosen:
                     return {"status": "cancelled"}
                 folder = chosen

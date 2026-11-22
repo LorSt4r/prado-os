@@ -12,9 +12,27 @@ from dataclasses import dataclass
 import hashlib
 import os
 from pathlib import Path
+import time
 from typing import Dict, List, Optional
 
 from prado.state import FileRecord, StateDatabase
+
+
+_IGNORED_SCAN_DIRS = {
+    "node_modules",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "appdata",
+    "$recycle.bin",
+    "system volume information",
+    "windows",
+    "program files",
+    "program files (x86)",
+    "library",
+    "applications",
+}
+_WIN_CLOUD_PLACEHOLDER_MASK = 0x00441000  # OFFLINE | RECALL_ON_OPEN | RECALL_ON_DATA_ACCESS
 
 
 @dataclass
@@ -50,10 +68,15 @@ class AdoptionScanner:
         # File size index: size in bytes -> list of matching files
         self.size_index: Dict[int, List[LocalFileInfo]] = {}
 
-    def scan_local_files(self) -> int:
+    def scan_local_files(
+        self,
+        max_files: int = 1000,
+        max_seconds: float = 3.0,
+        max_file_size_bytes: int = 50 * 1024 * 1024,
+    ) -> int:
         """
-        Recursively scans courses_root, ignoring hidden files (.DS_Store, .git)
-        and zero-byte files. Builds in-memory lookup index.
+        Recursively scans courses_root with bounded file count, time, and size,
+        ignoring hidden/system folders and Windows OneDrive cloud-only placeholders.
         Returns total number of non-empty files indexed.
         """
         self.path_index.clear()
@@ -64,52 +87,64 @@ class AdoptionScanner:
         if not self.courses_root.exists():
             return 0
 
+        root_resolved = self.courses_root.resolve()
+        start_ts = time.monotonic()
         indexed_count = 0
-        for entry in self.courses_root.rglob("*"):
-            if not entry.is_file():
-                continue
 
-            # Skip broken or non-file symlinks
-            try:
-                if entry.is_symlink() and not entry.resolve().is_file():
-                    continue
-            except (OSError, RuntimeError):
-                continue
+        for dirpath, dirnames, filenames in os.walk(self.courses_root, topdown=True, followlinks=False):
+            # Prune hidden and heavy/system directories in-place before descending
+            dirnames[:] = sorted(
+                d
+                for d in dirnames
+                if not d.startswith(".") and d.lower() not in _IGNORED_SCAN_DIRS
+            )
 
-            # Ignore hidden files or files in hidden folders (.DS_Store, .git)
-            try:
-                rel_parts = entry.relative_to(self.courses_root).parts
-            except ValueError:
-                continue
-
-            if any(part.startswith(".") for part in rel_parts):
-                continue
-
-            try:
-                st = entry.stat()
-                # Exclude 0-byte files from adoption
-                if st.st_size == 0:
+            for fname in sorted(filenames):
+                if indexed_count >= max_files or (time.monotonic() - start_ts) >= max_seconds:
+                    return indexed_count
+                if fname.startswith("."):
                     continue
 
-                rel_path_str = Path(*rel_parts).as_posix()
-                file_bytes = entry.read_bytes()
-                h = hashlib.sha256(file_bytes).hexdigest()
+                entry = Path(dirpath) / fname
+                try:
+                    if entry.is_symlink():
+                        continue
+                    st = entry.stat()
+                    if st.st_size == 0 or st.st_size > max_file_size_bytes:
+                        continue
+                    st_attrs = getattr(st, "st_file_attributes", 0)
+                    if st_attrs & _WIN_CLOUD_PLACEHOLDER_MASK:
+                        continue
 
-                info = LocalFileInfo(
-                    abs_path=entry,
-                    rel_path=rel_path_str,
-                    size=st.st_size,
-                    sha256=h,
-                    mtime=st.st_mtime,
-                )
+                    rel_parts = entry.resolve().relative_to(root_resolved).parts
+                    if not rel_parts or any(part.startswith(".") for part in rel_parts):
+                        continue
 
-                self.path_index[rel_path_str] = info
-                self.hash_index[h] = info
-                self.files_by_hash.setdefault(h, []).append(info)
-                self.size_index.setdefault(st.st_size, []).append(info)
-                indexed_count += 1
-            except OSError:
-                continue
+                    hasher = hashlib.sha256()
+                    with open(entry, "rb") as fh:
+                        while True:
+                            chunk = fh.read(65536)
+                            if not chunk:
+                                break
+                            hasher.update(chunk)
+                    h = hasher.hexdigest()
+
+                    rel_path_str = Path(*rel_parts).as_posix()
+                    info = LocalFileInfo(
+                        abs_path=entry,
+                        rel_path=rel_path_str,
+                        size=st.st_size,
+                        sha256=h,
+                        mtime=st.st_mtime,
+                    )
+
+                    self.path_index[rel_path_str] = info
+                    self.hash_index[h] = info
+                    self.files_by_hash.setdefault(h, []).append(info)
+                    self.size_index.setdefault(st.st_size, []).append(info)
+                    indexed_count += 1
+                except (OSError, ValueError, RuntimeError):
+                    continue
 
         return indexed_count
 

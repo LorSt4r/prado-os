@@ -120,3 +120,48 @@ class TestAdoptionScanner:
         different_server_hash = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
         res = scanner.match_and_adopt("file.pdf", different_server_hash)
         assert res is None
+
+    def test_scan_prunes_heavy_dirs_caps_files_size_and_skips_onedrive_placeholders(self, tmp_path, monkeypatch):
+        from types import SimpleNamespace
+
+        db_path = tmp_path / "state.db"
+        state_db = StateDatabase(db_path)
+        courses_dir = tmp_path / "courses"
+        courses_dir.mkdir()
+
+        # Heavy ignored dir should be pruned without indexing
+        nm = courses_dir / "node_modules" / "pkg"
+        nm.mkdir(parents=True)
+        (nm / "index.js").write_bytes(b"console.log(1);")
+
+        # Valid files
+        (courses_dir / "a.pdf").write_bytes(b"pdf-a")
+        (courses_dir / "b.pdf").write_bytes(b"pdf-b")
+        (courses_dir / "big.pdf").write_bytes(b"0123456789ABCDEF")  # 16 bytes -> skipped with max_file_size_bytes=10
+        cloud_only = courses_dir / "onedrive_cloud.pdf"
+        cloud_only.write_bytes(b"cloud")
+
+        orig_stat = Path.stat
+
+        def fake_stat(self_path: Path, *args, **kwargs):
+            st = orig_stat(self_path, *args, **kwargs)
+            if self_path.name == "onedrive_cloud.pdf":
+                return SimpleNamespace(
+                    st_size=st.st_size,
+                    st_mtime=st.st_mtime,
+                    st_mode=st.st_mode,
+                    st_file_attributes=0x00400000,  # FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
+                )
+            return st
+
+        monkeypatch.setattr(Path, "stat", fake_stat)
+
+        scanner = AdoptionScanner(courses_root=courses_dir, state_db=state_db)
+        count = scanner.scan_local_files(max_files=50, max_seconds=5.0, max_file_size_bytes=10)
+        assert count == 2
+        assert sorted(scanner.path_index.keys()) == ["a.pdf", "b.pdf"]
+
+        # max_files=1 stops cleanly after indexing 1 file
+        scanner2 = AdoptionScanner(courses_root=courses_dir, state_db=state_db)
+        count_capped = scanner2.scan_local_files(max_files=1, max_seconds=5.0, max_file_size_bytes=10)
+        assert count_capped == 1

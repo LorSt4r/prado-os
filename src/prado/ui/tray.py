@@ -80,13 +80,15 @@ except Exception:
     pystray = _HeadlessPystrayStub  # type: ignore[assignment]
     _PYSTRAY_AVAILABLE = False
 
+_WEBVIEW_IMPORT_ERROR: Optional[BaseException] = None
 try:
     import webview
-except Exception:
+except Exception as _wv_exc:
     webview = None  # type: ignore[assignment]
+    _WEBVIEW_IMPORT_ERROR = _wv_exc
 
 from prado import __version__
-from prado.config import PradoConfig, load_config, save_config
+from prado.config import PradoConfig, get_config_dir, load_config, save_config
 from prado.core.discovery import derive_course_slug
 from prado.exceptions import AuthenticationRequiredError, InvalidCredentialsError
 from prado.i18n import t
@@ -97,6 +99,20 @@ from prado.ui.dialogs import open_file, open_folder, open_url, prompt_login_gui
 from prado.ui.icon import create_tray_icon
 from prado.ui.instance import SingleInstanceGuard
 from prado.ui.server import PradoControlCenterAPI, PradoUIServer, parse_deadlines_from_ics
+
+
+def _log_desktop_error(context: str, exc: BaseException) -> None:
+    """Appends timestamped GUI/webview diagnostics (zero secrets) to desktop.log."""
+    import traceback
+
+    try:
+        log_file = get_config_dir() / "desktop.log"
+        stamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        tb_text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+        with open(log_file, "a", encoding="utf-8") as fh:
+            fh.write(f"[{stamp}] {context}: {exc}\n{tb_text}\n")
+    except Exception:
+        pass
 
 
 def _dispatch_ui_thread(fn: Callable[[], None], is_main_loop_running: bool = False) -> None:
@@ -620,7 +636,8 @@ class PradoTrayApp:
 
     def _on_pick_folder(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         def _worker() -> None:
-            chosen = self._pick_folder_webview("Selecciona dónde guardar la carpeta de PRADO")
+            lang = self.cfg.language or "es"
+            chosen = self._pick_folder_webview(t("picker_choose_folder", lang))
             if chosen:
                 self.cfg.courses_root = chosen
                 self.cfg.courses_root.mkdir(parents=True, exist_ok=True)
@@ -859,9 +876,22 @@ class PradoTrayApp:
         self._main_loop_active = True
 
         # 4. Open compact single-screen Setup Card (525x640px) alongside the System Tray
+        if webview is None and _WEBVIEW_IMPORT_ERROR is not None:
+            _log_desktop_error("import webview", _WEBVIEW_IMPORT_ERROR)
+
         if webview is not None:
+            tray_started = False
+
+            def _start_tray_once() -> None:
+                nonlocal tray_started
+                if not tray_started:
+                    tray_started = True
+                    self.icon.run_detached()
+
+            is_windows = sys.platform in ("win32", "cygwin") or os.name == "nt"
             try:
-                self.icon.run_detached()
+                if not is_windows:
+                    _start_tray_once()
                 self.window = webview.create_window(
                     title=t("tray_window_title", self.cfg.language or "es"),
                     url=control_url,
@@ -875,13 +905,21 @@ class PradoTrayApp:
                     self.window.events.closing += self._on_window_closing
                 except Exception:
                     pass
-                webview.start()
+                if is_windows:
+                    webview.start(_start_tray_once)
+                else:
+                    webview.start()
                 self.stop()
                 return
-            except Exception:
+            except Exception as exc:
+                _log_desktop_error("webview.start", exc)
                 if not tray_only:
                     open_url(control_url)
-                self.icon.run()
+                if not tray_started:
+                    self.icon.run()
+                else:
+                    while self._running:
+                        time.sleep(0.5)
                 return
 
         if not tray_only:

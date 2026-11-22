@@ -27,8 +27,10 @@ jobs:
             artifact_name: PradoOS-macos.zip
             artifact_path: dist/PradoOS-macos.zip
           - os: windows-latest
-            artifact_name: PradoOS-windows.zip
-            artifact_path: dist/PradoOS-windows.zip
+            artifact_name: PradoOS-windows
+            artifact_path: |
+              dist/PradoOS-Setup.exe
+              dist/PradoOS-windows.zip
           - os: ubuntu-latest
             artifact_name: PradoOS-linux.tar.gz
             artifact_path: dist/PradoOS-linux.tar.gz
@@ -62,7 +64,7 @@ jobs:
         run: |
           uv run python scripts/build_desktop.py
 
-      - name: Verify Windows Bundle & WebView2Loader.dll
+      - name: Verify Windows Bundle, GUI Runtime & Build Setup Installer
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -71,6 +73,37 @@ jobs:
           $wv = Get-ChildItem -Path "dist/PradoOS" -Filter "WebView2Loader.dll" -Recurse
           if (-not $wv) { throw "Missing WebView2Loader.dll in dist/PradoOS" }
           Write-Host "Verified Windows bundle and WebView2Loader.dll: $($wv.FullName)"
+
+          $proc = Start-Process -FilePath "dist/PradoOS/PradoOS.exe" -ArgumentList "--diagnose-gui=dist/win_gui_diag.json" -Wait -PassThru
+          if (Test-Path "dist/win_gui_diag.json") {
+            Get-Content "dist/win_gui_diag.json"
+            $diag = Get-Content "dist/win_gui_diag.json" -Raw | ConvertFrom-Json
+            if (-not $diag.ok) { throw "Windows GUI diagnostics failed! See dist/win_gui_diag.json" }
+          } else {
+            throw "Missing dist/win_gui_diag.json from PradoOS.exe --diagnose-gui"
+          }
+          if ($proc.ExitCode -ne 0) { throw "PradoOS.exe --diagnose-gui exited with $($proc.ExitCode)" }
+
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc -and (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) {
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          }
+          if (-not $iscc) {
+            choco install innosetup -y
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          }
+          & $iscc "/DMyAppVersion=0.2.0" "packaging/windows_installer.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup ISCC.exe failed with exit code $LASTEXITCODE" }
+          if (-not (Test-Path "dist/PradoOS-Setup.exe")) { throw "Missing dist/PradoOS-Setup.exe" }
+          Write-Host "Built Windows installer: $((Get-Item 'dist/PradoOS-Setup.exe').Length) bytes"
+
+      - name: Upload Windows GUI Diagnostic Report
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-gui-diagnostics
+          path: dist/win_gui_diag.json
+          if-no-files-found: ignore
 
       - name: Package Linux release archive
         if: runner.os == 'Linux'

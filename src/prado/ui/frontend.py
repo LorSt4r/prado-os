@@ -302,6 +302,31 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     font-weight: 500;
   }
   .form-error-banner.visible { display: block; }
+  .privacy-inline-note {
+    margin-top: 7px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+  .done-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 10px 0 12px;
+  }
+  .done-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-main);
+  }
 
   .row { display: flex; gap: 8px; align-items: center; }
   .btn {
@@ -600,6 +625,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
             </button>
           </div>
           <div class="field-error" id="err-password"></div>
+          <div class="privacy-inline-note" id="privacyNoteBox" data-i18n="privacy_inline_note">🔒 100% local y código abierto: tu contraseña se guarda solo en el Llavero de tu equipo y solo se envía a servidores oficiales *.ugr.es.</div>
         </div>
       </div>
 
@@ -701,16 +727,36 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     <div class="modal-card">
       <div style="font-size:16px; font-weight:700; margin-bottom:8px;" data-i18n="mfa_title">Verificación en 2 Pasos (MFA UGR)</div>
       <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;" id="mfaPromptText" data-i18n="mfa_prompt_default">
-        Introduce el código de 6 dígitos enviado a tu correo @correo.ugr.es. Tu dispositivo quedará verificado por 30 días.
+        Introduce el código de 6 dígitos enviado a tu correo @correo.ugr.es. Al confirmarlo, recordaremos este ordenador durante 30 días para no pedírtelo cada vez.
       </p>
       <div class="form-group">
         <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" class="input" id="mfaCodeInput" placeholder="123456" style="font-size:22px; text-align:center; letter-spacing:8px; font-weight:700;">
         <div class="field-error" id="err-mfa"></div>
       </div>
-      <p class="helper-text" style="margin-top:8px;" data-i18n="mfa_help_hint">Si no llega en 30 segundos, revisa la carpeta de Correo no deseado en @correo.ugr.es.</p>
+      <p class="helper-text" style="margin-top:8px;" data-i18n="mfa_help_hint">Puede tardar 20–40 s en llegar a Webmail UGR (webmailest.ugr.es, no Gmail). Revisa también Correo no deseado.</p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="btnMfaCancel" onclick="cancelMfaModal()" data-i18n="mfa_cancel_btn">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btnMfaVerify" onclick="submitMfaCode()" data-i18n="mfa_verify_btn">Verificar (30 días)</button>
+        <button type="button" class="btn btn-primary" id="btnMfaVerify" onclick="submitMfaCode()" data-i18n="mfa_verify_btn">Verificar código</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYNC COMPLETION MODAL -->
+  <div class="modal-backdrop" id="syncDoneModal">
+    <div class="modal-card" style="max-width:430px;">
+      <div style="font-size:16px; font-weight:700; margin-bottom:6px;" data-i18n="sync_done_title">✅ Sincronización completada</div>
+      <p style="font-size:12.5px; color:var(--green); font-weight:600;" id="syncDoneSummaryText"></p>
+      <div class="done-list">
+        <div class="done-item" data-i18n="sync_done_next_1">📂 Abre tu carpeta de asignaturas para ver tus apuntes y entregas descargados.</div>
+        <div class="done-item" data-i18n="sync_done_next_2">💡 Ya puedes cerrar esta ventana: PradoOS sigue activo en la bandeja del sistema (flecha ^ en Windows o barra superior en Mac), donde puedes activar la sincronización automática.</div>
+      </div>
+      <label class="check-row" style="margin-top:4px;">
+        <input type="checkbox" id="chkHideSyncDone">
+        <span class="helper-text" style="color:var(--text-main);" data-i18n="sync_done_dont_show">No volver a mostrar este aviso</span>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeSyncDoneModal()" data-i18n="sync_done_close_btn">Cerrar</button>
+        <button type="button" class="btn btn-primary" onclick="openFolderFromSyncDone()" data-i18n="btn_open_folder">Abrir Carpeta</button>
       </div>
     </div>
   </div>
@@ -740,6 +786,8 @@ let formInitialized = false;
 let credsExpanded = true;
 let activeCardTab = "account";
 let lastDoctorSeq = null;
+let lastSyncStatus = null;
+let lastSyncErrorShown = null;
 
 const I18N = {
   es: {
@@ -766,6 +814,7 @@ const I18N = {
     opt_portal_ceprud: "CEPRUD / Otros",
     onb_password: "Contraseña PRADO (Acceso Identificado)",
     keychain_hint: "Solo local · Llavero nativo",
+    privacy_inline_note: "🔒 100% local y código abierto: tu contraseña se guarda solo en el Llavero de tu equipo (o bóveda cifrada local) y solo se envía a servidores oficiales *.ugr.es. Cero servidores externos.",
     onb_folder: "Carpeta Local de Apuntes",
     btn_browse: "Elegir...",
     lbl_preset_mode: "Organización de Carpetas",
@@ -801,11 +850,17 @@ const I18N = {
     toast_prefs_saved: "Opciones guardadas correctamente.",
     toast_save_error: "Error al guardar la configuración",
     mfa_title: "Verificación en 2 Pasos (MFA UGR)",
-    mfa_prompt_default: "Introduce el código de 6 dígitos enviado a tu correo @correo.ugr.es. Tu dispositivo quedará verificado por 30 días.",
-    mfa_help_hint: "Si no llega en 30 segundos, revisa Correo no deseado en @correo.ugr.es.",
+    mfa_prompt_default: "Introduce el código de 6 dígitos enviado a tu correo @correo.ugr.es. Al confirmarlo, recordaremos este equipo durante 30 días para no pedírtelo cada vez.",
+    mfa_help_hint: "Puede tardar 20–40 s y llega a Webmail UGR (webmailest.ugr.es, no a Gmail) o a Correo no deseado (o tu app Authenticator si la usas).",
     mfa_cancel_btn: "Cancelar",
-    mfa_verify_btn: "Verificar (30 días)",
-    toast_mfa_ok: "Código MFA enviado. Dispositivo verificado por 30 días."
+    mfa_verify_btn: "Verificar código",
+    toast_mfa_ok: "Código MFA enviado. Recordaremos este dispositivo durante 30 días.",
+    sync_done_title: "✅ Sincronización completada",
+    sync_done_summary: "{courses} asignaturas · {files} archivos nuevos · {deadlines} entregas",
+    sync_done_next_1: "📂 Abre tu carpeta de asignaturas para consultar los apuntes descargados.",
+    sync_done_next_2: "💡 Puedes cerrar esta ventana: PradoOS sigue activo en la bandeja del sistema (flecha ^ en Windows o barra superior en Mac) y en la 2ª pestaña puedes activar la sincronización automática.",
+    sync_done_dont_show: "No volver a mostrar este aviso",
+    sync_done_close_btn: "Cerrar"
   },
   en: {
     dash_title: "PradoOS — UGR Setup",
@@ -831,6 +886,7 @@ const I18N = {
     opt_portal_ceprud: "CEPRUD / Other",
     onb_password: "PRADO Password (SSO)",
     keychain_hint: "Local only · OS Keychain",
+    privacy_inline_note: "🔒 100% local & open source: your password stays only in your device Keychain (or local encrypted vault) and connects solely to official *.ugr.es servers. Zero external servers.",
     onb_folder: "Local Courses Folder",
     btn_browse: "Browse...",
     lbl_preset_mode: "Folder Organization",
@@ -866,11 +922,17 @@ const I18N = {
     toast_prefs_saved: "Preferences saved.",
     toast_save_error: "Could not save configuration",
     mfa_title: "2-Step Verification (UGR MFA)",
-    mfa_prompt_default: "Enter the 6-digit code sent to your @correo.ugr.es inbox. Your device will stay trusted for 30 days.",
-    mfa_help_hint: "If not received within 30 seconds, check Spam in @correo.ugr.es.",
+    mfa_prompt_default: "Enter the 6-digit code sent to your @correo.ugr.es inbox. Once confirmed, this computer will be remembered for 30 days so you won't need a code every time.",
+    mfa_help_hint: "Delivery can take 20–40 s to Webmail UGR (webmailest.ugr.es, not Gmail) or Spam (or your Authenticator app if enabled).",
     mfa_cancel_btn: "Cancel",
-    mfa_verify_btn: "Verify Device (30 days)",
-    toast_mfa_ok: "MFA code submitted. Device verified for 30 days."
+    mfa_verify_btn: "Verify code",
+    toast_mfa_ok: "MFA code submitted. This device will be remembered for 30 days.",
+    sync_done_title: "✅ Sync completed",
+    sync_done_summary: "{courses} courses · {files} new files · {deadlines} deadlines",
+    sync_done_next_1: "📂 Open your courses folder to inspect your downloaded slides and assignments.",
+    sync_done_next_2: "💡 You can close this window now: PradoOS keeps running in your System Tray (^ arrow on Windows or top Menu Bar on Mac), and you can turn on Auto-Sync in the second tab.",
+    sync_done_dont_show: "Don't show this notice again",
+    sync_done_close_btn: "Got it"
   },
   it: {
     dash_title: "PradoOS — Configurazione UGR",
@@ -896,6 +958,7 @@ const I18N = {
     opt_portal_ceprud: "CEPRUD / Altri",
     onb_password: "Password PRADO (SSO)",
     keychain_hint: "Solo locale · Portachiavi OS",
+    privacy_inline_note: "🔒 100% locale e open source: la tua password resta solo sul tuo PC (Gestore Credenziali / vault cifrato locale) e parla solo con i server ufficiali *.ugr.es. Zero server esterni.",
     onb_folder: "Cartella Locale dei Corsi",
     btn_browse: "Scegli...",
     lbl_preset_mode: "Organizzazione Cartelle",
@@ -931,11 +994,17 @@ const I18N = {
     toast_prefs_saved: "Opzioni salvate correttamente.",
     toast_save_error: "Impossibile salvare la configurazione",
     mfa_title: "Verifica in 2 Passaggi (MFA UGR)",
-    mfa_prompt_default: "Inserisci il codice a 6 cifre inviato alla tua email @correo.ugr.es. Il dispositivo resterà verificato per 30 giorni.",
-    mfa_help_hint: "Se non arriva entro 30 secondi, controlla lo Spam su @correo.ugr.es.",
+    mfa_prompt_default: "Inserisci il codice a 6 cifre inviato alla tua email @correo.ugr.es. Una volta confermato, ricorderemo questo PC per 30 giorni così non dovrai reinserire il codice ogni volta.",
+    mfa_help_hint: "Può impiegare 20–40 s e arriva su Webmail UGR (webmailest.ugr.es, non su Gmail) o nello Spam (o sull'app Authenticator se attiva).",
     mfa_cancel_btn: "Annulla",
-    mfa_verify_btn: "Verifica (30 giorni)",
-    toast_mfa_ok: "Codice MFA inviato. Dispositivo verificato per 30 giorni."
+    mfa_verify_btn: "Verifica codice",
+    toast_mfa_ok: "Codice MFA inviato. Questo PC verrà ricordato per 30 giorni.",
+    sync_done_title: "✅ Sincronizzazione completata",
+    sync_done_summary: "{courses} corsi · {files} nuovi file · {deadlines} scadenze",
+    sync_done_next_1: "📂 Apri la cartella dei corsi per vedere subito tutti i file e gli appunti scaricati.",
+    sync_done_next_2: "💡 Ora puoi chiudere questa finestra: PradoOS resta attivo nella System Tray (freccia ^ in basso a destra su Windows o Barra dei Menu su Mac), e nella 2ª scheda puoi attivare l'auto-sync.",
+    sync_done_dont_show: "Non mostrare più questo avviso",
+    sync_done_close_btn: "Ho capito"
   },
   fr: {
     dash_title: "PradoOS — Configuration UGR",
@@ -961,6 +1030,7 @@ const I18N = {
     opt_portal_ceprud: "CEPRUD / Autres",
     onb_password: "Mot de passe PRADO (SSO)",
     keychain_hint: "Local uniquement · Trousseau",
+    privacy_inline_note: "🔒 100% local et open source : votre mot de passe reste uniquement sur votre appareil (Trousseau / coffre chiffré local) et ne communique qu'avec *.ugr.es. Zéro serveur externe.",
     onb_folder: "Dossier Local des Cours",
     btn_browse: "Parcourir...",
     lbl_preset_mode: "Organisation des Dossiers",
@@ -996,11 +1066,17 @@ const I18N = {
     toast_prefs_saved: "Options enregistrées.",
     toast_save_error: "Erreur lors de l'enregistrement",
     mfa_title: "Validation en 2 Étapes (MFA UGR)",
-    mfa_prompt_default: "Saisissez le code à 6 chiffres envoyé à @correo.ugr.es. Votre appareil restera approuvé pendant 30 jours.",
-    mfa_help_hint: "Sans réception après 30 s, vérifiez les courriers indésirables.",
+    mfa_prompt_default: "Saisissez le code à 6 chiffres envoyé à @correo.ugr.es. Une fois confirmé, cet ordinateur sera mémorisé pendant 30 jours pour ne plus le redemander à chaque fois.",
+    mfa_help_hint: "L'envoi peut prendre 20–40 s vers Webmail UGR (webmailest.ugr.es, pas Gmail) ou les indésirables (ou votre app Authenticator).",
     mfa_cancel_btn: "Annuler",
-    mfa_verify_btn: "Approuver (30 jours)",
-    toast_mfa_ok: "Code MFA envoyé. Appareil approuvé pour 30 jours."
+    mfa_verify_btn: "Vérifier le code",
+    toast_mfa_ok: "Code MFA envoyé. Cet appareil sera mémorisé 30 jours.",
+    sync_done_title: "✅ Synchronisation terminée",
+    sync_done_summary: "{courses} cours · {files} nouveaux fichiers · {deadlines} échéances",
+    sync_done_next_1: "📂 Ouvrez votre dossier de cours pour consulter les supports et devoirs téléchargés.",
+    sync_done_next_2: "💡 Vous pouvez fermer cette fenêtre : PradoOS reste actif dans la barre d'état (flèche ^ sous Windows ou barre des menus sous Mac), où vous pouvez activer la synchro automatique.",
+    sync_done_dont_show: "Ne plus afficher cet avis",
+    sync_done_close_btn: "Compris"
   }
 };
 
@@ -1445,6 +1521,7 @@ function renderStateText(st) {
 
   let bClass = "badge badge-idle";
   let bText = `${dict.badge_idle} (${st.stats.total_files} ${dict.files_unit})`;
+  const banner = document.getElementById("formErrorBanner");
   if (st.sync.status === "syncing" || st.sync.status === "mfa_required") {
     bClass = "badge badge-syncing";
     bText = dict.badge_syncing;
@@ -1452,11 +1529,21 @@ function renderStateText(st) {
     progBar.style.width = `${st.sync.progress_pct || 15}%`;
     document.getElementById("syncStepText").textContent = st.sync.current_step || dict.sync_in_progress;
     btnSync.disabled = true;
+    if (lastSyncErrorShown && banner) {
+      banner.textContent = "";
+      banner.classList.remove("visible");
+      lastSyncErrorShown = null;
+    }
   } else if (st.sync.status === "error") {
     bClass = "badge badge-error";
     bText = dict.badge_error;
     progWrap.classList.remove("visible");
     btnSync.disabled = false;
+    if (st.sync.last_error && banner) {
+      banner.textContent = st.sync.last_error;
+      banner.classList.add("visible");
+      lastSyncErrorShown = st.sync.last_error;
+    }
   } else if (!isConfigured) {
     bClass = "badge badge-neutral";
     bText = dict.badge_setup_pending;
@@ -1465,6 +1552,11 @@ function renderStateText(st) {
   } else {
     progWrap.classList.remove("visible");
     btnSync.disabled = false;
+    if (lastSyncErrorShown && banner) {
+      banner.textContent = "";
+      banner.classList.remove("visible");
+      lastSyncErrorShown = null;
+    }
   }
   badge.className = bClass;
   badge.textContent = bText;
@@ -1472,6 +1564,47 @@ function renderStateText(st) {
     badgeConn.className = bClass;
     badgeConn.textContent = bText;
   }
+}
+
+function maybeOpenSyncDoneModal(st) {
+  try {
+    if (localStorage.getItem("prado_hide_sync_done") === "1") return;
+  } catch (e) {}
+  const dict = I18N[currentLang] || I18N.es;
+  const summary = (st.sync && st.sync.last_summary) || {};
+  const coursesCount = summary.courses_synced != null ? summary.courses_synced : ((st.stats && st.stats.active_courses) || 0);
+  const filesCount = summary.downloaded != null ? summary.downloaded : ((st.stats && st.stats.total_files) || 0);
+  const deadlinesCount = summary.deadlines != null ? summary.deadlines : ((st.deadlines && st.deadlines.length) || 0);
+  const tpl = dict.sync_done_summary || "{courses} · {files} · {deadlines}";
+  const sumEl = document.getElementById("syncDoneSummaryText");
+  if (sumEl) {
+    sumEl.textContent = tpl
+      .replace("{courses}", String(coursesCount))
+      .replace("{files}", String(filesCount))
+      .replace("{deadlines}", String(deadlinesCount));
+  }
+  const chk = document.getElementById("chkHideSyncDone");
+  if (chk) chk.checked = false;
+  const modal = document.getElementById("syncDoneModal");
+  if (modal) modal.classList.add("visible");
+}
+
+function _persistSyncDoneOptOut() {
+  const chk = document.getElementById("chkHideSyncDone");
+  if (chk && chk.checked) {
+    try { localStorage.setItem("prado_hide_sync_done", "1"); } catch (e) {}
+  }
+}
+
+function closeSyncDoneModal() {
+  _persistSyncDoneOptOut();
+  const modal = document.getElementById("syncDoneModal");
+  if (modal) modal.classList.remove("visible");
+}
+
+async function openFolderFromSyncDone() {
+  closeSyncDoneModal();
+  await openCoursesFolder();
 }
 
 async function refreshState() {
@@ -1488,7 +1621,7 @@ async function refreshState() {
       document.getElementById("onbPortal").value = st.auth.portal || "grado";
       document.getElementById("onbUsername").value = st.auth.username || "";
       document.getElementById("onbCoursesRoot").value = st.config.courses_root || "";
-      setPresetMode(st.config.preset || "mirror");
+      setPresetMode(isConnected ? (st.config.preset || "mirror") : "mirror");
       document.getElementById("onbNotifications").checked = Boolean(st.config.notifications_enabled);
       document.getElementById("onbAutostart").checked = Boolean(st.config.autostart);
       const autoSel = document.getElementById("onbAutoSyncSelect");
@@ -1500,7 +1633,12 @@ async function refreshState() {
       document.getElementById("cfgFwdTo").value = st.config.mail.forward_to || "";
     }
 
+    const prevStatus = lastSyncStatus;
+    lastSyncStatus = st.sync.status;
     renderStateText(st);
+    if ((prevStatus === "syncing" || prevStatus === "mfa_required") && st.sync.status === "idle") {
+      maybeOpenSyncDoneModal(st);
+    }
 
     const docSeq = Number((st.ui && st.ui.doctor_trigger_seq) || 0);
     if (lastDoctorSeq === null) {

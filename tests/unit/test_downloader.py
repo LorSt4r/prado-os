@@ -220,6 +220,53 @@ class TestDestinationResolution:
         assert (tmp_path / "downloads" / "Guion.zip").exists()
         assert not dest_file.exists()
 
+    def test_download_follows_embedded_pluginfile_from_html_wrapper(self, tmp_path):
+        dest_file = tmp_path / "Apuntes_T1.pdf"
+        html_wrapper = (
+            '<html><body><div class="resourceworkaround">'
+            '<a href="https://prado.ugr.es/pluginfile.php/123/mod_resource/content/1/Tema1.pdf">Tema1.pdf</a>'
+            "</div></body></html>"
+        )
+        pdf_bytes = b"%PDF-1.7 real binary pdf payload"
+
+        html_resp = MagicMock()
+        html_resp.status_code = 200
+        html_resp.headers = {"Content-Type": "text/html; charset=utf-8"}
+        html_resp.text = html_wrapper
+        html_resp.url = "https://prado.ugr.es/mod/resource/view.php?id=999"
+
+        pdf_resp = MagicMock()
+        pdf_resp.status_code = 200
+        pdf_resp.headers = {"Content-Type": "application/pdf", "Content-Length": str(len(pdf_bytes))}
+        pdf_resp.url = "https://prado.ugr.es/pluginfile.php/123/mod_resource/content/1/Tema1.pdf"
+        pdf_resp.iter_content.return_value = [pdf_bytes]
+
+        session = requests.Session()
+        with patch.object(session, "get", side_effect=[html_resp, pdf_resp]) as mock_get:
+            dl = SafeDownloader(session=session)
+            res = dl.download_file("https://prado.ugr.es/mod/resource/view.php?id=999", dest_file)
+
+        assert res.status == DownloadStatus.DOWNLOADED
+        assert dest_file.read_bytes() == pdf_bytes
+        assert mock_get.call_count == 2
+
+    def test_download_fails_cleanly_instead_of_saving_html_as_pdf(self, tmp_path):
+        dest_file = tmp_path / "Broken_Page.pdf"
+        html_resp = MagicMock()
+        html_resp.status_code = 200
+        html_resp.headers = {"Content-Type": "text/html; charset=utf-8"}
+        html_resp.text = "<html><body><h1>Login page or Moodle page without binary</h1></body></html>"
+        html_resp.url = "https://prado.ugr.es/mod/resource/view.php?id=555"
+
+        session = requests.Session()
+        with patch.object(session, "get", return_value=html_resp):
+            dl = SafeDownloader(session=session)
+            res = dl.download_file("https://prado.ugr.es/mod/resource/view.php?id=555", dest_file)
+
+        assert res.status == DownloadStatus.FAILED
+        assert "HTML wrapper" in (res.error or "")
+        assert not dest_file.exists()
+
 
 class TestTopLevelReExports:
     def test_re_exports_match(self):

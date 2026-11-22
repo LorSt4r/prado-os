@@ -520,6 +520,54 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "it": "Diagnostica completata: {ok}/{total} controlli OK.",
         "fr": "Diagnostic terminé : {ok}/{total} sondes OK.",
     },
+    "sync_step_scan": {
+        "es": "Preparando carpeta local y protegiendo archivos editados...",
+        "en": "Scanning local folder and protecting edited files...",
+        "it": "Scansione cartella locale e protezione file modificati...",
+        "fr": "Analyse du dossier local et protection des fichiers modifiés...",
+    },
+    "sync_step_auth": {
+        "es": "Conectando con Acceso Identificado UGR (SSO)...",
+        "en": "Connecting to UGR Single Sign-On...",
+        "it": "Connessione all'account UGR (SSO) in corso...",
+        "fr": "Connexion au portail SSO de l'UGR...",
+    },
+    "sync_step_discover": {
+        "es": "Buscando tus asignaturas matriculadas en PRADO...",
+        "en": "Discovering your enrolled PRADO courses...",
+        "it": "Ricerca dei tuoi corsi su PRADO in corso...",
+        "fr": "Recherche de vos cours sur PRADO...",
+    },
+    "sync_step_export": {
+        "es": "Actualizando DASHBOARD.md y calendario de entregas...",
+        "en": "Updating DASHBOARD.md and deadlines calendar...",
+        "it": "Aggiornamento DASHBOARD.md e calendario scadenze...",
+        "fr": "Mise à jour du tableau de bord et du calendrier...",
+    },
+    "sync_step_mail": {
+        "es": "Comprobando buzón @correo.ugr.es...",
+        "en": "Checking @correo.ugr.es inbox...",
+        "it": "Controllo posta @correo.ugr.es...",
+        "fr": "Vérification de la messagerie @correo.ugr.es...",
+    },
+    "sync_step_gcal": {
+        "es": "Sincronizando entregas con Google Calendar...",
+        "en": "Syncing deadlines with Google Calendar...",
+        "it": "Sincronizzazione scadenze con Google Calendar...",
+        "fr": "Synchronisation des échéances avec Google Calendar...",
+    },
+    "picker_choose_folder": {
+        "es": "Selecciona la carpeta para tus apuntes de PRADO UGR",
+        "en": "Choose the folder for your UGR PRADO courses",
+        "it": "Scegli la cartella per i tuoi corsi di PRADO UGR",
+        "fr": "Choisissez le dossier pour vos cours PRADO UGR",
+    },
+    "picker_save_attachment": {
+        "es": "Guardar adjunto: {filename}",
+        "en": "Save attachment: {filename}",
+        "it": "Salva allegato: {filename}",
+        "fr": "Enregistrer la pièce jointe : {filename}",
+    },
 }
 
 

@@ -122,6 +122,11 @@ class MfaResolver:
                 m_cb = re.search(r"\b([0-9]{6})\b", str(cb_code).strip())
                 if m_cb:
                     return m_cb.group(1)
+            raise MfaRequiredError(
+                prompt="Two-factor verification code was cancelled or not provided.",
+                factor="email",
+                tier=3,
+            )
 
         if self.gui_mode:
             from prado.auth.credentials import prompt_gui_input
@@ -335,6 +340,15 @@ class MfaResolver:
 
         return mfa_url, sesskey
 
+    @classmethod
+    def extract_mfa_factor(cls, html: str) -> str:
+        """Extracts the active MFA factor (e.g. 'email' or 'totp') from Moodle's MFA form."""
+        soup = BeautifulSoup(html, "html.parser")
+        factor_input = soup.find("input", {"name": "factor"})
+        if factor_input and factor_input.get("value"):
+            return str(factor_input["value"]).strip() or "email"
+        return "email"
+
     def submit_mfa_code(
         self,
         session: requests.Session,
@@ -342,12 +356,13 @@ class MfaResolver:
         sesskey: str,
         code: str,
         trust_device: bool = True,
+        factor: str = "email",
     ) -> requests.Response:
         """
         Submits the 6-digit verification code to Moodle MFA auth.php with 30-day device trust.
         """
         payload = {
-            "factor": "email",
+            "factor": factor or "email",
             "sesskey": sesskey,
             "_qf__tool_mfa_local_form_login_form": "1",
             "verificationcode": code.strip(),

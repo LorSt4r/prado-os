@@ -75,8 +75,14 @@ def collect_pyinstaller_args(
                 "webview.platforms.edgechromium",
                 "webview.platforms.winforms",
                 "webview.platforms.mshtml",
+                "webview.guilib",
+                "webview.window",
+                "webview.event",
                 "bottle",
                 "proxy_tools",
+                "typing_extensions",
+                "tkinter",
+                "tkinter.filedialog",
             ])
 
     if plat == "darwin":
@@ -88,7 +94,12 @@ def collect_pyinstaller_args(
         hidden_imports.extend([
             "pystray._win32",
             "keyring.backends.Windows",
+            "_cffi_backend",
+            "tkinter",
+            "tkinter.filedialog",
         ])
+        if check_mod("cffi"):
+            collect_all.append("cffi")
         if check_mod("clr_loader"):
             collect_all.append("clr_loader")
         if check_mod("pythonnet"):

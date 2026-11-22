@@ -247,6 +247,58 @@ def parse_content_disposition(header: Optional[str]) -> Optional[str]:
     return None
 
 
+def _extract_embedded_pluginfile_url(html: str, base_url: str) -> Optional[str]:
+    """
+    Extracts an embedded `pluginfile.php` resource URL from Moodle resource wrapper HTML
+    (`<div class="resourceworkaround">`, `<object data=...>`, `<iframe src=...>`, `<embed src=...>`).
+    """
+    if not html:
+        return None
+    try:
+        from bs4 import BeautifulSoup
+
+        soup = BeautifulSoup(html, "html.parser")
+        wa = soup.find(class_="resourceworkaround")
+        if wa:
+            link = wa.find("a", href=True)
+            if link and "pluginfile.php" in link["href"]:
+                return urllib.parse.urljoin(base_url, link["href"])
+        for tag_name, attr in (("object", "data"), ("iframe", "src"), ("embed", "src"), ("a", "href")):
+            for tag in soup.find_all(tag_name):
+                val = tag.get(attr)
+                if isinstance(val, str) and "pluginfile.php" in val:
+                    return urllib.parse.urljoin(base_url, val)
+    except Exception:
+        pass
+
+    m = re.search(r"""(?:href|src|data)\s*=\s*["']([^"']*pluginfile\.php[^"']*)["']""", html, re.IGNORECASE)
+    if m:
+        return urllib.parse.urljoin(base_url, m.group(1))
+    return None
+
+
+def _is_html_content_type(resp: Any) -> bool:
+    headers = getattr(resp, "headers", None)
+    if not headers or not hasattr(headers, "get"):
+        return False
+    raw_ct = headers.get("Content-Type") or headers.get("content-type")
+    if not isinstance(raw_ct, str):
+        return False
+    ct = raw_ct.split(";")[0].strip().lower()
+    return ct in ("text/html", "application/xhtml+xml")
+
+
+def _read_html_response_text(resp: Any) -> str:
+    txt = getattr(resp, "text", None)
+    if isinstance(txt, str):
+        return txt
+    try:
+        chunks = b"".join(c for c in resp.iter_content(chunk_size=65536) if c)
+        return chunks.decode("utf-8", errors="replace")
+    except Exception:
+        return ""
+
+
 class SafeDownloader:
     """
     Safe chunked downloader. Streams in 64KB chunks into .prado_tmp_{pid}_{token}_{name}.part,
@@ -321,6 +373,60 @@ class SafeDownloader:
                     )
 
                 resp.raise_for_status()
+
+                # Guard against Moodle resource wrapper HTML being saved with a binary extension (.pdf, .zip)
+                if _is_html_content_type(resp) and dest_path.suffix.lower() not in (".html", ".htm"):
+                    html_text = _read_html_response_text(resp)
+                    if hasattr(resp, "close"):
+                        try:
+                            resp.close()
+                        except Exception:
+                            pass
+                    resp_url = getattr(resp, "url", None)
+                    base_ref = resp_url if isinstance(resp_url, str) and resp_url else url
+                    embedded_url = _extract_embedded_pluginfile_url(html_text, base_ref)
+                    if not embedded_url:
+                        return DownloadResult(
+                            dest_path=dest_path,
+                            url=url,
+                            sha256="",
+                            size_bytes=0,
+                            status=DownloadStatus.FAILED,
+                            error=f"Received HTML wrapper instead of binary file from {url}",
+                            elapsed_seconds=time.time() - start_time,
+                        )
+                    resp = self.session.get(
+                        embedded_url,
+                        stream=True,
+                        timeout=self.DEFAULT_TIMEOUT,
+                        allow_redirects=True,
+                    )
+                    if resp.status_code == 404:
+                        return DownloadResult(
+                            dest_path=dest_path,
+                            url=embedded_url,
+                            sha256="",
+                            size_bytes=0,
+                            status=DownloadStatus.FAILED,
+                            error=f"HTTP 404 Not Found from {embedded_url}",
+                            elapsed_seconds=time.time() - start_time,
+                        )
+                    resp.raise_for_status()
+                    if _is_html_content_type(resp):
+                        if hasattr(resp, "close"):
+                            try:
+                                resp.close()
+                            except Exception:
+                                pass
+                        return DownloadResult(
+                            dest_path=dest_path,
+                            url=embedded_url,
+                            sha256="",
+                            size_bytes=0,
+                            status=DownloadStatus.FAILED,
+                            error=f"Received HTML wrapper instead of binary file from {embedded_url}",
+                            elapsed_seconds=time.time() - start_time,
+                        )
 
                 # Wire Content-Disposition and MIME_TO_EXTENSION resolution
                 target_dest = self.resolve_destination(dest_path=dest_path, url=url, response=resp)

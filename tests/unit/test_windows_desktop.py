@@ -92,11 +92,31 @@ def test_headless_menu_item_is_callable():
     assert invoked == [("dummy-icon", item)]
 
 
-def test_prompt_folder_picker_windows_topmost_and_no_window(monkeypatch):
+def test_prompt_folder_picker_windows_fast_tkinter_and_powershell_fallback(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setattr(os, "name", "nt")
     monkeypatch.setattr(subprocess, "CREATE_NO_WINDOW", 0x08000000, raising=False)
 
+    # 1. Fast tkinter IFileOpenDialog path
+    monkeypatch.setattr(
+        "prado.config.get_localized_desktop_dir",
+        lambda: Path(r"C:\Users\Student\Desktop"),
+    )
+    tk_root = MagicMock()
+    fake_fd = SimpleNamespace(
+        askdirectory=MagicMock(return_value=r"C:\Users\Student\PickedViaTk")
+    )
+    fake_tk = SimpleNamespace(Tk=MagicMock(return_value=tk_root), filedialog=fake_fd)
+    monkeypatch.setitem(sys.modules, "tkinter", fake_tk)
+    monkeypatch.setitem(sys.modules, "tkinter.filedialog", fake_fd)
+    picked_tk = prompt_folder_picker_gui("Scegli cartella")
+    assert picked_tk is not None
+    assert str(picked_tk) == r"C:\Users\Student\PickedViaTk"
+    tk_root.attributes.assert_called_once_with("-topmost", True)
+    tk_root.destroy.assert_called_once()
+
+    # 2. PowerShell Form.TopMost fallback when tkinter cannot initialize
+    monkeypatch.setitem(sys.modules, "tkinter", None)
     captured = {}
 
     def fake_run(cmd, **kwargs):
@@ -245,7 +265,7 @@ def test_tray_only_creates_hidden_webview_window(tmp_path: Path, monkeypatch):
 
     fake_webview = SimpleNamespace(
         create_window=lambda **kwargs: _DummyWindow(**kwargs),
-        start=lambda: None,
+        start=lambda func=None: func() if callable(func) else None,
     )
     fake_icon_instance = MagicMock()
     fake_pystray = SimpleNamespace(
@@ -311,12 +331,135 @@ def test_build_desktop_windows_collects_webview_and_instance(tmp_path: Path):
     args = mod.collect_pyinstaller_args(
         repo_root=tmp_path,
         target_platform="win32",
-        has_module=lambda name: name in ("webview", "clr_loader", "pythonnet"),
+        has_module=lambda name: name in ("webview", "clr_loader", "pythonnet", "cffi"),
     )
     assert "--collect-all=webview" in args
     assert "--collect-all=clr_loader" in args
     assert "--collect-all=pythonnet" in args
+    assert "--collect-all=cffi" in args
     assert "--hidden-import=webview.platforms.edgechromium" in args
     assert "--hidden-import=webview.platforms.winforms" in args
+    assert "--hidden-import=webview.guilib" in args
+    assert "--hidden-import=_cffi_backend" in args
+    assert "--hidden-import=tkinter" in args
     assert "--hidden-import=prado.ui.instance" in args
     assert "--hidden-import=pystray._win32" in args
+
+
+def test_mfa_callback_cancel_and_factor_extraction(monkeypatch):
+    from prado.auth.mfa import MfaResolver
+    from prado.exceptions import MfaRequiredError
+
+    called_fallback = []
+    monkeypatch.setattr(
+        "prado.auth.credentials.prompt_gui_input",
+        lambda **kw: called_fallback.append(kw) or "123456",
+    )
+
+    resolver = MfaResolver(interactive=False, gui_mode=True, code_callback=lambda: None)
+    with pytest.raises(MfaRequiredError, match="cancelled"):
+        resolver.resolve_code()
+    assert called_fallback == []
+
+    html_totp = '<form action="/admin/tool/mfa/auth.php"><input type="hidden" name="factor" value="totp"></form>'
+    assert MfaResolver.extract_mfa_factor(html_totp) == "totp"
+    assert MfaResolver.extract_mfa_factor("<form></form>") == "email"
+
+
+def test_desktop_folder_auto_subdir_and_4lang_sync_steps(tmp_path: Path, monkeypatch):
+    from prado.i18n import t
+
+    cfg_dir = tmp_path / "cfg"
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(cfg_dir))
+    desktop = tmp_path / "Desktop"
+    desktop.mkdir()
+
+    api = PradoControlCenterAPI(
+        cfg=PradoConfig(courses_root=tmp_path / "Courses", language="it"),
+        folder_picker_callback=lambda prompt: desktop,
+    )
+    picked = api.pick_folder_native()
+    assert picked["status"] == "success"
+    assert Path(picked["path"]) == desktop.resolve() / "PRADO_UGR"
+
+    # Existing PRADO folder or named subfolder stays as-is
+    custom = tmp_path / "Appunti_Uni"
+    custom.mkdir()
+    (custom / "DASHBOARD.md").write_text("# Dash", encoding="utf-8")
+    api2 = PradoControlCenterAPI(
+        cfg=PradoConfig(courses_root=tmp_path / "Courses", language="en"),
+        folder_picker_callback=lambda prompt: custom,
+    )
+    picked2 = api2.pick_folder_native()
+    assert Path(picked2["path"]) == custom.resolve()
+
+    for lang in ("es", "en", "it", "fr"):
+        assert t("sync_step_auth", lang) != "sync_step_auth"
+        assert t("picker_choose_folder", lang) != "picker_choose_folder"
+
+
+def test_frontend_privacy_note_sync_done_modal_and_error_banner():
+    from prado.ui.frontend import render_control_center_html
+
+    html = render_control_center_html(token="test-tok")
+    assert "privacyNoteBox" in html
+    assert "privacy_inline_note" in html
+    assert "syncDoneModal" in html
+    assert "chkHideSyncDone" in html
+    assert "st.sync.last_error" in html
+    assert "Verifica codice" in html
+    assert "Verifica (30 giorni)" not in html
+
+
+def test_tray_logs_webview_failure_without_double_running_icon(tmp_path: Path, monkeypatch):
+    cfg_dir = tmp_path / "cfg"
+    monkeypatch.setenv("PRADO_CONFIG_DIR", str(cfg_dir))
+    monkeypatch.setattr("prado.ui.tray.is_headless_environment", lambda: False)
+
+    opened_urls = []
+    monkeypatch.setattr("prado.ui.tray.open_url", lambda u: opened_urls.append(u) or True)
+
+    fake_icon = MagicMock()
+    fake_pystray = SimpleNamespace(
+        Icon=MagicMock(return_value=fake_icon),
+        Menu=lambda *items: items,
+        MenuItem=lambda *args, **kwargs: SimpleNamespace(args=args, kwargs=kwargs),
+    )
+    fake_pystray.Menu.SEPARATOR = None
+
+    class _DummyWindow:
+        def __init__(self):
+            self.events = SimpleNamespace(closing=MagicMock())
+
+    def _failing_start(func=None):
+        if callable(func):
+            func()
+        raise RuntimeError("WebView2 missing on test host")
+
+    fake_webview = SimpleNamespace(
+        create_window=lambda **kwargs: _DummyWindow(),
+        start=_failing_start,
+    )
+
+    monkeypatch.setattr("prado.ui.tray.pystray", fake_pystray)
+    monkeypatch.setattr("prado.ui.tray._PYSTRAY_AVAILABLE", True)
+    monkeypatch.setattr("prado.ui.tray.webview", fake_webview)
+
+    app = PradoTrayApp(cfg=PradoConfig(courses_root=tmp_path / "Courses", language="it"))
+    monkeypatch.setattr(app, "_build_menu", lambda: ())
+    monkeypatch.setattr(app._instance_guard, "try_activate_existing", lambda: False)
+
+    # Stop loop quickly after webview failure if tray_started is True
+    def stop_soon(*args, **kwargs):
+        app._running = False
+
+    monkeypatch.setattr("prado.ui.tray.time.sleep", stop_soon)
+    app.run(tray_only=False)
+
+    log_file = cfg_dir / "desktop.log"
+    assert log_file.exists()
+    assert "WebView2 missing on test host" in log_file.read_text(encoding="utf-8")
+    assert len(opened_urls) == 1
+    fake_icon.run_detached.assert_called_once()
+    fake_icon.run.assert_not_called()
+    app.stop()

@@ -184,6 +184,7 @@ class UgrSamlDriver:
         resp3_url = resp3.url.lower()
         if "admin/tool/mfa" in resp3_url or "verificación en 2 pasos" in resp3.text.lower():
             mfa_url, sesskey = MfaResolver.extract_mfa_form_details(resp3.text, resp3.url)
+            mfa_factor = MfaResolver.extract_mfa_factor(resp3.text)
 
             # Retrieve IMAP password if needed for auto-fetch
             imap_pwd = None
@@ -205,6 +206,7 @@ class UgrSamlDriver:
                 sesskey=sesskey,
                 code=mfa_code,
                 trust_device=True,
+                factor=mfa_factor,
             )
 
         # Step 8: Validate session validity on Moodle
