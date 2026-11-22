@@ -44,7 +44,7 @@ def is_autostart_enabled(home_dir: Optional[Path] = None) -> bool:
     if sys.platform == "darwin":
         return _macos_plist_path(home_dir).exists()
 
-    if sys.platform in ("win32", "cygwin") or os.name == "nt":
+    if sys.platform in ("win32", "cygwin"):
         try:
             import winreg  # type: ignore[import-not-found]
 
@@ -79,7 +79,7 @@ def set_autostart_enabled(enabled: bool, home_dir: Optional[Path] = None) -> boo
             plist_path.unlink()
         return False
 
-    if sys.platform in ("win32", "cygwin") or os.name == "nt":
+    if sys.platform in ("win32", "cygwin"):
         import winreg  # type: ignore[import-not-found]
 
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, WINDOWS_RUN_KEY) as key:

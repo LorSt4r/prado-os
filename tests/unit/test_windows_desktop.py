@@ -77,9 +77,19 @@ def test_desktop_notifier_windows_winrt_and_no_window(monkeypatch):
     assert cmd[:3] == [cmd[0], "-NoProfile", "-NonInteractive"]
     script = cmd[-1]
     assert "ToastNotificationManager" in script
+    assert "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}" in script
     assert "[System.Security.SecurityElement]::Escape" in script
     assert "Start-Sleep -Milliseconds 3500" in script
     assert captured["kwargs"].get("creationflags") == 0x08000000
+
+
+def test_headless_menu_item_is_callable():
+    from prado.ui.tray import _HeadlessMenuItem
+
+    invoked = []
+    item = _HeadlessMenuItem("Open", lambda icon=None, it=None: invoked.append((icon, it)))
+    item("dummy-icon")
+    assert invoked == [("dummy-icon", item)]
 
 
 def test_prompt_folder_picker_windows_topmost_and_no_window(monkeypatch):

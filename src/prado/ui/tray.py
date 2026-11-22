@@ -46,6 +46,10 @@ class _HeadlessMenuItem:
     def text(self) -> str:
         return str(self._text(self)) if callable(self._text) else str(self._text)
 
+    def __call__(self, icon: Any = None) -> None:
+        if callable(self.action):
+            self.action(icon, self)
+
 
 class _HeadlessMenu:
     """Fallback Menu representation when running on headless Linux without X11."""
