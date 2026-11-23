@@ -61,6 +61,8 @@ jobs:
 
       - name: Build Standalone Application
         shell: bash
+        env:
+          PRADO_RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
         run: |
           uv run python scripts/build_desktop.py
 
@@ -92,7 +94,11 @@ jobs:
             choco install innosetup -y
             $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           }
-          & $iscc "/DMyAppVersion=0.2.0" "packaging/windows_installer.iss"
+          $appVer = "0.2.0"
+          if ($env:GITHUB_REF -like "refs/tags/v*" -and $env:GITHUB_REF_NAME) {
+            $appVer = $env:GITHUB_REF_NAME.TrimStart("v", "V")
+          }
+          & $iscc "/DMyAppVersion=$appVer" "packaging/windows_installer.iss"
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup ISCC.exe failed with exit code $LASTEXITCODE" }
           if (-not (Test-Path "dist/PradoOS-Setup.exe")) { throw "Missing dist/PradoOS-Setup.exe" }
           Write-Host "Built Windows installer: $((Get-Item 'dist/PradoOS-Setup.exe').Length) bytes"

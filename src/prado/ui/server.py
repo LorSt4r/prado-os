@@ -59,6 +59,7 @@ from prado.scheduler.doctor import DoctorEngine, ProbeStatus
 from prado.state import CourseRecord, StateDatabase
 from prado.ui.autostart import is_autostart_enabled, set_autostart_enabled
 from prado.ui.dialogs import open_file, open_folder, open_url
+from prado.ui.updater import check_for_updates, download_and_apply_update, get_installed_version
 
 
 def _get_portal_presets() -> Dict[str, str]:
@@ -150,11 +151,13 @@ class PradoControlCenterAPI:
         on_status_change: Optional[Callable[[str, Optional[str]], None]] = None,
         on_show_window: Optional[Callable[[], None]] = None,
         folder_picker_callback: Optional[Callable[[str], Optional[Path]]] = None,
+        on_request_exit: Optional[Callable[[], None]] = None,
     ) -> None:
         self.cfg: PradoConfig = cfg or load_config()
         self.on_status_change = on_status_change
         self.on_show_window = on_show_window
         self.folder_picker_callback = folder_picker_callback
+        self.on_request_exit = on_request_exit
 
         # Sync state & real-time progress tracking
         self._sync_lock = threading.Lock()
@@ -183,6 +186,25 @@ class PradoControlCenterAPI:
         self._loaded_messages: Dict[str, Any] = {}
         self.gcalendar_enabled: bool = False
         self.gcalendar_id: str = "auto"
+
+        self._update_dl_lock = threading.Lock()
+        self._last_update_check_ts: float = 0.0
+        cur_ver = get_installed_version()
+        self.update_state: Dict[str, Any] = {
+            "available": False,
+            "current_version": cur_ver,
+            "latest_version": cur_ver,
+            "release_url": "",
+            "asset_name": "",
+            "download_url": "",
+            "asset_kind": "",
+            "notes": "",
+            "downloading": False,
+            "progress_pct": 0,
+            "status": "idle",
+            "downloaded_path": "",
+            "error": None,
+        }
 
         self.notifier = DesktopNotifier(app_name="PradoOS")
 
@@ -389,7 +411,7 @@ class PradoControlCenterAPI:
             portal_key = "grado"
 
         return {
-            "version": __version__,
+            "version": get_installed_version(),
             "language": self.cfg.language or "es",
             "supported_languages": list(SUPPORTED_LANGUAGES),
             "is_onboarded": is_onboarded,
@@ -439,6 +461,7 @@ class PradoControlCenterAPI:
             "deadlines": deadlines,
             "recent_files": recent_files,
             "daemon": self._daemon_cache,
+            "update": dict(self.update_state),
             "ui": {"doctor_trigger_seq": self.doctor_trigger_seq},
         }
 
@@ -1129,6 +1152,86 @@ class PradoControlCenterAPI:
     def run_doctor(self) -> Dict[str, Any]:
         return self.run_doctor_diagnostics()
 
+    def check_updates(self, force: bool = False) -> Dict[str, Any]:
+        """Checks GitHub Releases (6h TTL unless forced) for a newer PradoOS build."""
+        now_ts = time.time()
+        if not force and self._last_update_check_ts > 0 and (now_ts - self._last_update_check_ts) < 6 * 3600:
+            return dict(self.update_state)
+
+        prev_available = bool(self.update_state.get("available"))
+        cur_ver = get_installed_version()
+        res = check_for_updates(current_version=cur_ver)
+        if res.get("status") == "ok":
+            self._last_update_check_ts = now_ts
+
+        self.update_state.update({
+            "available": bool(res.get("available")),
+            "current_version": str(res.get("current_version") or cur_ver),
+            "latest_version": str(res.get("latest_version") or cur_ver),
+            "release_url": str(res.get("release_url") or ""),
+            "asset_name": str(res.get("asset_name") or ""),
+            "download_url": str(res.get("download_url") or ""),
+            "asset_kind": str(res.get("asset_kind") or ""),
+            "notes": str(res.get("notes") or ""),
+            "error": res.get("error"),
+        })
+        if not self.update_state.get("downloading") and self.update_state.get("status") in ("idle", "up_to_date", "available", "error"):
+            if res.get("status") == "error":
+                self.update_state["status"] = "error"
+            else:
+                self.update_state["status"] = "available" if self.update_state["available"] else "up_to_date"
+
+        if bool(self.update_state.get("available")) != prev_available:
+            self._set_status(self.status)
+        return dict(self.update_state)
+
+    def start_update_install(self) -> Dict[str, Any]:
+        """Downloads and installs (Windows silent Setup) or opens/reveals the update package."""
+        if not self.update_state.get("available"):
+            return {"status": "up_to_date", "update": dict(self.update_state)}
+        if not self._update_dl_lock.acquire(blocking=False):
+            return {"status": "already_downloading", "update": dict(self.update_state)}
+
+        self.update_state.update({
+            "downloading": True,
+            "progress_pct": 1,
+            "status": "downloading",
+            "downloaded_path": "",
+            "error": None,
+        })
+        info_copy = dict(self.update_state)
+
+        def _worker() -> None:
+            try:
+                def _on_prog(pct: int) -> None:
+                    self.update_state["progress_pct"] = int(pct)
+
+                res = download_and_apply_update(
+                    info_copy,
+                    on_progress=_on_prog,
+                    on_before_exit=self.on_request_exit,
+                )
+                st = str(res.get("status") or "downloaded")
+                self.update_state.update({
+                    "downloading": False,
+                    "progress_pct": 100 if st in ("downloaded", "launching_installer") else 0,
+                    "status": st,
+                    "downloaded_path": str(res.get("path") or ""),
+                    "error": res.get("error"),
+                })
+            except Exception as exc:
+                self.update_state.update({
+                    "downloading": False,
+                    "progress_pct": 0,
+                    "status": "error",
+                    "error": str(exc),
+                })
+            finally:
+                self._update_dl_lock.release()
+
+        threading.Thread(target=_worker, daemon=True).start()
+        return {"status": "started", "update": dict(self.update_state)}
+
 
 class PradoUIServer:
     """
@@ -1315,6 +1418,10 @@ class PradoUIServer:
                     )
                 elif path == "/api/window/show":
                     self._send_json(server_ref.api.show_window())
+                elif path == "/api/update/check":
+                    self._send_json(server_ref.api.check_updates(force=True))
+                elif path == "/api/update/install":
+                    self._send_json(server_ref.api.start_update_install())
                 else:
                     self._send_json({"status": "error", "error": f"Not found: {path}"}, status_code=404)
 

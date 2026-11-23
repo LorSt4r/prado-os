@@ -302,6 +302,20 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     font-weight: 500;
   }
   .form-error-banner.visible { display: block; }
+  .update-banner {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--accent-soft);
+    border: 1px solid rgba(225, 29, 72, 0.35);
+    border-radius: 10px;
+    padding: 8px 11px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .update-banner.visible { display: flex; }
   .privacy-inline-note {
     margin-top: 7px;
     padding: 7px 10px;
@@ -575,6 +589,12 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
       </div>
     </div>
 
+    <!-- Update Notification Banner (hidden until new release is found) -->
+    <div class="update-banner" id="updateBanner">
+      <span id="updateBannerText">⬆️ PradoOS update</span>
+      <button type="button" class="btn btn-primary" id="btnInstallUpdate" style="padding:6px 11px; font-size:12px; flex-shrink:0;" onclick="installAvailableUpdate()" data-i18n="btn_update_now">Actualizar ahora</button>
+    </div>
+
     <!-- Navigation Tabs -->
     <div class="card-tabs" role="tablist">
       <button type="button" class="card-tab active" id="tabBtnAccount" onclick="switchCardTab('account')" data-i18n="tab_account">Cuenta y Carpeta</button>
@@ -713,6 +733,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
         <div class="row" style="justify-content:space-between;">
           <span class="helper-text" id="lastSyncLabel">Última sinc.: --:--</span>
           <div class="row">
+            <button type="button" class="btn btn-secondary" style="padding:7px 10px; font-size:12px;" onclick="checkForUpdatesManual()" data-i18n="btn_check_updates">Actualizaciones</button>
             <button type="button" class="btn btn-secondary" style="padding:7px 12px; font-size:12px;" onclick="runQuickDoctor()" data-i18n="btn_run_doctor">Diagnóstico</button>
             <button type="button" class="btn btn-danger-ghost" id="btnLogoutQuick" style="padding:7px 12px; font-size:12px; display:none;" onclick="logoutAccount()" data-i18n="btn_logout">Cerrar sesión</button>
           </div>
@@ -809,6 +830,7 @@ let lastDoctorSeq = null;
 let lastSyncStatus = null;
 let lastSyncErrorShown = null;
 let lastNonOffAutoSyncMins = "60";
+let lastUpdateOutcomeShown = null;
 
 const I18N = {
   es: {
@@ -874,6 +896,15 @@ const I18N = {
     toast_saved_syncing: "Configuración guardada. Sincronización iniciada...",
     toast_prefs_saved: "Opciones guardadas correctamente.",
     toast_save_error: "Error al guardar la configuración",
+    update_banner_msg: "⬆️ Nueva versión v{version} lista",
+    btn_update_now: "Actualizar ahora",
+    btn_updating_pct: "Descargando ({pct}%)…",
+    btn_updating_launch: "Instalando…",
+    btn_check_updates: "Actualizaciones",
+    toast_up_to_date: "PradoOS ya está actualizado (v{version}).",
+    toast_update_downloaded: "Actualización descargada en Descargas. Ábrela para completar.",
+    toast_update_launching: "Iniciando actualizador de PradoOS...",
+    toast_update_error: "No se pudo actualizar: {error}",
     mfa_title: "Verificación en 2 Pasos (MFA UGR)",
     mfa_prompt_default: "Introduce el código de 6 dígitos enviado a tu correo @correo.ugr.es. Al confirmarlo, recordaremos este equipo durante 30 días para no pedírtelo cada vez.",
     mfa_help_hint: "Puede tardar 20–40 s y llega a Webmail UGR (webmailest.ugr.es, no a Gmail) o a Correo no deseado (o tu app Authenticator si la usas).",
@@ -954,6 +985,15 @@ const I18N = {
     toast_saved_syncing: "Configuration saved. Synchronization started...",
     toast_prefs_saved: "Preferences saved.",
     toast_save_error: "Could not save configuration",
+    update_banner_msg: "⬆️ New version v{version} ready",
+    btn_update_now: "Update now",
+    btn_updating_pct: "Downloading ({pct}%)…",
+    btn_updating_launch: "Installing…",
+    btn_check_updates: "Updates",
+    toast_up_to_date: "PradoOS is up to date (v{version}).",
+    toast_update_downloaded: "Update saved to Downloads. Open it to finish installing.",
+    toast_update_launching: "Starting PradoOS updater...",
+    toast_update_error: "Update failed: {error}",
     mfa_title: "2-Step Verification (UGR MFA)",
     mfa_prompt_default: "Enter the 6-digit code sent to your @correo.ugr.es inbox. Once confirmed, this computer will be remembered for 30 days so you won't need a code every time.",
     mfa_help_hint: "Delivery can take 20–40 s to Webmail UGR (webmailest.ugr.es, not Gmail) or Spam (or your Authenticator app if enabled).",
@@ -1034,6 +1074,15 @@ const I18N = {
     toast_saved_syncing: "Configurazione salvata. Sincronizzazione avviata...",
     toast_prefs_saved: "Opzioni salvate correttamente.",
     toast_save_error: "Impossibile salvare la configurazione",
+    update_banner_msg: "⬆️ Nuova versione v{version} pronta",
+    btn_update_now: "Aggiorna ora",
+    btn_updating_pct: "Scaricamento ({pct}%)…",
+    btn_updating_launch: "Installazione…",
+    btn_check_updates: "Aggiornamenti",
+    toast_up_to_date: "PradoOS è già aggiornato (v{version}).",
+    toast_update_downloaded: "Aggiornamento salvato in Download. Aprilo per completare.",
+    toast_update_launching: "Avvio dell'installer PradoOS...",
+    toast_update_error: "Aggiornamento non riuscito: {error}",
     mfa_title: "Verifica in 2 Passaggi (MFA UGR)",
     mfa_prompt_default: "Inserisci il codice a 6 cifre inviato alla tua email @correo.ugr.es. Una volta confermato, ricorderemo questo PC per 30 giorni così non dovrai reinserire il codice ogni volta.",
     mfa_help_hint: "Può impiegare 20–40 s e arriva su Webmail UGR (webmailest.ugr.es, non su Gmail) o nello Spam (o sull'app Authenticator se attiva).",
@@ -1114,6 +1163,15 @@ const I18N = {
     toast_saved_syncing: "Configuration enregistrée. Synchronisation en cours...",
     toast_prefs_saved: "Options enregistrées.",
     toast_save_error: "Erreur lors de l'enregistrement",
+    update_banner_msg: "⬆️ Nouvelle version v{version} prête",
+    btn_update_now: "Mettre à jour",
+    btn_updating_pct: "Téléchargement ({pct}%)…",
+    btn_updating_launch: "Installation…",
+    btn_check_updates: "Mises à jour",
+    toast_up_to_date: "PradoOS est déjà à jour (v{version}).",
+    toast_update_downloaded: "Mise à jour enregistrée dans Téléchargements.",
+    toast_update_launching: "Lancement de la mise à jour PradoOS...",
+    toast_update_error: "Échec de mise à jour : {error}",
     mfa_title: "Validation en 2 Étapes (MFA UGR)",
     mfa_prompt_default: "Saisissez le code à 6 chiffres envoyé à @correo.ugr.es. Une fois confirmé, cet ordinateur sera mémorisé pendant 30 jours pour ne plus le redemander à chaque fois.",
     mfa_help_hint: "L'envoi peut prendre 20–40 s vers Webmail UGR (webmailest.ugr.es, pas Gmail) ou les indésirables (ou votre app Authenticator).",
@@ -1633,6 +1691,43 @@ function renderStateText(st) {
     badgeConn.className = bClass;
     badgeConn.textContent = bText;
   }
+
+  const updBanner = document.getElementById("updateBanner");
+  const updText = document.getElementById("updateBannerText");
+  const updBtn = document.getElementById("btnInstallUpdate");
+  const upd = st.update || {};
+  if (updBanner && updText && updBtn) {
+    if (upd.available) {
+      updBanner.classList.add("visible");
+      updText.textContent = (dict.update_banner_msg || "⬆️ v{version}").replace("{version}", String(upd.latest_version || ""));
+      if (upd.downloading) {
+        updBtn.disabled = true;
+        const pct = Number(upd.progress_pct || 0);
+        updBtn.textContent = (dict.btn_updating_pct || "Downloading ({pct}%)…").replace("{pct}", String(pct));
+      } else if (upd.status === "launching_installer") {
+        updBtn.disabled = true;
+        updBtn.textContent = dict.btn_updating_launch || "Installing…";
+      } else {
+        updBtn.disabled = false;
+        updBtn.textContent = dict.btn_update_now || "Update now";
+      }
+    } else {
+      updBanner.classList.remove("visible");
+    }
+    const outcomeKey = upd.status ? `${upd.status}:${upd.latest_version || ""}:${upd.error || ""}` : "";
+    if (outcomeKey && outcomeKey !== lastUpdateOutcomeShown) {
+      if (upd.status === "downloaded") {
+        lastUpdateOutcomeShown = outcomeKey;
+        showToast(dict.toast_update_downloaded || "Downloaded");
+      } else if (upd.status === "launching_installer") {
+        lastUpdateOutcomeShown = outcomeKey;
+        showToast(dict.toast_update_launching || "Launching installer...");
+      } else if (upd.status === "error" && upd.error && upd.available) {
+        lastUpdateOutcomeShown = outcomeKey;
+        showToast((dict.toast_update_error || "{error}").replace("{error}", String(upd.error)));
+      }
+    }
+  }
 }
 
 function _formatAutoSyncFreq(mins, lang) {
@@ -1701,6 +1796,25 @@ async function openFolderFromSyncDone() {
 async function openDashboardFromSyncDone() {
   closeSyncDoneModal();
   await apiPost("/api/dashboard/open", {});
+}
+
+async function checkForUpdatesManual() {
+  const dict = I18N[currentLang] || I18N.es;
+  const res = await apiPost("/api/update/check", {});
+  refreshState();
+  if (res.available) {
+    showToast((dict.update_banner_msg || "⬆️ v{version}").replace("{version}", String(res.latest_version || "")));
+  } else if (res.error) {
+    showToast((dict.toast_update_error || "{error}").replace("{error}", String(res.error)));
+  } else {
+    showToast((dict.toast_up_to_date || "v{version}").replace("{version}", String(res.current_version || "")));
+  }
+}
+
+async function installAvailableUpdate() {
+  lastUpdateOutcomeShown = null;
+  await apiPost("/api/update/install", {});
+  refreshState();
 }
 
 async function refreshState() {

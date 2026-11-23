@@ -13,6 +13,7 @@ Zero terminal required for students!
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 import platform
@@ -54,6 +55,7 @@ def collect_pyinstaller_args(
         "prado.ui.icon",
         "prado.ui.autostart",
         "prado.ui.instance",
+        "prado.ui.updater",
         "prado.i18n",
         "prado.config",
         "prado.cli",
@@ -132,6 +134,16 @@ def _resolve_app_version(repo_root: Path) -> str:
         return "0.2.0"
 
 
+def _resolve_release_tag(repo_root: Path) -> str:
+    env_tag = os.environ.get("PRADO_RELEASE_TAG", "").strip()
+    if env_tag:
+        return env_tag
+    gh_ref = os.environ.get("GITHUB_REF_NAME", "").strip()
+    if gh_ref.lower().startswith("v"):
+        return gh_ref
+    return f"v{_resolve_app_version(repo_root)}"
+
+
 def build() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         try:
@@ -176,6 +188,13 @@ def build() -> int:
 
     # 3. Determine platform-specific PyInstaller imports and runtime data
     app_version = _resolve_app_version(repo_root)
+    release_tag = _resolve_release_tag(repo_root)
+    build_dir.mkdir(parents=True, exist_ok=True)
+    build_info_file = build_dir / "prado_build.json"
+    build_info_file.write_text(
+        json.dumps({"release_tag": release_tag, "version": release_tag.lstrip("vV")}),
+        encoding="utf-8",
+    )
     cmd = [
         sys.executable,
         "-m",
@@ -184,6 +203,7 @@ def build() -> int:
         "--windowed",
         "--noconfirm",
         "--clean",
+        f"--add-data={build_info_file}{os.pathsep}.",
         *collect_pyinstaller_args(repo_root=repo_root),
     ]
 

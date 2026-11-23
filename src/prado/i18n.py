@@ -574,6 +574,36 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "it": "Salva allegato: {filename}",
         "fr": "Enregistrer la pièce jointe : {filename}",
     },
+    "tray_check_updates": {
+        "es": "🔄 Buscar actualizaciones…",
+        "en": "🔄 Check for updates…",
+        "it": "🔄 Controlla aggiornamenti…",
+        "fr": "🔄 Vérifier les mises à jour…",
+    },
+    "tray_update_available": {
+        "es": "⬆️ Actualizar a v{version}",
+        "en": "⬆️ Update to v{version}",
+        "it": "⬆️ Aggiorna a v{version}",
+        "fr": "⬆️ Mettre à jour vers v{version}",
+    },
+    "tray_update_notif_title": {
+        "es": "PradoOS — Actualización disponible",
+        "en": "PradoOS — Update Available",
+        "it": "PradoOS — Aggiornamento disponibile",
+        "fr": "PradoOS — Mise à jour disponible",
+    },
+    "tray_update_notif_msg": {
+        "es": "Nueva versión v{version} lista. Abre PradoOS para actualizar con 1 clic.",
+        "en": "New version v{version} is ready. Open PradoOS to update in 1 click.",
+        "it": "Nuova versione v{version} pronta. Apri PradoOS per aggiornare con 1 clic.",
+        "fr": "Nouvelle version v{version} prête. Ouvrez PradoOS pour mettre à jour en 1 clic.",
+    },
+    "tray_up_to_date": {
+        "es": "PradoOS ya está actualizado (v{version}).",
+        "en": "PradoOS is up to date (v{version}).",
+        "it": "PradoOS è già aggiornato (v{version}).",
+        "fr": "PradoOS est déjà à jour (v{version}).",
+    },
 }
 
 

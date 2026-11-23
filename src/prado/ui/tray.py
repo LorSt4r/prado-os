@@ -100,6 +100,7 @@ from prado.ui.dialogs import open_file, open_folder, open_url, prompt_login_gui
 from prado.ui.icon import create_tray_icon
 from prado.ui.instance import SingleInstanceGuard
 from prado.ui.server import PradoControlCenterAPI, PradoUIServer, parse_deadlines_from_ics
+from prado.ui.updater import get_installed_version
 
 
 def _log_desktop_error(context: str, exc: BaseException) -> None:
@@ -165,6 +166,7 @@ class PradoTrayApp:
             on_status_change=self._on_api_status_change,
             on_show_window=self._show_existing_window,
             folder_picker_callback=self._pick_folder_webview,
+            on_request_exit=self.stop,
         )
         self.server: Optional[PradoUIServer] = None
         self.window: Optional[Any] = None
@@ -514,6 +516,22 @@ class PradoTrayApp:
     # Main System Tray Menu Construction (<= 10 top-level items per desktop HIG)
     # -------------------------------------------------------------------------
     def _build_help_submenu(self, lang: str) -> pystray.Menu:
+        update_info = getattr(self.api, "update_state", {}) or {}
+        if update_info.get("available"):
+            update_item = pystray.MenuItem(
+                t(
+                    "tray_update_available",
+                    lang,
+                    version=str(update_info.get("latest_version") or ""),
+                ),
+                self._on_install_update_from_tray,
+            )
+        else:
+            update_item = pystray.MenuItem(
+                t("tray_check_updates", lang),
+                self._on_check_updates,
+            )
+
         return pystray.Menu(
             pystray.MenuItem(
                 t("tray_auto_sync", lang),
@@ -534,12 +552,13 @@ class PradoTrayApp:
                 t("tray_doctor", lang),
                 self._on_run_doctor,
             ),
+            update_item,
             pystray.MenuItem(
                 t("tray_github", lang),
                 self._on_open_github,
             ),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem(f"PradoOS v{__version__}", action=None, enabled=False),
+            pystray.MenuItem(f"PradoOS v{get_installed_version()}", action=None, enabled=False),
         )
 
     def _build_menu(self) -> pystray.Menu:
@@ -721,6 +740,45 @@ class PradoTrayApp:
 
         threading.Thread(target=_worker, daemon=True).start()
 
+    def _check_updates_background(self) -> None:
+        if os.environ.get("PYTEST_CURRENT_TEST") or is_headless_environment():
+            return
+        for _ in range(40):
+            if not self._running:
+                return
+            time.sleep(0.1)
+        res = self.api.check_updates(force=False)
+        if not self._running:
+            return
+        if res.get("available"):
+            self._refresh_tray_ui()
+            if self.cfg.notifications.enabled:
+                lang = self.cfg.language or "es"
+                ver = str(res.get("latest_version") or "")
+                self.notifier.notify(
+                    title=t("tray_update_notif_title", lang),
+                    message=t("tray_update_notif_msg", lang, version=ver),
+                )
+
+    def _on_check_updates(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        def _worker() -> None:
+            lang = self.cfg.language or "es"
+            res = self.api.check_updates(force=True)
+            self._refresh_tray_ui()
+            if res.get("available"):
+                self.open_control_center("settings")
+            elif self.cfg.notifications.enabled:
+                self.notifier.notify(
+                    title="PradoOS",
+                    message=t("tray_up_to_date", lang, version=str(res.get("current_version") or get_installed_version())),
+                )
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _on_install_update_from_tray(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
+        self.open_control_center("settings")
+        self.api.start_update_install()
+
     def _on_toggle_notifications(self, icon: Optional[pystray.Icon] = None, item: Any = None) -> None:
         self.cfg.notifications.enabled = not self.cfg.notifications.enabled
         save_config(self.cfg)
@@ -881,6 +939,9 @@ class PradoTrayApp:
 
         # 3. Start background auto-sync timer thread
         threading.Thread(target=self._auto_sync_loop, daemon=True).start()
+
+        if not detached and not is_headless_environment() and not os.environ.get("PYTEST_CURRENT_TEST"):
+            threading.Thread(target=self._check_updates_background, daemon=True).start()
 
         if detached:
             self.icon.run_detached()

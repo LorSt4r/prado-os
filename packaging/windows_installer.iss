@@ -13,6 +13,9 @@ DefaultDirName={localappdata}\PradoOS
 DefaultGroupName=PradoOS
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
+AppMutex=Local\PradoOS_Desktop_SingleInstance
+CloseApplications=force
+RestartApplications=no
 OutputDir=..\dist
 OutputBaseFilename=PradoOS-Setup
 SetupIconFile=..\assets\icon.ico
@@ -40,3 +43,13 @@ Name: "{autodesktop}\PradoOS"; Filename: "{app}\PradoOS.exe"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\PradoOS.exe"; Description: "{cm:LaunchProgram,PradoOS}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\PradoOS.exe"; Flags: nowait skipifnotsilent
+
+[Code]
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  Result := '';
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM PradoOS.exe /T /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
